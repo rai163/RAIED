@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CDU Shutter Animation on Local Image</title>
+<style>
+background: url('image001.jpeg') no-repeat center/contain;
+  body {
+    background: #f0f0f0;
+    margin: 0;
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 0;
+  }
+  .container {
+    position: relative;
+    width: 700px; /* Adjust this width if your image is significantly different */
+    height: 700px; /* Adjust this height if your image is significantly different */
+    background: url('image001.jpeg') no-repeat center/contain;
+    /* !!! IMPORTANT: Replace 'your_cdu_image.jpg' with the actual filename of your image !!! */
+    border: 2px solid #ccc;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  }
+  .shutters-overlay {
+    position: absolute;
+    bottom: 130px; /* Adjust this value to align with the bottom of the blue shutter in your image */
+    left: 180px;   /* Adjust this value to align with the left of the blue shutter in your image */
+    width: 340px;  /* Adjust this width to cover the blue shutter area in your image */
+    height: 80px;  /* Adjust this height to match the desired shutter height */
+    display: flex;
+    gap: 0;
+  }
+  .shutter {
+    width: 85px; /* (shutters-overlay width / 4) - (border * 2) */
+    height: 80px;
+    background: linear-gradient(180deg, #2f7bff, #00d4ff); /* Blue gradient to match original shutter */
+    border: 2px solid #004a99;
+    border-radius: 8px;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
+    transform: translateY(80px); /* Start hidden below (equal to shutter height) */
+    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .controls {
+    margin-top: 20px;
+    width: 700px; /* Match container width for alignment */
+    text-align: center;
+  }
+  button {
+    background: #2f7bff;
+    border: none;
+    color: white;
+    padding: 12px 24px;
+    font-size: 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  button:hover {
+    background: #005fcc;
+  }
+</style>
+</head>
+<body>
+
+<div class="container" aria-label="CDU with metal frame and sliding shutters">
+  <div class="shutters-overlay" id="shuttersOverlay">
+    <div class="shutter" aria-label="Shutter panel 1"></div>
+    <div class="shutter" aria-label="Shutter panel 2"></div>
+    <div class="shutter" aria-label="Shutter panel 3"></div>
+    <div class="shutter" aria-label="Shutter panel 4"></div>
+  </div>
+</div>
+
+<div class="controls">
+  <button id="toggleBtn" type="button" aria-pressed="false">Open Shutters</button>
+</div>
+
+<script>
+  const shutters = document.querySelectorAll('.shutter');
+  const toggleBtn = document.getElementById('toggleBtn');
+  let open = false;
+
+  toggleBtn.addEventListener('click', () => {
+    open = !open;
+    shutters.forEach(shutter => {
+      // translateY(0) means fully open, translateY(80px) means fully hidden (shutter height)
+      shutter.style.transform = open ? 'translateY(0)' : 'translateY(80px)';
+    });
+    toggleBtn.textContent = open ? 'Close Shutters' : 'Open Shutters';
+    toggleBtn.setAttribute('aria-pressed', open);
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>RAIED - Shutter Layer Editor | 8 Shutter Types</title>
+    <style>
+        * { box-sizing: border-box; user-select: none; }
+        body { margin: 0; padding: 8px; font-family: 'Segoe UI', Roboto, sans-serif; background: linear-gradient(145deg, #f4f8fd 0%, #eaf0f8 100%); color: #1a2c3e; height: 100vh; overflow: hidden; }
+        .dashboard { max-width: 2000px; margin: 0 auto; height: 100%; display: flex; flex-direction: column; gap: 6px; }
+        
+        .header { flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0; gap: 8px; }
+        .title-section h1 { font-size: 0.85rem; margin: 0 0 2px 0; border-left: 3px solid #1f5fb8; padding-left: 10px; }
+        .title-section .subtitle { color: #2c4b6e; margin: 0; padding-left: 10px; font-size: 0.5rem; }
+        .header-buttons { display: flex; gap: 8px; }
+        .cost-btn, .specs-btn { padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 0.65rem; color: white; cursor: pointer; border: none; }
+        .cost-btn { background: linear-gradient(135deg, #1f5fb8, #153e75); }
+        .specs-btn { background: linear-gradient(135deg, #2d6a4f, #1b4d3d); }
+        
+        .defense-wall-section {
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #1a2c3e 0%, #0f1a24 100%);
+            border-radius: 10px;
+            padding: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .damage-scale-guide {
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 5px 8px;
+            margin-bottom: 6px;
+            border: 1px solid #334155;
+        }
+        .damage-scale-title { font-size: 0.5rem; color: #94a3b8; text-align: center; margin-bottom: 4px; }
+        .damage-scale-bar { display: flex; height: 16px; border-radius: 8px; overflow: hidden; margin-bottom: 4px; }
+        .damage-scale-segment { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 0.45rem; font-weight: bold; }
+        .damage-scale-labels { display: flex; justify-content: space-between; font-size: 0.4rem; color: #94a3b8; }
+        
+        .defense-wall-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 4px; }
+        .defense-wall-header h2 { margin: 0; font-size: 0.6rem; color: #facc15; }
+        .wall-stats { display: flex; gap: 8px; font-size: 0.45rem; color: #94a3b8; }
+        .wall-stats span { color: #facc15; font-weight: bold; }
+        
+        .visual-sequence { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 0; padding: 6px 3px; background: transparent; overflow-x: auto; overflow-y: visible; min-height: 130px; flex-wrap: nowrap; }
+        
+        .drag-element { display: inline-flex; flex-direction: column; align-items: center; flex-shrink: 0; position: relative; cursor: grab; }
+        .drag-element:active { cursor: grabbing; }
+        .shutter-wrapper { display: inline-flex; flex-direction: column; align-items: center; }
+        .sequence-canvas { width: 70px; height: 70px; background: transparent; border-radius: 0; display: block; }
+        
+        .distance-display {
+            display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+            flex-shrink: 0; background: #1e293b; border-radius: 16px; padding: 4px 8px; margin: 0 3px; min-width: 50px; cursor: pointer;
+        }
+        .distance-line { width: 25px; height: 2px; background: linear-gradient(90deg, #facc15, #f59e0b); border-radius: 2px; margin: 3px 0; }
+        .distance-value { font-size: 0.5rem; font-weight: bold; background: #0f172a; color: #facc15; padding: 2px 4px; border-radius: 12px; text-align: center; }
+        
+        .layer-container { display: inline-flex; flex-direction: row; align-items: center; gap: 4px; background: #1a2c3e; border-radius: 12px; padding: 4px 8px; border: 1px solid #475569; }
+        .layer-container .sequence-canvas { width: 60px; height: 60px; }
+        .internal-gap-control { display: inline-flex; flex-direction: column; align-items: center; background: #0f172a; border-radius: 12px; padding: 3px 6px; cursor: pointer; }
+        .internal-gap-control .distance-value { font-size: 0.45rem; padding: 1px 3px; }
+        .missile-icon { width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-right: 3px; }
+        
+        .bottom-section { flex: 1; display: flex; gap: 8px; min-height: 0; overflow: hidden; }
+        .control-card { width: 340px; background: #ffffffdd; backdrop-filter: blur(8px); border-radius: 10px; padding: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); border: 1px solid rgba(255,255,255,0.6); overflow-y: auto; height: 100%; font-size: 0.6rem; }
+        .right-panel { flex: 1; display: flex; flex-direction: column; gap: 6px; height: 100%; overflow-y: auto; padding-right: 3px; }
+        
+        .section { border-bottom: 1px solid #dfe7ef; padding-bottom: 5px; margin-bottom: 5px; }
+        .section h3 { margin: 0 0 4px; font-size: 0.6rem; color: #1f5fb8; }
+        .input-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+        .input-group { flex: 1; min-width: 60px; }
+        label { font-size: 0.45rem; margin-bottom: 1px; color: #2c4b6e; display: block; }
+        input, select { padding: 2px 4px; border-radius: 10px; font-size: 0.55rem; width: 100%; }
+        button { padding: 2px 6px; border-radius: 16px; font-size: 0.5rem; margin: 1px 1px 0 0; cursor: pointer; }
+        
+        .distance-controls-panel { background: #eef2ff; border-radius: 8px; padding: 6px; margin-top: 6px; margin-bottom: 6px; }
+        .distance-controls-title { font-size: 0.55rem; font-weight: bold; color: #1f5fb8; text-align: center; margin-bottom: 5px; }
+        .preset-buttons { display: flex; gap: 4px; justify-content: center; margin-bottom: 6px; flex-wrap: wrap; }
+        .preset-btn { background: #475569; padding: 2px 8px; border-radius: 12px; font-size: 0.5rem; color: white; border: none; cursor: pointer; }
+        .preset-btn:hover { background: #1f5fb8; }
+        .gap-control-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; font-size: 0.5rem; }
+        .gap-control-row button { background: #3b82f6; padding: 2px 8px; font-size: 0.45rem; margin: 0; }
+        
+        .element-list { max-height: 100px; overflow-y: auto; }
+        .element-item { padding: 2px 5px; font-size: 0.5rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .element-item.selected { background: #d1fae5; border: 1px solid #10b981; }
+        .element-item button { background: #ef4444; border: none; border-radius: 12px; padding: 0px 6px; cursor: pointer; color: white; }
+        
+        .quick-btn { width: 18px; height: 18px; font-size: 0.65rem; border: none; border-radius: 50%; cursor: pointer; }
+        .quick-btn.minus { background: #dc2626; color: white; }
+        .quick-btn.plus { background: #10b981; color: white; }
+        .quick-count { font-size: 0.65rem; min-width: 22px; text-align: center; }
+        
+        .stats { display: grid; grid-template-columns: repeat(5,1fr); gap: 4px; margin-bottom: 8px; background: white; border-radius: 8px; padding: 6px; }
+        .stat-box { background: #f8fafc; border-radius: 8px; padding: 4px; text-align: center; }
+        .stat-box small { font-size: 0.45rem; color: #6b8aaa; display: block; }
+        .stat-box .value { font-size: 0.6rem; font-weight: 800; color: #1f5fb8; }
+        
+        .damage-table-panel { background: #f8fafc; border-radius: 8px; padding: 4px; margin-bottom: 4px; }
+        .damage-table-panel h3 { font-size: 0.5rem; margin: 0 0 3px; text-align: center; }
+        /* ===== FIX: increased font size and padding ===== */
+        .damage-table { width: 100%; border-collapse: collapse; font-size: 0.7rem; }
+        .damage-table th, .damage-table td { border: 1px solid #cbd5e1; padding: 4px 6px; text-align: center; }
+        
+        .offset-control { background: #eef2ff; border-radius: 8px; padding: 4px; margin-top: 4px; text-align: center; }
+        .offset-control input { width: 40px; font-size: 0.5rem; }
+        .offset-row { display: flex; justify-content: center; gap: 6px; margin-top: 3px; flex-wrap: wrap; }
+        
+        .drag-instruction { font-size: 0.4rem; padding: 3px; margin-top: 3px; text-align: center; background: #1e293b; color: #facc15; border-radius: 8px; }
+        .btn-small { background: #475569; padding: 1px 5px; font-size: 0.45rem; color: white; border: none; border-radius: 12px; cursor: pointer; }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: linear-gradient(135deg, #f0f4f9, #e8edf5);
+            border-radius: 16px;
+            padding: 15px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            border: 2px solid #1f5fb8;
+        }
+        .modal-content h3 { margin: 0 0 10px; color: #1f5fb8; text-align: center; font-size: 1rem; }
+        .modal-content .spec-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #cbd5e1; font-size: 0.7rem; }
+        .close-modal { display: block; width: 100%; background: #1f5fb8; color: white; border: none; padding: 8px; border-radius: 20px; margin-top: 12px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+<div class="dashboard">
+    <div class="header">
+        <div class="title-section">
+            <h1>🛡️ RAIED - Defense System Layer Editor</h1>
+            <div class="subtitle">Drag Shutters/Layers | 0.1m Steps | 8 Shutter Types</div>
+        </div>
+        <div class="header-buttons">
+            <button class="specs-btn" id="showSpecsBtn">📐 MATERIAL SPECS</button>
+            <button class="cost-btn" id="showCostBtn">💰 COST/BENEFIT</button>
+        </div>
+    </div>
+    
+    <div class="defense-wall-section">
+        <div class="damage-scale-guide">
+            <div class="damage-scale-title">📊 DAMAGE SCALE (0.0 = No Damage → 5.0 = Complete)</div>
+            <div class="damage-scale-bar">
+                <div class="damage-scale-segment" style="background:#d1fae5;">SA</div>
+                <div class="damage-scale-segment" style="background:#fef9c3;">0.3</div>
+                <div class="damage-scale-segment" style="background:#fde047;">0.5</div>
+                <div class="damage-scale-segment" style="background:#facc15;">0.8</div>
+                <div class="damage-scale-segment" style="background:#eab308;">1.2</div>
+                <div class="damage-scale-segment" style="background:#ca8a04;color:white;">1.5</div>
+                <div class="damage-scale-segment" style="background:#fed7aa;">1.8</div>
+                <div class="damage-scale-segment" style="background:#fdba74;">2.1</div>
+                <div class="damage-scale-segment" style="background:#fb923c;color:white;">2.4</div>
+                <div class="damage-scale-segment" style="background:#f97316;color:white;">2.7</div>
+                <div class="damage-scale-segment" style="background:#ea580c;color:white;">3.0</div>
+                <div class="damage-scale-segment" style="background:#fca5a5;">3.5</div>
+                <div class="damage-scale-segment" style="background:#f87171;color:white;">4.2</div>
+                <div class="damage-scale-segment" style="background:#ef4444;color:white;">5.0+</div>
+            </div>
+        </div>
+        
+        <div class="defense-wall-header">
+            <h2>🎯 DEFENSE WALL <span style="font-size:0.5rem;">(← DRAG →)</span></h2>
+            <div class="wall-stats">
+                <div>📄 Shutters: <span id="wallSheetCount">0</span></div>
+                <div>🧱 Layers: <span id="wallLayerCount">0</span></div>
+                <div>💥 Plates: <span id="wallTotalCount">0</span></div>
+            </div>
+        </div>
+        <div id="visualSequenceContainer" class="visual-sequence"></div>
+        <div class="drag-instruction">🔴 DRAG any shutter or entire layer → Gap changes! (0.1m steps) 🔴</div>
+    </div>
+    
+    <div class="bottom-section">
+        <div class="control-card">
+            <div class="section">
+                <h3>⚡ THREAT</h3>
+                <div class="input-row">
+                    <div class="input-group"><label>Mass (kg)</label><input type="number" id="mass" value="40" step="1"></div>
+                    <div class="input-group"><label>Velocity (m/s)</label><input type="number" id="velocity" value="250" step="1"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>🛡️ SHUTTER TYPE — 8 OPTIONS</h3>
+                <select id="shutterType">
+                    <option value="standard">📄 Standard SS304 (1.0× | 7,930 kg/m³ | $2.80/kg)</option>
+                    <option value="sloped">📐 Sloped 30° (1.4× | 7,930 kg/m³ | $2.80/kg)</option>
+                    <option value="corrugated">〰️ Corrugated (1.8× | 7,930 kg/m³ | $2.80/kg)</option>
+                    <option value="composite" selected>🛡️ Composite (3.0× | 4,500 kg/m³ | $8.50/kg) — RECOMMENDED</option>
+                    <option value="reactive">💥 Reactive (5.0× | 5,000 kg/m³ | $15.00/kg)</option>
+                    <option value="uhpc">🪨 UHPC / Ductal® (2.2× | 2,800 kg/m³ | $1.20/kg)</option>
+                    <option value="ceramic">🔷 Ceramic-Faced (4.0× | 3,700 kg/m³ | $25.00/kg)</option>
+                    <option value="nanocomposite">⚡ CNT Nanocomposite (6.0× | 1,600 kg/m³ | $120.00/kg)</option>
+                </select>
+                <div class="input-group"><label>Thickness (mm)</label><input type="number" id="globalThickness" value="8" step="1" min="4" max="100"></div>
+            </div>
+
+            <div class="section">
+                <h3>🏗️ QUICK BUILD</h3>
+                <div style="display: flex; gap: 6px;">
+                    <div style="flex:1; text-align:center;">
+                        <label>SHUTTERS</label>
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
+                            <button class="quick-btn minus" id="removeSheetQuick">−</button>
+                            <span class="quick-count" id="sheetCountDisplay">0</span>
+                            <button class="quick-btn plus" id="addSheetQuick">+</button>
+                        </div>
+                    </div>
+                    <div style="flex:1; text-align:center;">
+                        <label>LAYERS (2 sheets)</label>
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
+                            <button class="quick-btn minus" id="removeLayerQuick">−</button>
+                            <span class="quick-count" id="layerCountDisplay">0</span>
+                            <button class="quick-btn plus" id="addLayerQuick">+</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="distance-controls-panel">
+                <div class="distance-controls-title">📏 DISTANCE CONTROLS (0.1m steps)</div>
+                <div class="preset-buttons">
+                    <button class="preset-btn" data-gap="0.5">0.5m</button>
+                    <button class="preset-btn" data-gap="1.0">1.0m</button>
+                    <button class="preset-btn" data-gap="2.0">2.0m</button>
+                    <button class="preset-btn" data-gap="3.0">3.0m</button>
+                    <button class="preset-btn" data-gap="5.0">5.0m</button>
+                </div>
+                <div class="gap-control-row">
+                    <label>Gap between elements:</label>
+                    <div>
+                        <button id="gapDecBtn" style="background:#dc2626;">−0.1</button>
+                        <input type="number" id="gapValue" value="1.0" step="0.1" min="0.5" max="5.0" style="width:60px;">
+                        <button id="gapIncBtn" style="background:#10b981;">+0.1</button>
+                        <button id="applyGapBtn" style="background:#1f5fb8;">Apply</button>
+                    </div>
+                </div>
+                <div class="gap-control-row">
+                    <label>Layer internal gap:</label>
+                    <div>
+                        <button id="intGapDecBtn" style="background:#dc2626;">−0.1</button>
+                        <input type="number" id="intGapValue" value="1.0" step="0.1" min="0.5" max="5.0" style="width:60px;">
+                        <button id="intGapIncBtn" style="background:#10b981;">+0.1</button>
+                        <button id="applyIntGapBtn" style="background:#1f5fb8;">Apply to selected</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>🔧 ELEMENT EDITOR</h3>
+                <div id="elementListContainer" class="element-list" style="max-height:100px;"></div>
+                <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px;">
+                    <button id="resetCustomBtn" class="btn-small">⟳ Reset</button>
+                    <button id="clearAllBtn" class="btn-small" style="background:#ef4444;">🗑️ Clear</button>
+                    <button id="selectFirstBtn" class="btn-small" style="background:#3b82f6;">Select First</button>
+                </div>
+                <div id="selectedElementDisplay" style="font-size:0.45rem; margin-top:4px; text-align:center; background:#eef2ff; padding:2px; border-radius:6px;">
+                    No element selected
+                </div>
+            </div>
+
+            <div class="offset-control">
+                <div><strong>🎯 Damage Offset</strong> X: <input type="number" id="offsetX" value="15" step="5"> Y: <input type="number" id="offsetY" value="10" step="5"></div>
+                <div class="offset-row">
+                    <button id="centerBtn">Center</button>
+                    <button id="resetOffsetBtn">Default</button>
+                    <button id="refreshBtn">⟳ Update</button>
+                    <button id="exportBtn" style="background:#2d6a4f;">📋 Export</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="stats">
+                <div class="stat-box"><small>IMEA (MJ)</small><div class="value" id="imea">–</div></div>
+                <div class="stat-box"><small>EMEA (MJ)</small><div class="value" id="emea">–</div></div>
+                <div class="stat-box"><small>Absorbed (MJ)</small><div class="value" id="totalAbsorbed">–</div></div>
+                <div class="stat-box"><small>Eff Thick (mm)</small><div class="value" id="effectiveThick">–</div></div>
+                <div class="stat-box"><small>MJ Capacity</small><div class="value" id="mjCapacity">–</div></div>
+            </div>
+
+            <div class="damage-table-panel">
+                <h3 id="tableTitle">📊 Damage Lookup (× multiplier)</h3>
+                <table class="damage-table" id="damageLookupTable">
+                    <thead><tr><th>mm</th><th>0.5</th><th>1.0</th><th>2.0</th><th>3.5</th><th>5.0</th><th>8.0</th><th>12</th></tr></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- COST MODAL -->
+<div id="costModal" class="modal"><div class="modal-content"><h3>💰 COST / BENEFIT ANALYSIS</h3><div id="modalCostAnalysis"></div><button class="close-modal" id="closeCostModalBtn">Close</button></div></div>
+<div id="specsModal" class="modal"><div class="modal-content"><h3>📐 MATERIAL SPECIFICATIONS</h3><div id="modalSpecsContent"></div><button class="close-modal" id="closeSpecsModalBtn">Close</button></div></div>
+
+<script>
+    const SHUTTER_IMG = "https://www.dropbox.com/scl/fi/zcc1vab374gay58tf16vr/Shutter-without-background.png?rlkey=fs9l8rrs73q299pqdu3tfwlq9&st=sadrt2bb&raw=1";
+    const MISSILE_IMG = "https://dl.dropboxusercontent.com/scl/fi/2i2exxz0i0tbp03s912dj/Missile-Mass-20-Kg.png?rlkey=37jxbmc814pshahpq0th2w8ih&st=hjk3j0co&raw=1";
+    
+    let defenseElements = [];
+    let shutterImage = null;
+    let elementOffsets = [];
+    let isDragging = false;
+    let draggedElementIndex = null;
+    let dragStartX = 0;
+    let dragStartGap = 0;
+    let dragStartOffset = 0;
+    let selectedElementIndex = 0;
+    const MIN_GAP = 0.5;
+    const MAX_GAP = 5.0;
+    const STEP = 0.1;
+    
+    function clampGap(v) { let clamped = Math.max(MIN_GAP, Math.min(MAX_GAP, v)); return Math.round(clamped * 10) / 10; }
+    
+    // 8 SHUTTER TYPES with complete data
+    const shutterTypesData = {
+        standard: { multiplier: 1.0, name: "Standard SS304", density: 7930, pricePerKg: 2.80, fabrication: 1.3, maintenance: 8, description: "Austenitic stainless steel, excellent corrosion resistance, 515 MPa yield strength" },
+        sloped: { multiplier: 1.4, name: "Sloped 30°", density: 7930, pricePerKg: 2.80, fabrication: 1.5, maintenance: 9, description: "Angled steel plate, 30° slope for improved ballistic deflection" },
+        corrugated: { multiplier: 1.8, name: "Corrugated Steel", density: 7930, pricePerKg: 2.80, fabrication: 1.8, maintenance: 12, description: "Corrugated profile increases stiffness by 3.5× vs flat plate" },
+        composite: { multiplier: 3.0, name: "Composite Armor", density: 4500, pricePerKg: 8.50, fabrication: 2.5, maintenance: 20, description: "Steel-faced + ceramic core + polymer backing" },
+        reactive: { multiplier: 5.0, name: "Reactive Armor", density: 5000, pricePerKg: 15.00, fabrication: 3.5, maintenance: 45, description: "Explosive Reactive Armor (ERA) with PBX/C4 layer" },
+        uhpc: { multiplier: 2.2, name: "UHPC / Ductal®", density: 2800, pricePerKg: 1.20, fabrication: 2.0, maintenance: 5, description: "Ultra-High Performance Concrete with steel fibers, 180-220 MPa compressive strength" },
+        ceramic: { multiplier: 4.0, name: "Ceramic-Faced Armor", density: 3700, pricePerKg: 25.00, fabrication: 3.0, maintenance: 15, description: "Al₂O₃ or SiC ceramic tiles bonded to aluminum backing" },
+        nanocomposite: { multiplier: 6.0, name: "CNT Nanocomposite", density: 1600, pricePerKg: 120.00, fabrication: 5.0, maintenance: 8, description: "Carbon Nanotube-reinforced epoxy with ceramic and aramid layers" }
+    };
+    
+    function getShutterMultiplier() { return shutterTypesData[document.getElementById('shutterType').value]?.multiplier || 3.0; }
+    function getShutterKey() { return document.getElementById('shutterType').value; }
+    function getShutterData() { return shutterTypesData[getShutterKey()]; }
+    
+    function getThreatEnergy() { return 0.5 * parseFloat(document.getElementById('mass').value) * Math.pow(parseFloat(document.getElementById('velocity').value), 2) / 1000000; }
+    
+    function calculateShutterDamage(absolutePlateIndex, gapValue) {
+        const imea = getThreatEnergy();
+        const multiplier = getShutterMultiplier();
+        const thick = parseFloat(document.getElementById('globalThickness').value);
+        const effectiveThick = thick * multiplier;
+        const capacity = effectiveThick * 0.1;
+        const alphaS = 0.98;
+        const gapEffect = 1 + (gapValue - 1) * 0.15;
+        let remaining = imea;
+        let plateIdx = 0;
+        
+        for (let elemIdx = 0; elemIdx < defenseElements.length; elemIdx++) {
+            const el = defenseElements[elemIdx];
+            if (el.type === 'sheet') {
+                if (plateIdx === absolutePlateIndex) {
+                    const ratio = remaining / capacity;
+                    let thisAbsorbed = ratio <= 1.0 ? remaining * 0.85 * alphaS : capacity * alphaS;
+                    return thisAbsorbed / capacity;
+                }
+                const ratio = remaining / capacity;
+                let thisAbsorbed = ratio <= 1.0 ? remaining * 0.85 * alphaS : capacity * alphaS;
+                remaining = Math.max(0, (remaining - thisAbsorbed) * gapEffect);
+                plateIdx++;
+            } else if (el.type === 'layer') {
+                if (plateIdx === absolutePlateIndex) {
+                    const ratio = remaining / capacity;
+                    let thisAbsorbed = ratio <= 1.0 ? remaining * 0.85 * alphaS : capacity * alphaS;
+                    return thisAbsorbed / capacity;
+                }
+                const ratio1 = remaining / capacity;
+                let absorbed1 = ratio1 <= 1.0 ? remaining * 0.85 * alphaS : capacity * alphaS;
+                let afterFirst = Math.max(0, remaining - absorbed1);
+                const intGapEffect = 1 + (el.intGap - 1) * 0.15;
+                afterFirst = afterFirst * intGapEffect;
+                plateIdx++;
+                if (plateIdx === absolutePlateIndex) {
+                    const ratio2 = afterFirst / capacity;
+                    let absorbed2 = ratio2 <= 1.0 ? afterFirst * 0.85 * alphaS : capacity * alphaS;
+                    return absorbed2 / capacity;
+                }
+                const ratio2 = afterFirst / capacity;
+                let absorbed2 = ratio2 <= 1.0 ? afterFirst * 0.85 * alphaS : capacity * alphaS;
+                let afterSecond = Math.max(0, afterFirst - absorbed2);
+                remaining = afterSecond * gapEffect;
+                plateIdx++;
+            }
+        }
+        return 0;
+    }
+    
+    function getDamageColor(damageValue) {
+        if (damageValue < 0.2) return '#d1fae5';
+        if (damageValue < 0.5) return '#fef9c3';
+        if (damageValue < 0.8) return '#fde047';
+        if (damageValue < 1.0) return '#facc15';
+        if (damageValue < 1.2) return '#eab308';
+        if (damageValue < 1.5) return '#ca8a04';
+        if (damageValue < 1.8) return '#fed7aa';
+        if (damageValue < 2.1) return '#fdba74';
+        if (damageValue < 2.4) return '#fb923c';
+        if (damageValue < 2.7) return '#f97316';
+        if (damageValue < 3.0) return '#ea580c';
+        if (damageValue < 3.5) return '#fca5a5';
+        if (damageValue < 4.2) return '#f87171';
+        if (damageValue < 5.0) return '#ef4444';
+        return '#dc2626';
+    }
+    
+    function drawDamageCircle(ctx, cx, cy, damageValue, offX, offY) {
+        const adjX = cx + offX;
+        const adjY = cy + offY;
+        const radius = 7 + damageValue * 5;
+        ctx.beginPath();
+        ctx.arc(adjX, adjY, radius, 0, Math.PI * 2);
+        ctx.fillStyle = getDamageColor(damageValue);
+        ctx.fill();
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.font = `bold ${8 + Math.floor(damageValue)}px "Segoe UI"`;
+        ctx.fillStyle = damageValue > 1.5 ? 'white' : '#1a2c3e';
+        let displayText = damageValue < 0.2 ? "SA" : damageValue.toFixed(1);
+        ctx.fillText(displayText, adjX - 5, adjY + 3);
+    }
+    
+    function drawSheet(ctx, w, h, damageValue, offX, offY) {
+        if (shutterImage) ctx.drawImage(shutterImage, 0, 0, w, h);
+        else { ctx.fillStyle = '#8899aa'; ctx.fillRect(0, 0, w, h); ctx.fillStyle = '#667788'; ctx.fillRect(3, 3, w-6, h-6); }
+        if (damageValue > 0.05) drawDamageCircle(ctx, w/2, h/2, damageValue, offX, offY);
+    }
+    
+    function makeCanvas(damageValue, offX, offY, size = 70) {
+        let c = document.createElement('canvas');
+        c.width = size; c.height = size;
+        c.className = 'sequence-canvas';
+        c.style.width = size + 'px';
+        c.style.height = size + 'px';
+        drawSheet(c.getContext('2d'), size, size, damageValue, offX, offY);
+        return c;
+    }
+    
+    function updateCanvas(canvas, damageValue, offX, offY, size = 70) {
+        drawSheet(canvas.getContext('2d'), size, size, damageValue, offX, offY);
+    }
+    
+    function updateAllDamageDisplays() {
+        const offX = parseFloat(document.getElementById('offsetX').value);
+        const offY = parseFloat(document.getElementById('offsetY').value);
+        const currentGap = defenseElements[0]?.gap || 1.0;
+        let plateIndex = 0;
+        for (let i = 0; i < defenseElements.length; i++) {
+            const el = defenseElements[i];
+            if (el.type === 'sheet') {
+                const damageValue = calculateShutterDamage(plateIndex, currentGap);
+                const wrapper = document.querySelector(`.drag-element[data-idx="${i}"]`);
+                if (wrapper) {
+                    const canvas = wrapper.querySelector('.sequence-canvas');
+                    if (canvas) updateCanvas(canvas, damageValue, offX, offY, 70);
+                }
+                plateIndex++;
+            } else if (el.type === 'layer') {
+                const leftDamage = calculateShutterDamage(plateIndex, currentGap);
+                const rightDamage = calculateShutterDamage(plateIndex + 1, currentGap);
+                const layerDiv = document.querySelector(`.layer-container[data-idx="${i}"]`);
+                if (layerDiv) {
+                    const leftCanvas = layerDiv.querySelector('.left-canvas');
+                    const rightCanvas = layerDiv.querySelector('.right-canvas');
+                    if (leftCanvas) updateCanvas(leftCanvas, leftDamage, offX, offY, 60);
+                    if (rightCanvas) updateCanvas(rightCanvas, rightDamage, offX, offY, 60);
+                }
+                plateIndex += 2;
+            }
+        }
+    }
+    
+    function computeEnergy() {
+        const imea = getThreatEnergy();
+        let remaining = imea;
+        const multiplier = getShutterMultiplier();
+        const thick = parseFloat(document.getElementById('globalThickness').value);
+        const effectiveThick = thick * multiplier;
+        const capacity = effectiveThick * 0.1;
+        const alphaS = 0.98;
+        const currentGap = defenseElements[0]?.gap || 1.0;
+        const gapEffect = 1 + (currentGap - 1) * 0.15;
+        for (let i = 0; i < defenseElements.length; i++) {
+            const el = defenseElements[i];
+            if (el.type === 'sheet') {
+                const ratio = remaining / capacity;
+                let thisAbsorbed = ratio <= 1.0 ? remaining * 0.85 * alphaS : capacity * alphaS;
+                remaining = Math.max(0, (remaining - thisAbsorbed) * gapEffect);
+            } else if (el.type === 'layer') {
+                const ratio1 = remaining / capacity;
+                let absorbed1 = ratio1 <= 1.0 ? remaining * 0.85 * alphaS : capacity * alphaS;
+                let afterFirst = Math.max(0, remaining - absorbed1);
+                const intGapEffect = 1 + (el.intGap - 1) * 0.15;
+                afterFirst = afterFirst * intGapEffect;
+                const ratio2 = afterFirst / capacity;
+                let absorbed2 = ratio2 <= 1.0 ? afterFirst * 0.85 * alphaS : capacity * alphaS;
+                let afterSecond = Math.max(0, afterFirst - absorbed2);
+                remaining = afterSecond * gapEffect;
+            }
+        }
+        return { imea, emea: remaining, absorbed: imea - remaining };
+    }
+    
+    function updateCostBenefitForModal() {
+        const imea = getThreatEnergy();
+        const energy = computeEnergy();
+        const multiplier = getShutterMultiplier();
+        const thick = parseFloat(document.getElementById('globalThickness').value);
+        const effectiveThick = thick * multiplier;
+        const capacity = effectiveThick * 0.1;
+        const sd = getShutterData();
+        
+        const volumeM3 = thick / 1000;
+        const weightKg = volumeM3 * sd.density;
+        const materialCost = weightKg * sd.pricePerKg;
+        const fabricationCost = materialCost * (sd.fabrication - 1);
+        const totalCostPerM2 = materialCost + fabricationCost;
+        const area = 100;
+        const totalProjectCost = totalCostPerM2 * area;
+        const annualMaintenance = sd.maintenance * area;
+        const totalTenYearCost = totalProjectCost + (annualMaintenance * 10);
+        const costPerMJ = totalCostPerM2 / capacity;
+        const absorptionPercent = (energy.absorbed / imea * 100);
+        
+        let protectionRating = energy.emea < 0.05 ? "Excellent" : energy.emea < 0.2 ? "Good" : energy.emea < imea * 0.5 ? "Fair" : "Poor";
+        let recommendation = energy.emea < 0.05 ? "✅ FULL PROTECTION - System is effective against this threat" : energy.emea < 0.2 ? "⚠️ PARTIAL PROTECTION - Consider upgrading thickness or shutter type" : "❌ NOT PROTECTED - Increase thickness or add more shutters/layers";
+        
+        const formatUSD = (num) => '$' + num.toLocaleString(undefined, {maximumFractionDigits: 0});
+        
+        document.getElementById('modalCostAnalysis').innerHTML = `
+            <div class="spec-item"><span class="label">🛡️ Technology:</span><span>${sd.name} (${sd.multiplier}×)</span></div>
+            <div class="spec-item"><span class="label">📏 Effective Thickness:</span><span>${effectiveThick} mm</span></div>
+            <div class="spec-item"><span class="label">💥 MJ Capacity:</span><span>${capacity.toFixed(2)} MJ</span></div>
+            <div class="spec-item"><span class="label">💰 Cost per m²:</span><span>${formatUSD(totalCostPerM2)}</span></div>
+            <div class="spec-item"><span class="label">💎 Cost per MJ:</span><span>${formatUSD(costPerMJ)}/MJ</span></div>
+            <div class="spec-item"><span class="label">🏭 100m² Facility:</span><span>${formatUSD(totalProjectCost)}</span></div>
+            <div class="spec-item"><span class="label">🔧 Annual Maintenance:</span><span>${formatUSD(annualMaintenance)}/year</span></div>
+            <div class="spec-item"><span class="label">📅 10-Year Total Cost:</span><span>${formatUSD(totalTenYearCost)}</span></div>
+            <div class="spec-item"><span class="label">📊 Weight:</span><span>${weightKg.toFixed(0)} kg/m²</span></div>
+            <div class="spec-item"><span class="label">🛡️ Protection:</span><span>${protectionRating} (${absorptionPercent.toFixed(0)}%)</span></div>
+            <div class="note-box" style="margin-top:12px; background:#e0f2e9; padding:8px; border-radius:8px;">${recommendation}</div>
+        `;
+    }
+    
+    function updateModalSpecs() {
+        const sd = getShutterData();
+        document.getElementById('modalSpecsContent').innerHTML = `
+            <div class="spec-item"><span class="label">Material:</span><span class="value">${sd.name}</span></div>
+            <div class="spec-item"><span class="label">Multiplier:</span><span class="value">${sd.multiplier}×</span></div>
+            <div class="spec-item"><span class="label">Description:</span><span class="value">${sd.description}</span></div>
+            <div class="spec-item"><span class="label">Density:</span><span class="value">${sd.density} kg/m³</span></div>
+            <div class="spec-item"><span class="label">Material Cost:</span><span class="value">$${sd.pricePerKg}/kg</span></div>
+            <div class="spec-item"><span class="label">Fabrication Factor:</span><span class="value">${sd.fabrication}× base</span></div>
+            <div class="spec-item"><span class="label">Maintenance Cost:</span><span class="value">$${sd.maintenance}/m²/year</span></div>
+        `;
+    }
+    
+    function updateStats() {
+        const energy = computeEnergy();
+        const multiplier = getShutterMultiplier();
+        const thick = parseFloat(document.getElementById('globalThickness').value);
+        const effectiveThick = thick * multiplier;
+        const capacity = effectiveThick * 0.1;
+        document.getElementById('imea').innerHTML = energy.imea.toFixed(3);
+        document.getElementById('emea').innerHTML = energy.emea.toFixed(3);
+        document.getElementById('totalAbsorbed').innerHTML = energy.absorbed.toFixed(3);
+        document.getElementById('effectiveThick').innerHTML = effectiveThick;
+        document.getElementById('mjCapacity').innerHTML = capacity.toFixed(2);
+        updateCostBenefitForModal();
+        updateModalSpecs();
+    }
+    
+    function buildDamageTable() {
+        const thicknesses = [4,6,8,10,12,16,20,25,30,40,50];
+        const mjVals = [0.5,1.0,2.0,3.5,5.0,8.0,12.0];
+        const multiplier = getShutterMultiplier();
+        document.getElementById('tableTitle').innerHTML = `📊 Damage (×${multiplier})`;
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+        for (let t of thicknesses) {
+            const effectiveThick = t * multiplier;
+            const row = tbody.insertRow();
+            const th = row.insertCell(0);
+            th.textContent = effectiveThick.toFixed(0);
+            for (let mj of mjVals) {
+                const damageValue = Math.min(5, mj / (effectiveThick * 0.1));
+                const cell = row.insertCell();
+                cell.textContent = damageValue < 0.2 ? "SA" : damageValue.toFixed(1);
+                cell.style.backgroundColor = getDamageColor(damageValue);
+            }
+        }
+    }
+    
+    function updateSelectedDisplay() {
+        const display = document.getElementById('selectedElementDisplay');
+        if (defenseElements.length === 0) { display.innerHTML = 'No elements. Add some first.'; display.style.background = '#fee2e2'; return; }
+        if (selectedElementIndex >= defenseElements.length) selectedElementIndex = 0;
+        const el = defenseElements[selectedElementIndex];
+        let text = el.type === 'sheet' ? `📄 Selected: Shutter ${selectedElementIndex+1} | gap→${el.gap.toFixed(1)}m` : `🧱 Selected: Layer ${selectedElementIndex+1} | int:${el.intGap.toFixed(1)}m | gap→${el.gap.toFixed(1)}m`;
+        display.innerHTML = text;
+        display.style.background = '#d1fae5';
+        document.getElementById('gapValue').value = el.gap.toFixed(1);
+        if (el.type === 'layer') document.getElementById('intGapValue').value = el.intGap.toFixed(1);
+    }
+    
+    function applyGapToSelected() {
+        if (defenseElements.length === 0) return;
+        let newGap = parseFloat(document.getElementById('gapValue').value);
+        if (isNaN(newGap)) newGap = 1.0;
+        newGap = clampGap(newGap);
+        defenseElements[selectedElementIndex].gap = newGap;
+        document.getElementById('gapValue').value = newGap.toFixed(1);
+        fullRefresh();
+        updateSelectedDisplay();
+    }
+    
+    function applyIntGapToSelected() {
+        if (defenseElements.length === 0) return;
+        const el = defenseElements[selectedElementIndex];
+        if (el.type === 'layer') {
+            let newIntGap = parseFloat(document.getElementById('intGapValue').value);
+            if (isNaN(newIntGap)) newIntGap = 1.0;
+            newIntGap = clampGap(newIntGap);
+            el.intGap = newIntGap;
+            document.getElementById('intGapValue').value = newIntGap.toFixed(1);
+            fullRefresh();
+            updateSelectedDisplay();
+        } else alert('Only layers have internal gap. Select a layer first.');
+    }
+    
+    function fullRefresh() {
+        buildDamageTable();
+        const container = document.getElementById('visualSequenceContainer');
+        container.innerHTML = '';
+        const offX = parseFloat(document.getElementById('offsetX').value);
+        const offY = parseFloat(document.getElementById('offsetY').value);
+        const currentGap = defenseElements[0]?.gap || 1.0;
+        
+        const missileDiv = document.createElement('div');
+        missileDiv.className = 'missile-icon';
+        const missileImg = document.createElement('img');
+        missileImg.src = MISSILE_IMG;
+        missileDiv.appendChild(missileImg);
+        container.appendChild(missileDiv);
+        
+        while (elementOffsets.length < defenseElements.length) elementOffsets.push(0);
+        while (elementOffsets.length > defenseElements.length) elementOffsets.pop();
+        
+        let plateCounter = 0;
+        for (let i = 0; i < defenseElements.length; i++) {
+            const el = defenseElements[i];
+            const dragWrapper = document.createElement('div');
+            dragWrapper.className = 'drag-element';
+            dragWrapper.setAttribute('data-idx', i);
+            dragWrapper.style.transform = `translateX(${elementOffsets[i] || 0}px)`;
+            dragWrapper.style.cursor = 'grab';
+            
+            dragWrapper.addEventListener('mousedown', (e) => {
+                if (e.target.closest('.internal-gap-control')) return;
+                e.preventDefault(); e.stopPropagation();
+                isDragging = true;
+                draggedElementIndex = i;
+                dragStartX = e.clientX;
+                dragStartGap = defenseElements[0]?.gap || 1.0;
+                dragStartOffset = elementOffsets[i] || 0;
+                document.body.style.cursor = 'grabbing';
+                dragWrapper.classList.add('dragging');
+            });
+            
+            if (el.type === 'sheet') {
+                const damageValue = calculateShutterDamage(plateCounter, currentGap);
+                const shutterWrapper = document.createElement('div');
+                shutterWrapper.className = 'shutter-wrapper';
+                const canvas = makeCanvas(damageValue, offX, offY, 70);
+                const label = document.createElement('div');
+                label.className = 'shutter-label';
+                label.textContent = `${plateCounter+1}`;
+                shutterWrapper.appendChild(canvas);
+                shutterWrapper.appendChild(label);
+                dragWrapper.appendChild(shutterWrapper);
+                container.appendChild(dragWrapper);
+                plateCounter++;
+            } else if (el.type === 'layer') {
+                const leftDamage = calculateShutterDamage(plateCounter, currentGap);
+                const rightDamage = calculateShutterDamage(plateCounter + 1, currentGap);
+                const layerDiv = document.createElement('div');
+                layerDiv.className = 'layer-container';
+                layerDiv.setAttribute('data-idx', i);
+                const leftWrapper = document.createElement('div');
+                leftWrapper.className = 'shutter-wrapper';
+                const leftCanvas = makeCanvas(leftDamage, offX, offY, 60);
+                leftCanvas.classList.add('left-canvas');
+                leftWrapper.appendChild(leftCanvas);
+                const leftLabel = document.createElement('div');
+                leftLabel.className = 'shutter-label';
+                leftLabel.textContent = `${plateCounter+1}`;
+                leftWrapper.appendChild(leftLabel);
+                layerDiv.appendChild(leftWrapper);
+                const internalGapDiv = document.createElement('div');
+                internalGapDiv.className = 'internal-gap-control';
+                internalGapDiv.style.cursor = 'pointer';
+                internalGapDiv.innerHTML = `<div class="distance-line"></div><div class="distance-value">${el.intGap.toFixed(1)}m</div><div class="distance-line"></div>`;
+                internalGapDiv.addEventListener('click', (e) => { e.stopPropagation(); let newVal = prompt('Enter internal gap (m) 0.5-5.0:', el.intGap); if (newVal) { el.intGap = clampGap(parseFloat(newVal)); fullRefresh(); } });
+                layerDiv.appendChild(internalGapDiv);
+                const rightWrapper = document.createElement('div');
+                rightWrapper.className = 'shutter-wrapper';
+                const rightCanvas = makeCanvas(rightDamage, offX, offY, 60);
+                rightCanvas.classList.add('right-canvas');
+                rightWrapper.appendChild(rightCanvas);
+                const rightLabel = document.createElement('div');
+                rightLabel.className = 'shutter-label';
+                rightLabel.textContent = `${plateCounter+2}`;
+                rightWrapper.appendChild(rightLabel);
+                layerDiv.appendChild(rightWrapper);
+                dragWrapper.appendChild(layerDiv);
+                container.appendChild(dragWrapper);
+                plateCounter += 2;
+            }
+            
+            if (i < defenseElements.length - 1) {
+                const distDisplay = document.createElement('div');
+                distDisplay.className = 'distance-display';
+                distDisplay.innerHTML = `<div class="distance-line"></div><div class="distance-value" id="dist-val-${i}">${defenseElements[i].gap.toFixed(1)}m</div><div class="distance-label">→</div>`;
+                distDisplay.addEventListener('click', () => { let newVal = prompt('Enter gap (m) 0.5-5.0:', defenseElements[i].gap); if (newVal) { defenseElements[i].gap = clampGap(parseFloat(newVal)); fullRefresh(); } });
+                container.appendChild(distDisplay);
+            }
+        }
+        updateStats();
+        renderElementList();
+        updateWallCounters();
+        updateSelectedDisplay();
+        sendParamsToParent();
+    }
+    
+    function sendParamsToParent() {
+        window.parent.postMessage({
+            type: 'updateParams',
+            shutterType: getShutterKey(),
+            shutterThickness: parseFloat(document.getElementById('globalThickness').value),
+            shutterCount: defenseElements.filter(e => e.type === 'sheet').length,
+            shutterGap: defenseElements[0]?.gap * 1000 || 1000,
+            numLayers: defenseElements.filter(e => e.type === 'layer').length,
+            airGap: (defenseElements.find(e => e.type === 'layer')?.intGap || 1.0) * 1000,
+            mass: parseFloat(document.getElementById('mass').value),
+            velocity: parseFloat(document.getElementById('velocity').value)
+        }, '*');
+    }
+    
+    function handleMouseMove(e) {
+        if (!isDragging || draggedElementIndex === null) return;
+        const deltaX = e.clientX - dragStartX;
+        const newOffset = dragStartOffset + deltaX;
+        elementOffsets[draggedElementIndex] = newOffset;
+        const dragWrapper = document.querySelector(`.drag-element[data-idx="${draggedElementIndex}"]`);
+        if (dragWrapper) dragWrapper.style.transform = `translateX(${newOffset}px)`;
+        const deltaMeters = deltaX / 40;
+        let newGap = clampGap(dragStartGap + deltaMeters);
+        if (defenseElements.length >= 1 && newGap !== defenseElements[0].gap) {
+            defenseElements[0].gap = newGap;
+            const distSpan = document.getElementById(`dist-val-0`);
+            if (distSpan) distSpan.innerHTML = newGap.toFixed(1) + 'm';
+            updateAllDamageDisplays();
+            updateStats();
+        }
+    }
+    
+    function handleMouseUp() { if (isDragging) { isDragging = false; draggedElementIndex = null; document.body.style.cursor = ''; const dragWrapper = document.querySelector(`.drag-element.dragging`); if (dragWrapper) dragWrapper.classList.remove('dragging'); fullRefresh(); } }
+    
+    function renderElementList() {
+        const container = document.getElementById('elementListContainer');
+        container.innerHTML = '';
+        if (defenseElements.length === 0) { container.innerHTML = '<div style="text-align:center;">No elements. Use +/- to add.</div>'; return; }
+        defenseElements.forEach((el, idx) => {
+            const div = document.createElement('div');
+            div.className = 'element-item';
+            if (idx === selectedElementIndex) div.classList.add('selected');
+            let text = el.type === 'sheet' ? `📄 Shutter ${idx+1} | gap→${el.gap.toFixed(1)}m` : `🧱 Layer ${idx+1} | int:${el.intGap.toFixed(1)}m | gap→${el.gap.toFixed(1)}m`;
+            div.innerHTML = `<span>${text}</span><button class="del-el" data-idx="${idx}" style="background:#ef4444; border:none; border-radius:12px; padding:0px 6px; cursor:pointer; color:white;">🗑️</button>`;
+            div.addEventListener('click', (e) => { if (!e.target.classList.contains('del-el')) { selectedElementIndex = idx; renderElementList(); updateSelectedDisplay(); document.getElementById('gapValue').value = defenseElements[idx].gap.toFixed(1); if (defenseElements[idx].type === 'layer') document.getElementById('intGapValue').value = defenseElements[idx].intGap.toFixed(1); } });
+            container.appendChild(div);
+        });
+        document.querySelectorAll('.del-el').forEach(btn => { btn.addEventListener('click', (e) => { e.stopPropagation(); const idx = parseInt(btn.dataset.idx); defenseElements.splice(idx, 1); elementOffsets.splice(idx, 1); if (selectedElementIndex >= defenseElements.length) selectedElementIndex = Math.max(0, defenseElements.length - 1); fullRefresh(); }); });
+    }
+    
+    function updateWallCounters() {
+        const sheetCount = defenseElements.filter(e => e.type === 'sheet').length;
+        const layerCount = defenseElements.filter(e => e.type === 'layer').length;
+        document.getElementById('wallSheetCount').innerHTML = sheetCount;
+        document.getElementById('wallLayerCount').innerHTML = layerCount;
+        document.getElementById('wallTotalCount').innerHTML = sheetCount + (layerCount * 2);
+        document.getElementById('sheetCountDisplay').innerHTML = sheetCount;
+        document.getElementById('layerCountDisplay').innerHTML = layerCount;
+    }
+    
+    function addSheet() { defenseElements.push({ type: 'sheet', thick: parseFloat(document.getElementById('globalThickness').value), gap: 1.0 }); elementOffsets.push(0); fullRefresh(); }
+    function removeSheet() { for (let i = defenseElements.length-1; i >= 0; i--) { if (defenseElements[i].type === 'sheet') { defenseElements.splice(i,1); elementOffsets.splice(i,1); break; } } fullRefresh(); }
+    function addLayer() { defenseElements.push({ type: 'layer', thick: parseFloat(document.getElementById('globalThickness').value), gap: 1.0, intGap: 1.0 }); elementOffsets.push(0); fullRefresh(); }
+    function removeLayer() { for (let i = defenseElements.length-1; i >= 0; i--) { if (defenseElements[i].type === 'layer') { defenseElements.splice(i,1); elementOffsets.splice(i,1); break; } } fullRefresh(); }
+    function resetExample() { defenseElements = [{ type: 'sheet', thick: 8, gap: 0.5 }]; elementOffsets = [0]; selectedElementIndex = 0; fullRefresh(); }
+    function clearAll() { defenseElements = []; elementOffsets = []; selectedElementIndex = 0; fullRefresh(); }
+    function selectFirst() { if (defenseElements.length > 0) { selectedElementIndex = 0; renderElementList(); updateSelectedDisplay(); } }
+    function centerOffset() { document.getElementById('offsetX').value = 0; document.getElementById('offsetY').value = 0; fullRefresh(); }
+    function resetOffset() { document.getElementById('offsetX').value = 15; document.getElementById('offsetY').value = 10; fullRefresh(); }
+    function exportConfig() { const blob = new Blob([JSON.stringify({ mass: document.getElementById('mass').value, velocity: document.getElementById('velocity').value, shutterType: document.getElementById('shutterType').value, thickness: document.getElementById('globalThickness').value, defenseElements, elementOffsets }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'raiied_config.json'; a.click(); URL.revokeObjectURL(blob); }
+    
+    document.getElementById('refreshBtn').addEventListener('click', fullRefresh);
+    document.getElementById('addSheetQuick').addEventListener('click', addSheet);
+    document.getElementById('removeSheetQuick').addEventListener('click', removeSheet);
+    document.getElementById('addLayerQuick').addEventListener('click', addLayer);
+    document.getElementById('removeLayerQuick').addEventListener('click', removeLayer);
+    document.getElementById('resetCustomBtn').addEventListener('click', resetExample);
+    document.getElementById('clearAllBtn').addEventListener('click', clearAll);
+    document.getElementById('selectFirstBtn').addEventListener('click', selectFirst);
+    document.getElementById('exportBtn').addEventListener('click', exportConfig);
+    document.getElementById('centerBtn').addEventListener('click', centerOffset);
+    document.getElementById('resetOffsetBtn').addEventListener('click', resetOffset);
+    document.getElementById('shutterType').addEventListener('change', fullRefresh);
+    document.getElementById('globalThickness').addEventListener('input', () => { defenseElements.forEach(el => el.thick = parseFloat(document.getElementById('globalThickness').value)); fullRefresh(); });
+    ['mass', 'velocity'].forEach(id => { document.getElementById(id).addEventListener('input', fullRefresh); });
+    ['offsetX', 'offsetY'].forEach(id => { document.getElementById(id).addEventListener('input', fullRefresh); });
+    
+    document.getElementById('gapDecBtn').addEventListener('click', () => { let val = parseFloat(document.getElementById('gapValue').value); if (isNaN(val)) val = 1.0; val = clampGap(val - STEP); document.getElementById('gapValue').value = val.toFixed(1); applyGapToSelected(); });
+    document.getElementById('gapIncBtn').addEventListener('click', () => { let val = parseFloat(document.getElementById('gapValue').value); if (isNaN(val)) val = 1.0; val = clampGap(val + STEP); document.getElementById('gapValue').value = val.toFixed(1); applyGapToSelected(); });
+    document.getElementById('applyGapBtn').addEventListener('click', applyGapToSelected);
+    document.getElementById('intGapDecBtn').addEventListener('click', () => { let val = parseFloat(document.getElementById('intGapValue').value); if (isNaN(val)) val = 1.0; val = clampGap(val - STEP); document.getElementById('intGapValue').value = val.toFixed(1); applyIntGapToSelected(); });
+    document.getElementById('intGapIncBtn').addEventListener('click', () => { let val = parseFloat(document.getElementById('intGapValue').value); if (isNaN(val)) val = 1.0; val = clampGap(val + STEP); document.getElementById('intGapValue').value = val.toFixed(1); applyIntGapToSelected(); });
+    document.getElementById('applyIntGapBtn').addEventListener('click', applyIntGapToSelected);
+    document.querySelectorAll('.preset-btn').forEach(btn => { btn.addEventListener('click', () => { const gap = parseFloat(btn.dataset.gap); document.getElementById('gapValue').value = gap; applyGapToSelected(); }); });
+    
+    document.getElementById('showCostBtn').onclick = () => { updateCostBenefitForModal(); document.getElementById('costModal').style.display = 'flex'; };
+    document.getElementById('closeCostModalBtn').onclick = () => document.getElementById('costModal').style.display = 'none';
+    document.getElementById('showSpecsBtn').onclick = () => { updateModalSpecs(); document.getElementById('specsModal').style.display = 'flex'; };
+    document.getElementById('closeSpecsModalBtn').onclick = () => document.getElementById('specsModal').style.display = 'none';
+    window.onclick = (e) => { if (e.target === document.getElementById('costModal')) document.getElementById('costModal').style.display = 'none'; if (e.target === document.getElementById('specsModal')) document.getElementById('specsModal').style.display = 'none'; };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    
+    function preloadImages() { const img = new Image(); img.src = SHUTTER_IMG; img.onload = () => { shutterImage = img; fullRefresh(); }; img.onerror = () => { shutterImage = null; fullRefresh(); }; }
+    buildDamageTable();
+    preloadImages();
+    resetExample();
+</script>
+</body>
+</html>

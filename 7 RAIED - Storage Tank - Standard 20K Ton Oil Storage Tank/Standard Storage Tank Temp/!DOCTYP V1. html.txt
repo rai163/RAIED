@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Shutter Timing & Dual-Sheet Damage Visualization Simulator</title>
+<style>
+  :root{
+    --bg:#efe8dc;
+    --ink:#1f2627;
+    --muted:#67706d;
+    --blue:#1f5fb8;
+    --green:#1d8b5c;
+    --amber:#c68c2d;
+    --red:#d34b43;
+    --radius:24px;
+  }
+
+  *{box-sizing:border-box}
+
+  body {
+    font-family: "Inter", sans-serif;
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    min-width: 1500px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.3;
+  }
+
+  .page {
+    max-width: 1700px;
+    margin: 0 auto;
+    padding: 18px 16px 24px;
+  }
+
+  h1, h2, h3 {
+    font-family: "Space Grotesk", sans-serif;
+    color: #294a72;
+    margin-top: 0;
+    margin-bottom: 0.3em;
+  }
+
+  h1 {
+    font-size: clamp(1.55rem, 2.2vw, 2.5rem);
+  }
+
+  h2 { font-size: 1.2rem; }
+  h3 { font-size: 1rem; }
+
+  .hero{margin-bottom:10px}
+  .eyebrow{
+    font-size:.72rem;
+    font-weight:800;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:4px;
+  }
+  .subtitle{
+    margin: 0;
+    font-size: .86rem;
+    max-width: 1100px;
+  }
+
+  /* 1) Reduce Input Parameters side width by 20% */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 344px 1fr; /* 80% of 430px */
+    gap: 14px;
+    align-items: start;
+  }
+
+  /* 2) Shift right column left by 20% of original 430px = 86px */
+  .right-col {
+    margin-left: -86px;
+  }
+
+  .panel {
+    background: rgba(251,248,241,0.88);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    box-shadow: 0 14px 30px rgba(38,28,14,0.08);
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+
+  .controls {
+    position: sticky;
+    top: 8px;
+    align-self: start;
+  }
+
+  .section-title{margin-bottom:8px}
+  .subhead{margin-top:10px}
+
+  .control-list .row{margin-bottom:8px}
+
+  label {
+    font-weight: 700;
+    font-size: 0.8rem;
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  input[type=number], select {
+    width: 100%;
+    padding: 5px 7px;
+    border-radius: 9px;
+    border: 1px solid #bdb4a3;
+    font-size: 0.84rem;
+    font-family: inherit;
+    outline: none;
+    background:#fffdfa;
+  }
+
+  .field-inline{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:6px;
+  }
+
+  .radio-wrap {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+  }
+
+  .radio-wrap label {
+    font-size: 0.8rem;
+    margin-bottom:0;
+  }
+
+  #runButton {
+    margin-top: 8px;
+    padding: 7px 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    background-color: var(--blue);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.25s ease, transform 0.2s ease;
+  }
+  #runButton:hover {
+    background-color: #164a8a;
+    transform: translateY(-1px);
+  }
+
+  .right-col{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+
+  /* Timeline Simulation shrink by 20% */
+  .panel.sim{
+    transform: scale(0.8);
+    transform-origin: top left;
+    width: 125%;
+    margin-bottom: -90px;
+  }
+
+  .sim-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:10px;
+    margin-bottom:8px;
+  }
+
+  .sim-note{
+    font-size:.75rem;
+    color:var(--muted);
+  }
+
+  .badge{
+    padding:5px 9px;
+    border-radius:999px;
+    font-size:.72rem;
+    font-weight:800;
+    white-space:nowrap;
+  }
+  .badge.ok{
+    background:#d7f5e6;
+    color:#126142;
+  }
+  .badge.warn{
+    background:#fde1df;
+    color:#9e2e28;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 7px;
+    margin-bottom: 10px;
+  }
+
+  .stat {
+    padding: 8px 6px;
+    font-size: 0.78rem;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.04);
+    text-align: center;
+  }
+
+  .stat small {
+    font-size: 0.5rem;
+    color: var(--muted);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    display: block;
+    font-weight: 800;
+  }
+
+  .stat .big {
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: var(--blue);
+  }
+
+  .tiny{
+    font-size:.58rem;
+    color:var(--muted);
+    margin-top:3px;
+  }
+
+  .timeline-wrap {
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: #fffdfa;
+    border-radius: 16px;
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+
+  .axis-head {
+    font-size: 0.64rem;
+    font-weight: 700;
+    color: #2d4d76;
+    margin-bottom: 8px;
+    gap: 10px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap:nowrap;
+  }
+
+  .axis-head div strong {
+    font-size: 0.72rem;
+  }
+
+  .stage {
+    position: relative;
+    height: 170px;
+    overflow: hidden;
+    border-top: 2px solid rgba(31,95,184,0.18);
+  }
+
+  .track-label {
+    position: absolute;
+    left: 0;
+    font-weight: 800;
+    color: #495862;
+    font-size: 0.74rem;
+  }
+  .track-label.t1 { top: 20px; }
+  .track-label.t2 { top: 76px; }
+  .track-label.t3 { top: 132px; }
+
+  .bar {
+    position: absolute;
+    left: 100px;
+    height: 26px;
+    border-radius: 999px 10px 10px 999px;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.08);
+  }
+
+  .bar::after {
+    content: "";
+    position: absolute;
+    right: -10px;
+    top: 0;
+    width: 14px;
+    height: 100%;
+    clip-path: polygon(0 0, 100% 50%, 0 100%);
+    background: inherit;
+  }
+
+  .bar.drone { top: 38px; background: linear-gradient(90deg, #dc4941, #ef6b63); }
+  .bar.side { top: 94px; background: linear-gradient(90deg, #1b57af, #7ca8e5); }
+  .bar.dome { top: 150px; background: linear-gradient(90deg, #1f8b5d, #7dd99c); }
+
+  .event-line {
+    position: absolute;
+    width: 2px;
+    border-left: 2px dashed rgba(61,77,91,0.32);
+    top: 8px;
+    bottom: 24px;
+  }
+
+  .event-tag {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    font-size: 0.68rem;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  .event-tag.drone { color: var(--red); }
+  .event-tag.side { color: var(--blue); }
+  .event-tag.dome { color: var(--green); }
+
+  .ticks {
+    position: absolute;
+    left: 100px;
+    right: 14px;
+    bottom: 2px;
+    height: 28px;
+    border-bottom: 2px solid rgba(0,0,0,0.30);
+  }
+
+  .tick {
+    position: absolute;
+    bottom: -2px;
+    width: 1px;
+    height: 8px;
+    background: rgba(0,0,0,0.28);
+  }
+  .tick.major { width: 2px; height: 12px; }
+
+  .tick span {
+    position: absolute;
+    top: 13px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.6rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .summary{
+    font-size:.75rem;
+    color:#31414d;
+  }
+
+  .energy-flow {
+    background: #fffdfa;
+    border-radius: 18px;
+    padding: 12px;
+    border: 1px solid rgba(0,0,0,0.08);
+    max-width: 100%;
+  }
+
+  .layer-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    flex-wrap: nowrap;
+  }
+
+  .layer-box {
+    flex: 1;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #e0e7f7, #a3bffa);
+    padding: 10px 8px;
+    margin: 0 4px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    text-align: center;
+    min-width: 95px;
+  }
+
+  .layer-box.first {
+    background: linear-gradient(180deg, #f7d6d6, #e06a6a);
+  }
+
+  .layer-box.air-gap {
+    background: linear-gradient(180deg, #d6f0f7, #6ac7e0);
+  }
+
+  .layer-title {
+    font-weight: 700;
+    margin-bottom: 5px;
+    font-size: 0.8rem;
+    color: #1f2a2b;
+  }
+
+  .energy-value {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #1f2a2b;
+  }
+
+  .arrow {
+    width: 20px;
+    height: 20px;
+    margin: 0 4px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .arrow:before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #333;
+    transform: translateY(-50%);
+    border-radius: 2px;
+  }
+  .arrow:after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 0;
+    width: 0;
+    height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 7px solid #333;
+    transform: translateY(-50%);
+  }
+
+  .legend {
+    margin-top: 10px;
+    font-size: 0.78rem;
+    color: var(--muted);
+    line-height: 1.25;
+  }
+
+  .load-deflection canvas,
+  #sheetCanvas {
+    border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 10px;
+    display:block;
+    max-width:100%;
+  }
+
+  .load-deflection {
+    margin-top: 0;
+  }
+
+  .load-meta{
+    margin-top: 8px;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  .load-stats{
+    display:flex;
+    gap:16px;
+    margin-top:8px;
+    font-size:.85rem;
+    flex-wrap:wrap;
+  }
+
+  .sheet-visualization h3,
+  .energy-flow h3,
+  .load-deflection h3{
+    margin-bottom:8px;
+  }
+
+  .legend-damage {
+    margin-top: 8px;
+    font-size: 0.8rem;
+    color: #555;
+    display:flex;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  .legend-damage span {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    margin-right: 6px;
+    vertical-align: middle;
+    border-radius: 3px;
+  }
+  .legend-damage .no-damage { background: #4ade80; }
+  .legend-damage .dented { background: #facc15; }
+  .legend-damage .cracked { background: #ef4444; }
+
+  @media (max-width: 1600px){
+    body{min-width:1400px}
+    .main-grid{grid-template-columns:280px 1fr}
+    .right-col{margin-left:-56px}
+  }
+</style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <div class="eyebrow">Concept Timing Study</div>
+      <h1>Shutter Timing & Dual-Sheet Damage Visualization Simulator</h1>
+      <p class="subtitle">
+        Compact simulator for shutter timing, impact energy flow, load/deflection response, and separate damage indication for the first and second steel sheets.
+      </p>
+    </header>
+
+    <section class="main-grid">
+      <aside class="panel controls">
+        <h2 class="section-title">Input Parameters</h2>
+
+        <div class="control-list">
+          <div class="row">
+            <label for="tankType">Tank Type</label>
+            <select id="tankType">
+              <option value="oil" selected>Standard Oil Storage Tank</option>
+              <option value="lpg">LPG Tank</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <label for="motorPower">Motor Power per door (kW)</label>
+            <select id="motorPower">
+              <option value="20">20</option>
+              <option value="30">30</option>
+              <option value="40">40</option>
+              <option value="50">50</option>
+              <option value="55" selected>55</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <label for="detectionRange">Detection Range (km)</label>
+            <select id="detectionRange">
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="15">15</option>
+              <option value="20" selected>20</option>
+              <option value="25">25</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <label>Drone Speed (m/s)</label>
+            <div class="radio-wrap">
+              <label><input type="radio" name="droneSpeed" value="200">200</label>
+              <label><input type="radio" name="droneSpeed" value="250" checked>250</label>
+              <label><input type="radio" name="droneSpeed" value="300">300</label>
+              <label><input type="radio" name="droneSpeed" value="350">350</label>
+              <label><input type="radio" name="droneSpeed" value="400">400</label>
+            </div>
+          </div>
+
+          <div class="row">
+            <label for="droneMass">Drone Mass (kg)</label>
+            <select id="droneMass">
+              <option value="20">20</option>
+              <option value="30">30</option>
+              <option value="40" selected>40</option>
+              <option value="50">50</option>
+              <option value="75">75</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <label for="faceWidth">Side Face Dimensions (W × H) m</label>
+            <div class="field-inline">
+              <input id="faceWidth" type="number" min="1" step="0.1" value="11.8">
+              <input id="faceHeight" type="number" min="1" step="0.1" value="11.8">
+            </div>
+          </div>
+
+          <div class="row">
+            <label for="sheetThickness">Steel Sheet Thickness (mm)</label>
+            <select id="sheetThickness">
+              <option value="8">8</option>
+              <option value="10">10</option>
+              <option value="12">12</option>
+              <option value="16">16</option>
+              <option value="20">20</option>
+              <option value="25">25</option>
+              <option value="30" selected>30</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <label for="numLayers">Protection Layers</label>
+            <select id="numLayers">
+              <option value="1" selected>1 Layer</option>
+              <option value="2">2 Layers</option>
+              <option value="3">3 Layers</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <label for="layerGap">Gap within each Layer (mm)</label>
+            <select id="layerGap">
+              <option value="500">500</option>
+              <option value="750">750</option>
+              <option value="1000" selected>1000</option>
+              <option value="1250">1250</option>
+              <option value="1500">1500</option>
+              <option value="1750">1750</option>
+              <option value="2000">2000</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <label for="numDoors">Doors per Side Face</label>
+            <select id="numDoors">
+              <option value="2" selected>2</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <label for="openingMode">Normal Opening Mode (Side Faces)</label>
+            <select id="openingMode">
+              <option value="1">100% open</option>
+              <option value="0.75">75% open</option>
+              <option value="0.5">50% open</option>
+              <option value="0.33">33% open</option>
+              <option value="0.25" selected>25% open</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <label for="delayTime">System Delay (s)</label>
+            <select id="delayTime">
+              <option value="0.5">0.5</option>
+              <option value="1" selected>1.0</option>
+              <option value="1.5">1.5</option>
+              <option value="2">2.0</option>
+              <option value="3">3.0</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <label for="efficiency">Mechanical Efficiency</label>
+            <select id="efficiency">
+              <option value="0.7">70%</option>
+              <option value="0.8" selected>80%</option>
+              <option value="0.85">85%</option>
+              <option value="0.9">90%</option>
+            </select>
+          </div>
+
+          <button id="runButton">Run Simulation</button>
+        </div>
+
+        <h3 class="subhead">Dome Top Face Parameters</h3>
+
+        <div class="control-list">
+          <div class="row">
+            <label for="domeDiameter">Dome Diameter (m)</label>
+            <input id="domeDiameter" type="number" min="1" step="0.1" value="12">
+          </div>
+
+          <div class="row">
+            <label for="numDomeDoors">Number of Dome Shutters</label>
+            <select id="numDomeDoors">
+              <option value="2">2</option>
+              <option value="4" selected>4</option>
+              <option value="8">8</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <label for="domeGap">Gap Between Lower & Upper Dome Shutters (m)</label>
+            <select id="domeGap">
+              <option value="0.5">0.5</option>
+              <option value="1" selected>1.0</option>
+              <option value="1.5">1.5</option>
+              <option value="2">2.0</option>
+            </select>
+          </div>
+        </div>
+      </aside>
+
+      <div class="right-col">
+        <section class="panel sim">
+          <div class="sim-head">
+            <div>
+              <h2>Timeline Simulation</h2>
+              <div class="sim-note">Side shutters and dome shutters compared against drone arrival time.</div>
+            </div>
+            <div id="statusBadge" class="badge ok">Feasible</div>
+          </div>
+
+          <div class="stats">
+            <div class="stat">
+              <small>Drone arrival</small>
+              <div class="big" id="droneArrival">0.0 s</div>
+              <div class="tiny">Detection range vs speed.</div>
+            </div>
+            <div class="stat">
+              <small>Side closure</small>
+              <div class="big" id="sideClosingTime">0.0 s</div>
+              <div class="tiny">Travel from open to closed.</div>
+            </div>
+            <div class="stat">
+              <small>Dome closure</small>
+              <div class="big" id="domeClosingTime">0.0 s</div>
+              <div class="tiny">Upper/lower dome shutters.</div>
+            </div>
+            <div class="stat">
+              <small>Impact energy</small>
+              <div class="big" id="impactEnergy">0.00 MJ</div>
+              <div class="tiny">Kinetic energy at strike.</div>
+            </div>
+            <div class="stat">
+              <small>Total system depth</small>
+              <div class="big" id="totalBuildUp">0 mm</div>
+              <div class="tiny">Layers + gaps combined.</div>
+            </div>
+          </div>
+
+          <div class="timeline-wrap">
+            <div class="axis-head">
+              <div>Drone Arrival: <strong id="axisDrone">0.0 s</strong></div>
+              <div>Side Closure: <strong id="axisSideClosing">0.0 s</strong></div>
+              <div>Dome Closure: <strong id="axisDomeClosing">0.0 s</strong></div>
+            </div>
+
+            <div class="stage" id="stage">
+              <div class="track-label t1">Drone</div>
+              <div class="track-label t2">Side shutters</div>
+              <div class="track-label t3">Dome shutters</div>
+
+              <div class="bar drone" id="barDrone"></div>
+              <div class="bar side" id="barSide"></div>
+              <div class="bar dome" id="barDome"></div>
+
+              <div class="event-line" id="lineDrone"></div>
+              <div class="event-line" id="lineSide"></div>
+              <div class="event-line" id="lineDome"></div>
+
+              <div class="event-tag drone" id="tagDrone">Drone Arrival</div>
+              <div class="event-tag side" id="tagSide">Side Closed</div>
+              <div class="event-tag dome" id="tagDome">Dome Closed</div>
+
+              <div class="ticks" id="ticks"></div>
+            </div>
+          </div>
+
+          <div class="summary" id="timelineSummary">
+            The enclosure closes before the drone arrives.
+          </div>
+        </section>
+
+        <section class="panel energy-flow">
+          <h3>Impact Energy Flow Through Protection Layers</h3>
+          <div class="layer-container">
+            <div class="layer-box first">
+              <div class="layer-title">Initial Impact Energy</div>
+              <div class="energy-value" id="energyInitial">0 MJ</div>
+            </div>
+            <div class="arrow"></div>
+            <div class="layer-box first">
+              <div class="layer-title">Energy Absorbed by 1st Steel Sheet</div>
+              <div class="energy-value" id="energyAbsorbed1">0 MJ</div>
+            </div>
+            <div class="arrow"></div>
+            <div class="layer-box air-gap">
+              <div class="layer-title">Energy Reduced by Air Gap</div>
+              <div class="energy-value" id="energyReducedGap">0 MJ</div>
+            </div>
+            <div class="arrow"></div>
+            <div class="layer-box first">
+              <div class="layer-title">Residual Energy on 2nd Steel Sheet</div>
+              <div class="energy-value" id="energyResidual2">0 MJ</div>
+            </div>
+          </div>
+          <div class="legend">
+            <strong>Legend:</strong> Energy values are conceptual kinetic energy (MJ) at each stage.<br>
+            Air gap reduces energy transfer, protecting subsequent steel layers.
+          </div>
+        </section>
+
+        <section class="panel load-deflection">
+          <h3>Impact Load & Deflection Curves (Conceptual)</h3>
+          <canvas id="loadCanvas" width="600" height="130"></canvas>
+          <canvas id="deflectionCanvas" width="600" height="130" style="margin-top:10px;"></canvas>
+          <div class="load-meta">
+            Load and deflection curves modeled as half-sine pulses with period ~5 ms.
+          </div>
+          <div class="load-stats">
+            <div><strong>Peak Load:</strong> <span id="peakLoad">0</span> kN</div>
+            <div><strong>Max Deflection:</strong> <span id="maxDeflection">0</span> mm</div>
+            <div><strong>Penetration Risk:</strong> <span id="penetrationRisk">Low</span></div>
+          </div>
+        </section>
+
+        <section class="panel sheet-visualization">
+          <h3>Dual Steel Sheet Damage Visualization</h3>
+          <canvas id="sheetCanvas" width="600" height="90" aria-label="Dual steel sheet damage visualization"></canvas>
+          <div class="legend-damage">
+            <div><span class="no-damage"></span>No Damage</div>
+            <div><span class="dented"></span>Dented</div>
+            <div><span class="cracked"></span>Cracked</div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const $ = id => document.getElementById(id);
+
+    const inputs = {
+      tankType: $('tankType'),
+      motorPower: $('motorPower'),
+      detectionRange: $('detectionRange'),
+      droneMass: $('droneMass'),
+      faceWidth: $('faceWidth'),
+      faceHeight: $('faceHeight'),
+      sheetThickness: $('sheetThickness'),
+      numLayers: $('numLayers'),
+      layerGap: $('layerGap'),
+      numDoors: $('numDoors'),
+      openingMode: $('openingMode'),
+      delayTime: $('delayTime'),
+      efficiency: $('efficiency'),
+      domeDiameter: $('domeDiameter'),
+      numDomeDoors: $('numDomeDoors'),
+      domeGap: $('domeGap'),
+      droneSpeeds: document.querySelectorAll('input[name="droneSpeed"]')
+    };
+
+    function selectedDroneSpeed(){
+      return parseFloat([...inputs.droneSpeeds].find(r => r.checked).value);
+    }
+
+    function sec(v){ return `${v.toFixed(1)} s`; }
+    function mj(v){ return `${v.toFixed(2)} MJ`; }
+    function mm(v){ return `${Math.round(v).toLocaleString()} mm`; }
+
+    function buildTicks(maxTime){
+      const ticks = $('ticks');
+      ticks.innerHTML = '';
+      const major = 6;
+      for(let i = 0; i <= major; i++){
+        const tick = document.createElement('div');
+        tick.className = 'tick major';
+        tick.style.left = `${(i / major) * 100}%`;
+        const s = document.createElement('span');
+        s.textContent = `${((maxTime / major) * i).toFixed(0)}s`;
+        tick.appendChild(s);
+        ticks.appendChild(tick);
+      }
+      for(let i = 0; i < 31; i++){
+        const tick = document.createElement('div');
+        tick.className = 'tick';
+        tick.style.left = `${(i / 30) * 100}%`;
+        ticks.appendChild(tick);
+      }
+    }
+
+    function drawHalfSine(canvas, amplitude, color, label) {
+      const ctx = canvas.getContext('2d');
+      const width = canvas.width;
+      const height = canvas.height;
+      ctx.clearRect(0, 0, width, height);
+
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(36, height-24);
+      ctx.lineTo(width-10, height-24);
+      ctx.moveTo(36, height-24);
+      ctx.lineTo(36, 18);
+      ctx.stroke();
+
+      ctx.fillStyle = '#000';
+      ctx.font = '12px Inter';
+      ctx.fillText(label, 8, 16);
+      ctx.fillText('Time (ms)', width-58, height-6);
+
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      const period = 5;
+      const samples = 200;
+      const safeAmp = Math.max(amplitude, 1);
+      for(let i=0; i<=samples; i++){
+        const t = (i/samples)*period;
+        const x = 36 + (t/period)*(width-50);
+        const y = height-24 - Math.sin(Math.PI*t/period) * (height-50);
+        if(i===0) ctx.moveTo(x,y);
+        else ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+    }
+
+    const sheetCanvas = $('sheetCanvas');
+    const sheetCtx = sheetCanvas.getContext('2d');
+    const sheetLengthMM = 1000;
+    const sheetHeightPx = 18; /* reduced strongly */
+    const sheetWidthPx = sheetCanvas.width - 40;
+    const firstSheetY = 14;
+    const secondSheetY = 50;
+
+    function severityToColor(sev) {
+      if (sev <= 20) return '#4ade80';
+      if (sev <= 60) return '#facc15';
+      return '#ef4444';
+    }
+
+    function damageLabel(sev){
+      if (sev <= 20) return 'No Damage';
+      if (sev <= 60) return 'Dented';
+      return 'Cracked';
+    }
+
+    function drawDualSheetDamage(firstSheetZones, secondSheetZones) {
+      sheetCtx.clearRect(0, 0, sheetCanvas.width, sheetCanvas.height);
+
+      sheetCtx.fillStyle = '#1f2627';
+      sheetCtx.font = 'bold 12px Inter';
+      sheetCtx.textAlign = 'center';
+      sheetCtx.fillText('First Steel Sheet', 20 + sheetWidthPx / 2, 10);
+      sheetCtx.fillText('Second Steel Sheet', 20 + sheetWidthPx / 2, 46);
+
+      sheetCtx.fillStyle = '#9ca3af';
+      sheetCtx.fillRect(20, firstSheetY, sheetWidthPx, sheetHeightPx);
+      sheetCtx.fillStyle = '#9ca3af';
+      sheetCtx.fillRect(20, secondSheetY, sheetWidthPx, sheetHeightPx);
+
+      sheetCtx.strokeStyle = '#6b7280';
+      sheetCtx.lineWidth = 1.5;
+      sheetCtx.strokeRect(20, firstSheetY, sheetWidthPx, sheetHeightPx);
+      sheetCtx.strokeRect(20, secondSheetY, sheetWidthPx, sheetHeightPx);
+
+      firstSheetZones.forEach(zone => {
+        const startPx = 20 + (zone.start / sheetLengthMM) * sheetWidthPx;
+        const endPx = 20 + (zone.end / sheetLengthMM) * sheetWidthPx;
+        sheetCtx.fillStyle = severityToColor(zone.severity);
+        sheetCtx.fillRect(startPx, firstSheetY, endPx - startPx, sheetHeightPx);
+      });
+
+      secondSheetZones.forEach(zone => {
+        const startPx = 20 + (zone.start / sheetLengthMM) * sheetWidthPx;
+        const endPx = 20 + (zone.end / sheetLengthMM) * sheetWidthPx;
+        sheetCtx.fillStyle = severityToColor(zone.severity);
+        sheetCtx.fillRect(startPx, secondSheetY, endPx - startPx, sheetHeightPx);
+      });
+
+      sheetCtx.fillStyle = '#1f2627';
+      sheetCtx.font = '11px Inter';
+      firstSheetZones.forEach(zone => {
+        const midPx = 20 + ((zone.start + (zone.end-zone.start)/2) / sheetLengthMM) * sheetWidthPx;
+        sheetCtx.fillText(damageLabel(zone.severity), midPx, firstSheetY + sheetHeightPx + 12);
+      });
+
+      secondSheetZones.forEach(zone => {
+        const midPx = 20 + ((zone.start + (zone.end-zone.start)/2) / sheetLengthMM) * sheetWidthPx;
+        sheetCtx.fillText(damageLabel(zone.severity), midPx, secondSheetY + sheetHeightPx + 12);
+      });
+    }
+
+    function simulate(){
+      const steelDensity = 7850;
+      const motorEfficiency = 0.90;
+      const ratedSpeedRPM = 1450;
+      const startTorqueFactor = 2.5;
+      const leverArm = 0.35;
+
+      const motorPowerKW = parseFloat(inputs.motorPower.value);
+      const detectionRangeKM = parseFloat(inputs.detectionRange.value);
+      const droneSpeed = selectedDroneSpeed();
+      const droneMass = parseFloat(inputs.droneMass.value);
+
+      const faceWidth = parseFloat(inputs.faceWidth.value);
+      const faceHeight = parseFloat(inputs.faceHeight.value);
+      const sheetThicknessMM = parseFloat(inputs.sheetThickness.value);
+      const numLayers = parseInt(inputs.numLayers.value, 10);
+      const layerGapMM = parseFloat(inputs.layerGap.value);
+
+      const numDoors = parseInt(inputs.numDoors.value, 10);
+      const openingMode = parseFloat(inputs.openingMode.value);
+      const delayTime = parseFloat(inputs.delayTime.value);
+      const mechEff = parseFloat(inputs.efficiency.value);
+
+      const domeDiameter = parseFloat(inputs.domeDiameter.value);
+      const numDomeDoors = parseInt(inputs.numDomeDoors.value, 10);
+      const domeGapM = parseFloat(inputs.domeGap.value);
+
+      const oneLayerDepthMM = (2 * sheetThicknessMM) + layerGapMM;
+      const totalBuildUpMM = numLayers * oneLayerDepthMM;
+      const totalSteelSheets = numLayers * 2;
+
+      const thicknessM = sheetThicknessMM / 1000;
+      const doorWidth = faceWidth / numDoors;
+      const doorArea = doorWidth * faceHeight;
+      const doorMass = doorArea * thicknessM * steelDensity;
+
+      const fullTravelSide = doorWidth / 2;
+      const requiredTravelSide = fullTravelSide * openingMode;
+
+      const effectivePowerW = motorPowerKW * 1000 * motorEfficiency * mechEff;
+      const omega = 2 * Math.PI * ratedSpeedRPM / 60;
+      const ratedTorque = effectivePowerW / omega;
+      const startingTorque = ratedTorque * startTorqueFactor;
+      const driveForce = startingTorque / leverArm;
+
+      const accSide = driveForce / Math.max(doorMass, 1);
+      const sideMotion = Math.sqrt((2 * requiredTravelSide) / Math.max(accSide, 0.0001));
+      const totalClosingTimeSide = sideMotion + delayTime;
+
+      const arcLengthDome = (Math.PI * domeDiameter) / numDomeDoors;
+      const shutterHeightDome = domeGapM + 0.5;
+      const domeDoorArea = arcLengthDome * shutterHeightDome;
+      const domeDoorMass = domeDoorArea * thicknessM * steelDensity;
+      const accDome = driveForce / Math.max(domeDoorMass, 1);
+      const domeMotion = Math.sqrt((2 * shutterHeightDome) / Math.max(accDome, 0.0001));
+      const totalClosingTimeDome = domeMotion + delayTime;
+
+      const droneArrival = (detectionRangeKM * 1000) / droneSpeed;
+      const marginSide = droneArrival - totalClosingTimeSide;
+      const marginDome = droneArrival - totalClosingTimeDome;
+      const feasible = marginSide >= 0 && marginDome >= 0;
+
+      const kineticEnergyJ = 0.5 * droneMass * droneSpeed * droneSpeed;
+      const kineticEnergyMJ = kineticEnergyJ / 1e6;
+
+      const absorptionFactor = Math.min(0.82, 0.35 + (sheetThicknessMM / 60));
+      const energyAbsorbed1 = kineticEnergyMJ * absorptionFactor;
+
+      const gapReductionFactor = Math.min(1, layerGapMM / 2000);
+      const energyReducedGap = (kineticEnergyMJ - energyAbsorbed1) * gapReductionFactor * 0.7;
+      const energyResidual2 = Math.max(0, kineticEnergyMJ - energyAbsorbed1 - energyReducedGap);
+
+      const plateThicknessM = thicknessM * totalSteelSheets;
+      const peakLoadKN = Math.min(100, kineticEnergyMJ * 1000 / Math.max(plateThicknessM, 0.001));
+      const maxDeflectionMM = Math.min(50, peakLoadKN * plateThicknessM * 10);
+      const penetrationRisk = (peakLoadKN > 80 || maxDeflectionMM > 30) ? 'High' : (peakLoadKN > 40 || maxDeflectionMM > 15) ? 'Moderate' : 'Low';
+
+      $('droneArrival').textContent = sec(droneArrival);
+      $('sideClosingTime').textContent = sec(totalClosingTimeSide);
+      $('domeClosingTime').textContent = sec(totalClosingTimeDome);
+      $('impactEnergy').textContent = mj(kineticEnergyMJ);
+      $('totalBuildUp').textContent = mm(totalBuildUpMM);
+
+      $('axisDrone').textContent = sec(droneArrival);
+      $('axisSideClosing').textContent = sec(totalClosingTimeSide);
+      $('axisDomeClosing').textContent = sec(totalClosingTimeDome);
+
+      const badge = $('statusBadge');
+      const timelineSummary = $('timelineSummary');
+
+      if(feasible){
+        badge.textContent = 'Feasible';
+        badge.className = 'badge ok';
+        timelineSummary.textContent = `All shutters close before arrival. Timing margins: side faces ${marginSide.toFixed(1)} s, dome top ${marginDome.toFixed(1)} s.`;
+      } else {
+        badge.textContent = 'Not Feasible';
+        badge.className = 'badge warn';
+        timelineSummary.textContent = `One or more shutter groups do not fully close in time. Timing margins: side faces ${marginSide.toFixed(1)} s, dome top ${marginDome.toFixed(1)} s.`;
+      }
+
+      const stage = $('stage');
+      const stageWidth = Math.max(stage.clientWidth - 120, 280);
+      const maxTime = Math.max(droneArrival, totalClosingTimeSide, totalClosingTimeDome) * 1.15;
+      buildTicks(maxTime);
+
+      const droneWidth = (droneArrival / maxTime) * stageWidth;
+      const sideWidth = (totalClosingTimeSide / maxTime) * stageWidth;
+      const domeWidth = (totalClosingTimeDome / maxTime) * stageWidth;
+
+      $('barDrone').style.width = `${droneWidth}px`;
+      $('barSide').style.width = `${sideWidth}px`;
+      $('barDome').style.width = `${domeWidth}px`;
+
+      $('lineDrone').style.left = `${100 + droneWidth}px`;
+      $('lineSide').style.left = `${100 + sideWidth}px`;
+      $('lineDome').style.left = `${100 + domeWidth}px`;
+
+      $('tagDrone').style.left = `${100 + droneWidth}px`;
+      $('tagSide').style.left = `${100 + sideWidth}px`;
+      $('tagDome').style.left = `${100 + domeWidth}px`;
+
+      $('barSide').style.background = marginSide >= 0
+        ? 'linear-gradient(90deg, #1b57af, #7ca8e5)'
+        : 'linear-gradient(90deg, #c03a34, #ef7f74)';
+
+      $('barDome').style.background = marginDome >= 0
+        ? 'linear-gradient(90deg, #1f8b5d, #7dd99c)'
+        : 'linear-gradient(90deg, #c03a34, #ef7f74)';
+
+      $('energyInitial').textContent = kineticEnergyMJ.toFixed(2) + ' MJ';
+      $('energyAbsorbed1').textContent = energyAbsorbed1.toFixed(2) + ' MJ';
+      $('energyReducedGap').textContent = energyReducedGap.toFixed(2) + ' MJ';
+      $('energyResidual2').textContent = energyResidual2.toFixed(2) + ' MJ';
+
+      drawHalfSine($('loadCanvas'), peakLoadKN, '#1b57af', 'Load (kN)');
+      drawHalfSine($('deflectionCanvas'), maxDeflectionMM, '#1f8b5d', 'Deflection (mm)');
+
+      $('peakLoad').textContent = peakLoadKN.toFixed(1);
+      $('maxDeflection').textContent = maxDeflectionMM.toFixed(1);
+      $('penetrationRisk').textContent = penetrationRisk;
+
+      const firstSheetSeverity = Math.min(100, energyAbsorbed1 * 150);
+      const secondSheetSeverity = Math.min(100, energyResidual2 * 200);
+
+      const firstSheetZones = [{start: 0, end: 1000, severity: firstSheetSeverity}];
+      const secondSheetZones = [{start: 0, end: 1000, severity: secondSheetSeverity}];
+
+      drawDualSheetDamage(firstSheetZones, secondSheetZones);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      $('runButton').addEventListener('click', simulate);
+      simulate();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>RAIED - CENTERED FUSION TITLE + UNIFIED SCROLLBARS</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background: #0a0f1a; }
+        .floating-logo { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 1000; pointer-events: none; }
+        .floating-logo img { height: 50px; width: auto; }
+        
+        /* FUSION SYSTEM / SCADA - centered title + green scrollbar */
+        .fusion-screen { position: absolute; top: 2px; left: 10px; width: 300px; background: rgba(15,23,36,0.96); border: 2px solid #2dd4bf; border-radius: 12px; padding: 8px 10px 25px 10px; color: #cbd5e1; font-family: 'Courier New', monospace; z-index: 400; backdrop-filter: blur(8px); overflow-y: auto; resize: both; min-width: 200px; max-width: 350px; height: 372px; box-sizing: border-box; text-align: center; }
+        .fusion-screen::-webkit-scrollbar { width: 5px; }
+        .fusion-screen::-webkit-scrollbar-track { background: #1e293b; border-radius: 3px; }
+        .fusion-screen::-webkit-scrollbar-thumb { background: #2dd4bf; border-radius: 3px; }
+        
+        .fusion-screen h3 { margin: 0 0 5px; font-size: 0.75rem; color: #2dd4bf; border-bottom: 1px solid #2dd4bf; display: inline-block; }
+        .fusion-drag-handle { position: absolute; top: 3px; right: 25px; cursor: move; font-size: 1rem; color: #2dd4bf; opacity: 0.6; }
+        .voice-mute-btn { display: block; width: fit-content; margin: 6px auto 0; background: #1e293b; border: 1px solid #475569; color: #cbd5e1; border-radius: 20px; padding: 2px 10px; font-size: 0.5rem; cursor: pointer; }
+        .voice-mute-btn.muted { border-color: #e11d48; color: #f87171; background: rgba(225,29,72,0.2); }
+        .fusion-row { display: flex; justify-content: space-between; margin: 3px 0; font-size: 0.6rem; text-align: left; }
+        .fusion-label { color: #94a3b8; }
+        .fusion-value { color: #f1f5f9; font-weight: bold; }
+        .fusion-screen .countdown { font-size: 1.8rem; font-weight: bold; margin: 5px 0; text-align: center; background: rgba(0,0,0,0.6); border-radius: 10px; padding: 5px; color: #facc15; text-shadow: 0 0 8px #f59e0b; }
+        .fusion-screen .countdown.kamikaze-active { color: #e11d48; text-shadow: 0 0 15px #e11d48, 0 0 8px #f97316; animation: pulseCountdown 0.5s infinite; }
+        @keyframes pulseCountdown { 0%,100% { text-shadow: 0 0 5px #e11d48; opacity: 1; } 50% { text-shadow: 0 0 25px #e11d48, 0 0 10px #f97316; opacity: 0.9; } }
+        .fusion-screen .distance { font-size: 0.65rem; text-align: center; background: rgba(0,0,0,0.4); border-radius: 8px; padding: 2px; }
+        .fusion-screen .threat-level { font-size: 0.7rem; margin: 3px 0; padding: 2px; border-radius: 20px; text-align: center; font-weight: bold; }
+        .fusion-screen .status { font-size: 0.55rem; background: #1e293b; border-radius: 20px; padding: 2px; text-align: center; color: #94a3b8; }
+        .threat-low { color: #34d399; background: #064e3b; }
+        .threat-medium { color: #fbbf24; background: #78350f; }
+        .threat-high { color: #fb923c; background: #9a3412; }
+        .threat-critical { color: #f87171; background: #7f1a1a; animation: pulseRed 0.5s infinite; }
+        @keyframes pulseRed { 0%,100%{opacity:1;} 50%{opacity:0.7;text-shadow:0 0 15px red;} }
+        
+        /* REAL-TIME TRENDS - moved down by 3px (top: 377px), height 336px, green scrollbar */
+        .scada-trend-panel { position: absolute; top: 377px; left: 10px; width: 300px; background: rgba(15,23,36,0.96); backdrop-filter: blur(16px); border: 2px solid #2dd4bf; border-radius: 12px; padding: 6px 8px; z-index: 350; font-family: 'Courier New', monospace; resize: both; overflow-y: auto; min-width: 200px; max-width: 350px; height: 336px; box-sizing: border-box; }
+        .scada-trend-panel::-webkit-scrollbar { width: 5px; }
+        .scada-trend-panel::-webkit-scrollbar-track { background: #1e293b; border-radius: 3px; }
+        .scada-trend-panel::-webkit-scrollbar-thumb { background: #2dd4bf; border-radius: 3px; }
+        
+        .trend-header { color: #2dd4bf; font-size: 0.6rem; text-align: center; border-bottom: 1px solid #2dd4bf; margin-bottom: 4px; padding-bottom: 2px; }
+        .trend-card { background: rgba(30,41,59,0.5); border-radius: 6px; padding: 4px; margin-bottom: 5px; border-left: 3px solid #f59e0b; }
+        .trend-title { font-size: 0.5rem; color: #cbd5e1; display: flex; justify-content: space-between; }
+        .trend-canvas-container { width: 100%; height: 40px; background: #0f1724; border-radius: 4px; }
+        canvas.trend-canvas { width: 100%; height: 100%; display: block; background: #0f1724; border-radius: 4px; }
+        .trend-stats { font-size: 0.45rem; color: #94a3b8; text-align: right; margin-top: 2px; }
+        .scada-drag-handle { position: absolute; top: 2px; left: 6px; cursor: move; font-size: 0.5rem; color: #2dd4bf; opacity: 0.6; background: rgba(0,0,0,0.4); padding: 0 4px; border-radius: 8px; }
+        
+        /* RAIED - STORAGE COMMAND - border 2px, green scrollbar already present */
+        .controls-panel { position: absolute; top: 5px; bottom: 5px; right: 15px; z-index: 300; background: linear-gradient(145deg, #0f1724 0%, #0a0f1a 100%); backdrop-filter: blur(12px); border-radius: 12px; padding: 8px 10px; color: #e2e8f0; font-family: monospace; border: 2px solid #2dd4bf; width: 280px; min-width: 260px; text-align: center; overflow-y: auto; resize: both; box-sizing: border-box; }
+        .controls-panel::-webkit-scrollbar { width: 5px; }
+        .controls-panel::-webkit-scrollbar-track { background: #1e293b; border-radius: 3px; }
+        .controls-panel::-webkit-scrollbar-thumb { background: #2dd4bf; border-radius: 3px; }
+        .panel-header { display: flex; justify-content: center; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #2dd4bf; cursor: grab; font-weight: bold; position: relative; font-size: 0.7rem; background: rgba(45,212,191,0.15); color: #2dd4bf; }
+        .reset-pos-btn { background: #5a3a2a; border: none; color: #aaa; padding: 2px 5px; border-radius: 10px; cursor: pointer; font-size: 0.5rem; position: absolute; right: 0; top: 0; }
+        .reset-pos-btn:hover { background: #e11d48; color: white; }
+        button { background: #334155; border: none; color: #f1f5f9; margin: 2px; border-radius: 16px; cursor: pointer; font-weight: bold; font-family: monospace; padding: 4px 6px; font-size: 0.6rem; transition: all 0.1s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+        button:hover { filter: brightness(1.15); transform: scale(1.02); }
+        .btn-primary { background: #f59e0b; color: #0f1724; border: 1px solid #fbbf24; }
+        .btn-danger { background: #e11d48; border: 1px solid #f43f5e; }
+        .btn-kamikaze { background: #ea580c; border: 1px solid #fdba74; text-shadow: 0 0 2px #ffedd5; }
+        .btn-auto { background: #8b5cf6; border: 2px solid #c4b5fd; }
+        .btn-laser { background: #06b6d4; border: 2px solid #67e8f9; }
+        .btn-kamikaze-launch { background: #cc3300 !important; border: 2px solid #ff8844 !important; color: #fff0d0 !important; text-shadow: 0 0 4px #ffaa66; box-shadow: 0 0 8px rgba(255,68,0,0.6); transition: all 0.2s ease; }
+        .btn-kamikaze-launch:hover { background: #ff4411 !important; border-color: #ffcc88 !important; box-shadow: 0 0 14px #ff6633; transform: scale(1.02); }
+        .kamikaze-section { background: rgba(30,41,59,0.6); border-radius: 6px; padding: 4px; margin: 5px 0; border: 1px solid #ea580c; }
+        .laser-section { background: rgba(30,41,59,0.6); border-radius: 6px; padding: 4px; margin: 5px 0; border: 1px solid #8b5cf6; }
+        .progress-bar { width: 100%; height: 4px; background: #1e293b; border-radius: 4px; overflow: hidden; margin: 3px 0; }
+        .progress-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #06b6d4, #f59e0b, #e11d48); border-radius: 4px; transition: width 0.05s linear; }
+        .tank-status { background: rgba(30,41,59,0.6); border-radius: 6px; padding: 5px; margin: 5px 0; text-align: center; font-size: 0.6rem; }
+        .pressure-gauge { width: 100%; height: 6px; background: #2a2a2a; border-radius: 4px; margin: 3px 0; overflow: hidden; }
+        .pressure-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444); border-radius: 4px; transition: width 0.1s linear; }
+        .drone-status { background: rgba(30,41,59,0.6); border-radius: 6px; padding: 4px; margin: 5px 0; font-size: 0.6rem; }
+        .mode-selector { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; margin: 4px 0; }
+        .badge-group { background: #0f1724; border-radius: 8px; padding: 2px 6px; margin-top: 3px; display: inline-block; font-size: 0.5rem; color: #cbd5e1; }
+        .locations-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px; margin: 4px 0; }
+        .loc-btn { padding: 3px 4px; font-size: 0.55rem; }
+        .loc-btn-normal { background: #14b8a6; color: #0f1724; }
+        .loc-btn-threat { background: #be123c; }
+        .audio-control { background: #1e293b; border-radius: 6px; padding: 4px; margin: 5px 0; display: flex; align-items: center; justify-content: space-between; font-size: 0.6rem; }
+        .audio-toggle { background: #334155; padding: 2px 8px; font-size: 0.6rem; }
+        .safety-section { background: rgba(30,41,59,0.6); border-radius: 6px; padding: 5px; margin: 5px 0; border: 1px solid #f59e0b; font-size: 0.6rem; }
+        .auto-safety-panel { background: rgba(30,41,59,0.6); border-radius: 6px; padding: 5px; margin: 5px 0; border: 2px solid #8b5cf6; }
+        .separator { height: 1px; background: #334155; margin: 4px 0; }
+        .section-title { background: #1e293b; border-radius: 6px; padding: 2px; margin: 4px 0 3px 0; font-weight: bold; text-align: center; font-size: 0.6rem; color: #2dd4bf; }
+        .impact-notice { color: #facc15; margin-top: 4px; text-align: center; font-size: 0.6rem; }
+        .status-row { display: flex; justify-content: space-between; gap: 8px; margin: 3px 0; font-size: 0.6rem; }
+        .fire-risk { font-size: 0.5rem; margin-top: 2px; }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
+        .alert-banner { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: #e11d48; color: white; padding: 8px 16px; border-radius: 40px; font-family: monospace; font-weight: bold; font-size: 1rem; z-index: 500; text-align: center; animation: blinkAlert 0.5s infinite; display: none; white-space: nowrap; box-shadow: 0 0 20px #e11d48; border: 1px solid #fecdd3; }
+        @keyframes blinkAlert { 0%,100%{opacity:1;} 50%{opacity:0.7;} }
+    </style>
+</head>
+<body>
+    <div class="floating-logo"><img src="REFINERY ANTI-drone INTERCEPTION ENVIRONMENT DOME - Logo.png" alt="RAIED Logo"></div>
+    <div class="fusion-screen" id="fusionScreen"><div class="fusion-drag-handle" id="fusionDragHandle">⣿⣿</div><h3>🔧 FUSION SYSTEM / SCADA</h3><div class="countdown" id="countdownTimer">--.-</div><div class="distance" id="distanceDisplay">📏 DISTANCE: --- km</div><div class="fusion-row"><span class="fusion-label">📡 RADAR STATUS:</span><span class="fusion-value" id="radarStatus">ACTIVE</span></div><div class="fusion-row"><span class="fusion-label">🎯 TARGET:</span><span class="fusion-value" id="targetType">NONE</span></div><div class="fusion-row"><span class="fusion-label">⚡ SPEED:</span><span class="fusion-value" id="targetSpeed">--- km/h</span></div><div class="fusion-row"><span class="fusion-label">🧭 APPROACH FROM:</span><span class="fusion-value" id="targetDirection">---</span></div><div class="fusion-row"><span class="fusion-label">🔄 MANEUVER:</span><span class="fusion-value" id="targetManeuver">---</span></div><div class="fusion-row"><span class="fusion-label">⏱️ ETA:</span><span class="fusion-value" id="targetETA">--- sec</span></div><div class="fusion-row"><span class="fusion-label">🔄 BEAM ROTATION:</span><span class="fusion-value" id="beamRotation">360° LONG RANGE</span></div><div class="threat-level" id="threatLevel">🟢 THREAT: LOW</div><div class="status" id="fusionStatusText">🟢 SYSTEM ONLINE | AWAITING DRONE</div><div class="fusion-row" style="margin-top:8px; border-top:1px solid #2dd4bf;"><span class="fusion-label">⚙️ MOTOR STATUS:</span><span class="fusion-value" id="motorStatus">4x15HP FLOOR + 2x15HP TOP (SOUTH SIDE) = IDLE</span></div><div class="fusion-row" style="margin-top:4px;"><span class="fusion-label">🛡️ DOME STATUS:</span><span class="fusion-value" id="domeStatus">PROTECTED</span></div><div class="fusion-row"><span class="fusion-label">💨 N₂ BLANKET:</span><span class="fusion-value" id="nitroStatus">ACTIVE ✅</span></div><div class="fusion-row"><span class="fusion-label">🔫 LASER TURRET:</span><span class="fusion-value" id="laserStatus">STANDBY</span></div><div class="voice-mute-btn" id="voiceMuteBtn">🔊 VOICE: ON</div></div>
+    <div id="scadaTrendPanel" class="scada-trend-panel"><div class="scada-drag-handle" id="trendDragHandle">⣿ DRAG ⣿</div><div class="trend-header">📊 REAL-TIME TRENDS</div><div class="trend-card"><div class="trend-title"><span>📈 PRESSURE (PSI)</span><span id="pressureLiveVal">50 PSI</span></div><div class="trend-canvas-container"><canvas id="pressureTrendCanvas" class="trend-canvas"></canvas></div><div class="trend-stats">Max: <span id="pressureTrendMax">50</span> PSI</div></div><div class="trend-card"><div class="trend-title"><span>⚡ DRONE SPEED (km/h)</span><span id="speedLiveVal">0 km/h</span></div><div class="trend-canvas-container"><canvas id="speedTrendCanvas" class="trend-canvas"></canvas></div><div class="trend-stats">Peak: <span id="speedTrendPeak">0</span> km/h</div></div><div class="trend-card"><div class="trend-title"><span>📏 DISTANCE (km)</span><span id="distLiveVal">-- km</span></div><div class="trend-canvas-container"><canvas id="distanceTrendCanvas" class="trend-canvas"></canvas></div><div class="trend-stats">Min: <span id="distTrendMin">--</span> km</div></div><div class="trend-card"><div class="trend-title"><span>🚁 DRONE COUNT</span><span id="presenceLiveVal">0</span></div><div class="trend-canvas-container"><canvas id="presenceTrendCanvas" class="trend-canvas"></canvas></div><div class="trend-stats">0-5 active drones</div></div></div>
+    <div class="alert-banner" id="alertBanner">🚨🚨🚨 INCOMING KAMIKAZE DETECTED! 🚨🚨🚨</div>
+    <div class="controls-panel" id="movablePanel">
+        <div class="panel-header" id="dragHandle"><span>🎮 RAIED - STORAGE COMMAND</span><button class="reset-pos-btn" id="resetPanelPos">⟳</button></div>
+        <div class="audio-control"><span>🔊 SOUND EFFECTS (Incl. Laser)</span><button id="audioToggleBtn" class="audio-toggle">🔇 MUTE</button></div>
+        <button id="killAllSoundsBtn" class="btn-danger" style="width:100%; margin-bottom:5px;">💀 KILL ALL SOUNDS</button>
+        <div class="laser-section"><div>🔫 AUTO LASER TURRET (swarm)</div><button id="toggleLaserBtn" class="btn-laser" style="width:100%;">🔫 ACTIVATE AUTO LASER</button><div id="laserStatusText" style="font-size:0.5rem; margin-top:3px;">⚡ Auto Turret: INACTIVE | Targets swarm drones</div><div class="badge-group">💡 Auto laser neutralizes 1 swarm drone per shot (5 sec cooldown)</div><div class="badge-group">✨ Visible cyan beam</div><div class="badge-group">🔇 Laser sound mutes with main audio button</div><div class="badge-group">💥 Leaves debris on ground</div></div>
+        <div class="auto-safety-panel"><div class="auto-safety-title">🤖 AUTOMATIC SAFETY SYSTEM</div><div class="shutter-group"><button id="autoSafetyBtn" class="btn-auto" style="width:100%; padding:6px;">🤖 AUTO-SAFETY: ON</button></div><div class="badge-group">💡 Auto-activates Cooling + Vents + Foam at 200+ PSI</div></div>
+        <div class="drone-status">
+            <div style="display: flex; gap: 6px; margin-bottom: 6px;"><button id="toggleDroneBtn" style="flex:1; background:#2a6a5a;">🚁 LAUNCH MAIN DRONE</button><button id="manualLaserBtn" style="flex:1; background:#e11d48; border:1px solid #f43f5e;">🔫 MANUAL LASER (main drone)</button></div>
+            <div class="badge-group" style="margin:4px 0;">⚙️ MAIN DRONE</div>
+            <button id="spawnSwarmBtn" style="width:100%; background:#6a4a2a;">🔄 SPAWN DRONE SWARM (max 5)</button>
+            <button id="clearSwarmBtn" style="width:100%; background:#4a3a2a; margin-top:2px;">🗑️ CLEAR ALL SWARM DRONES</button>
+            <div id="droneStatus" style="margin-top:4px;">⚡ No drone - Strikes disabled</div>
+        </div>
+        <div class="section-title" style="margin-top:8px;">⚡ SELECT MODE</div>
+        <div class="mode-selector"><button id="normalModeBtn">🟢 NORMAL MODE</button><button id="threatModeBtn">🔴 THREAT MODE</button><button id="kamikazeModeBtn" class="btn-kamikaze">💀 KAMIKAZE MODE</button><button id="clearModeBtn">⚪ CLEAR</button></div>
+        <div class="kamikaze-section"><div>💀 KAMIKAZE ATTACK</div><button id="kamikazeAttackBtn" class="btn-auto btn-kamikaze-launch" style="width:100%;" disabled>💀 LAUNCH KAMIKAZE DRONE</button><div id="kamikazeStatus">💡 IF SHUTTERS CLOSED → Dome protects tank | IF SHUTTERS OPEN → Tank destroyed</div><div id="kamikazeCounter" class="badge-group">💀 Kamikaze strikes: 0</div><div id="partsOnShuttersCounter" class="badge-group" style="margin-top:3px;">🔶 Items on shutters: 0</div></div>
+        <div class="section-title">🏛️ DOME PROTECTION SYSTEM</div>
+        <div class="shutter-group"><button id="closeTopShuttersBtn" class="btn-primary">🔒 CLOSE TOP SHUTTERS</button><button id="openTopShuttersBtn">🔓 OPEN TOP SHUTTERS</button></div>
+        <div class="progress-bar"><div class="progress-fill" id="topFillBar"></div></div>
+        <div class="shutter-group"><button id="closeFaceDoorsBtn" class="btn-primary">🚪 CLOSE FACE DOORS</button><button id="openFaceDoorsBtn">🚪 OPEN FACE DOORS</button></div>
+        <div class="progress-bar"><div class="progress-fill" id="faceFillBar"></div></div>
+        <div class="shutter-group"><button id="closeAllShuttersBtn" class="btn-danger">🛡️ CLOSE ALL SHUTTERS (PROTECT TANK)</button><button id="openAllShuttersBtn">🔓 OPEN ALL SHUTTERS (VULNERABLE)</button></div>
+        <div class="badge-group">🛡️ SHUTTERS CLOSED = DOME TAKES THE HIT | TANK SURVIVES</div>
+        <div class="separator"></div>
+        <div class="safety-section"><div class="safety-title">🛡️ MANUAL SAFETY OVERRIDE</div><div class="status-row"><span>💧 COOLING: <span id="coolingPercent">0</span>%</span><span>🚪 VENTS: <span id="ventPercent">0</span>%</span><span>🫧 FOAM: <span id="foamPercent">0</span>%</span></div><div class="progress-bar"><div class="progress-fill" id="coolingFill"></div></div><div class="progress-bar"><div class="progress-fill" id="ventFill"></div></div><div class="progress-bar"><div class="progress-fill" id="foamFill"></div></div><div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; margin: 4px 0;"><button id="activateCoolingBtn" class="btn-primary">💧 COOLING ON</button><button id="deactivateCoolingBtn">💧 OFF</button><button id="openVentsBtn" class="btn-primary">🚪 VENTS OPEN</button><button id="closeVentsBtn">🚪 CLOSE</button><button id="activateFoamBtn">🫧 FOAM ON</button><button id="deactivateFoamBtn">🫧 OFF</button><button id="emergencyDepressurizeBtn">⚠️ EMERGENCY DEPRESS</button></div></div>
+        <div class="separator"></div>
+        <div class="tank-status"><div>📊 TANK STATUS (20,000 TON)</div><div>💨 PRESSURE: <span id="pressureValue">50</span> PSI</div><div class="pressure-gauge"><div class="pressure-fill" id="pressureFill"></div></div><div>🏗️ INTEGRITY: <span id="integrityValue">100</span>%</div><div class="progress-bar"><div class="progress-fill" id="integrityFill"></div></div><div class="fire-risk" id="fireRisk">✅ NORMAL</div><div class="badge-group">💨 N₂ BLANKET ACTIVE - FIRE INERTING</div></div>
+        <div class="separator"></div>
+        <div class="section-title">🔥 NORMAL STRIKES (Requires open shutters) - PROGRESSIVE DAMAGE</div>
+        <div class="locations-grid" id="normalStrikesGrid"></div>
+        <div class="section-title">💀 THREAT STRIKES (Requires shutters closed) - PRESSURE DAMAGE + DEBRIS ON SHUTTERS</div>
+        <div class="locations-grid" id="threatStrikesGrid"></div>
+        <button id="resetAllActionsBtn" style="background:#cc3300; width:100%; margin-top:8px; padding:6px;">🔄 RESET ALL SYSTEMS</button>
+        <div class="impact-notice" id="impactMessage">🛡️ Oil spills visible around the tank!</div>
+    </div>
+
+    <script type="importmap">{ "imports": { "three": "https://unpkg.com/three@0.128.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/" } }</script>
+    <script type="module">
+        // ========== AUDIO & SOUND SETUP ==========
+        const SOUND_FILES = { strike: "strike.mp3", explosion: "explosion.mp3", alarm: "alarm.mp3", laser: "laser.mp3", drone: "drone.mp3", kamikaze: "Kamikaze-drone-attack-with-impact-explosion.mp3", swarmSpawn: "SPAWN DRONE.mp3", shutters: "Shutters are closing or openning.mp3" };
+        let audioEnabled = true, audioContext = null, mainDroneHoverAudio = null, currentKamikazeAudio = null, audioContextStarted = false;
+        let swarmSounds = new Map(), nextDroneId = 1;
+        let audioElements = { strike:null, explosion:null, alarm:null, laser:null, drone:null, kamikaze:null, swarmSpawn:null, shutters:null };
+        const allActiveAudio = new Set();
+        function initExternalSounds() { for (const [key, filePath] of Object.entries(SOUND_FILES)) if(filePath) try { audioElements[key] = new Audio(filePath); } catch(e){} }
+        function startAudioContext() { if(audioContextStarted) return; audioContextStarted=true; if(audioContext && audioContext.state==='suspended') audioContext.resume(); }
+        function playSound(key, vol=0.5, loop=false) { if(!audioEnabled) return null; startAudioContext(); const snd=audioElements[key]; if(!snd) return null; try{ if(loop){ snd.loop=true; snd.currentTime=0; snd.volume=vol; snd.play(); return snd; } else{ const clone=snd.cloneNode(); clone.volume=vol; allActiveAudio.add(clone); clone.play(); clone.onended=()=>allActiveAudio.delete(clone); return clone; } }catch(e){} return null; }
+        function playBeep(f,d,v,t='sine'){ if(!audioEnabled) return; try{ if(!audioContext) audioContext=new (AudioContext||webkitAudioContext)(); let o=audioContext.createOscillator(), g=audioContext.createGain(); o.connect(g); g.connect(audioContext.destination); o.type=t; o.frequency.value=f; g.gain.value=v; o.start(); g.gain.exponentialRampToValueAtTime(1e-5, audioContext.currentTime+d); o.stop(audioContext.currentTime+d); if(audioContext.state==='suspended') audioContext.resume(); }catch(e){} }
+        function playStrikeSound(){ if(SOUND_FILES.strike) playSound('strike',0.3); else playBeep(200,0.3,0.3,'square'); }
+        function playTankExplosionSound(){ if(SOUND_FILES.explosion) playSound('explosion',0.7); else { playBeep(40,1.2,0.7,'sawtooth'); playBeep(30,1,0.6,'sawtooth'); } }
+        function playAlarmSound(){ if(SOUND_FILES.alarm) playSound('alarm',0.2); else { playBeep(880,0.15,0.2); setTimeout(()=>playBeep(660,0.15,0.2),200); } }
+        function playLaserSound(){ if(SOUND_FILES.laser) playSound('laser',0.2); else { playBeep(800,0.05,0.1); setTimeout(()=>playBeep(1200,0.12,0.2),30); setTimeout(()=>playBeep(1800,0.15,0.15),80); } }
+        function playShutterSound(){ if(SOUND_FILES.shutters) playSound('shutters',0.4); else { playBeep(150,0.3,0.2); setTimeout(()=>playBeep(120,0.2,0.15),150); } }
+        function playSwarmSpawnSound(){ if(SOUND_FILES.swarmSpawn) playSound('swarmSpawn',0.4); else { playBeep(600,0.2,0.2); setTimeout(()=>playBeep(800,0.15,0.15),100); setTimeout(()=>playBeep(1000,0.25,0.2),200); } }
+        function startKamikazeHumming(){ startAudioContext(); if(SOUND_FILES.kamikaze&&audioEnabled&&audioElements.kamikaze){ if(currentKamikazeAudio) currentKamikazeAudio.pause(); currentKamikazeAudio=audioElements.kamikaze.cloneNode(); currentKamikazeAudio.loop=true; currentKamikazeAudio.volume=0.5; currentKamikazeAudio.play(); } }
+        function stopKamikazeHumming(){ if(currentKamikazeAudio){ currentKamikazeAudio.pause(); currentKamikazeAudio=null; } }
+        function nuclearSoundKiller(){ allActiveAudio.forEach(a=>{ try{ a.pause(); a.src=''; }catch(e){} }); allActiveAudio.clear(); document.querySelectorAll('audio').forEach(a=>{ try{ a.pause(); a.src=''; a.remove(); }catch(e){} }); for(let [id,s] of swarmSounds) try{ s.pause(); s.src=''; }catch(e){} swarmSounds.clear(); if(mainDroneHoverAudio){ mainDroneHoverAudio.pause(); mainDroneHoverAudio=null; } if(currentKamikazeAudio) currentKamikazeAudio=null; }
+        function startDroneHoverSound(){ if(!audioEnabled) return; nuclearSoundKiller(); startAudioContext(); if(SOUND_FILES.drone&&audioElements.drone) try{ mainDroneHoverAudio=new Audio(SOUND_FILES.drone); mainDroneHoverAudio.loop=true; mainDroneHoverAudio.volume=0.15; mainDroneHoverAudio.play(); }catch(e){} }
+        function stopDroneHoverSound(){ nuclearSoundKiller(); }
+        function initAudio(){ if(!audioContext&&audioEnabled) audioContext=new (AudioContext||webkitAudioContext)(); }
+        document.body.addEventListener('click',()=>startAudioContext());
+        
+        // Trend Canvas
+        const MAX_TREND_POINTS=100; let pressureTrend=Array(MAX_TREND_POINTS).fill(50), speedTrend=Array(MAX_TREND_POINTS).fill(0), distanceTrend=Array(MAX_TREND_POINTS).fill(20), presenceTrend=Array(MAX_TREND_POINTS).fill(0);
+        const pCanvas=document.getElementById('pressureTrendCanvas'), sCanvas=document.getElementById('speedTrendCanvas'), dCanvas=document.getElementById('distanceTrendCanvas'), prCanvas=document.getElementById('presenceTrendCanvas');
+        let pCtx=pCanvas?.getContext('2d'), sCtx=sCanvas?.getContext('2d'), dCtx=dCanvas?.getContext('2d'), prCtx=prCanvas?.getContext('2d');
+        function resizeTrendCanvases(){ [pCanvas,sCanvas,dCanvas,prCanvas].forEach(c=>{ if(c&&c.parentElement){ let rect=c.parentElement.getBoundingClientRect(); if(rect.width>0&&rect.height>0){ c.width=rect.width; c.height=rect.height; } } }); drawAllTrends(); }
+        function drawTrend(canvas,ctx,data,color,maxV,discrete=false){ if(!canvas||!ctx||canvas.width===0||canvas.height===0) return; let w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); ctx.beginPath(); ctx.strokeStyle=color; ctx.lineWidth=2; let step=w/(MAX_TREND_POINTS-1); for(let i=0;i<MAX_TREND_POINTS;i++){ let val=data[i]||0; let y=h-(val/maxV)*h; y=Math.min(h,Math.max(0,y)); let x=i*step; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); } ctx.stroke(); if(discrete){ ctx.fillStyle=color; for(let i=0;i<MAX_TREND_POINTS;i++){ let val=data[i]||0; let y=h-(val/maxV)*h; let x=i*step; ctx.beginPath(); ctx.arc(x,y,2,0,2*Math.PI); ctx.fill(); } } ctx.beginPath(); ctx.strokeStyle='#336655'; ctx.lineWidth=0.5; for(let i=0;i<=4;i++){ let y=(i/4)*h; ctx.moveTo(0,y); ctx.lineTo(w,y); } ctx.stroke(); }
+        function drawAllTrends(){ if(pCtx) drawTrend(pCanvas,pCtx,pressureTrend,'#ff8844',320); if(sCtx) drawTrend(sCanvas,sCtx,speedTrend,'#44ffaa',180); if(dCtx) drawTrend(dCanvas,dCtx,distanceTrend,'#66ccff',30); if(prCtx) drawTrend(prCanvas,prCtx,presenceTrend,'#ff66ff',5,true); document.getElementById('pressureTrendMax').innerText=Math.max(...pressureTrend).toFixed(0); let maxSpd=Math.max(...speedTrend.filter(v=>v>0)); document.getElementById('speedTrendPeak').innerText=maxSpd.toFixed(0); let minDist=Math.min(...distanceTrend.filter(v=>v>0)); document.getElementById('distTrendMin').innerHTML=minDist.toFixed(2); }
+        function updateTrends(p,s,d,pres){ pressureTrend.push(p); if(pressureTrend.length>MAX_TREND_POINTS) pressureTrend.shift(); speedTrend.push(s); if(speedTrend.length>MAX_TREND_POINTS) speedTrend.shift(); let dk=Math.min(29,Math.max(0,d)); distanceTrend.push(dk); if(distanceTrend.length>MAX_TREND_POINTS) distanceTrend.shift(); presenceTrend.push(pres); if(presenceTrend.length>MAX_TREND_POINTS) presenceTrend.shift(); drawAllTrends(); document.getElementById('pressureLiveVal').innerHTML=Math.floor(p)+' PSI'; document.getElementById('speedLiveVal').innerHTML=Math.floor(s)+' km/h'; document.getElementById('distLiveVal').innerHTML=dk.toFixed(2)+' km'; document.getElementById('presenceLiveVal').innerHTML=pres; }
+        let voiceEnabled=true; const voiceMuteBtn=document.getElementById('voiceMuteBtn'); function toggleVoiceMute(){ voiceEnabled=!voiceEnabled; voiceMuteBtn.innerHTML=voiceEnabled?'🔊 VOICE: ON':'🔇 VOICE: OFF'; voiceMuteBtn.classList.toggle('muted',!voiceEnabled); if(!voiceEnabled&&window.speechSynthesis) window.speechSynthesis.cancel(); } voiceMuteBtn.onclick=toggleVoiceMute;
+        function speakAlert(msg,priority=false){ if(!voiceEnabled||!window.speechSynthesis) return; if(priority) window.speechSynthesis.cancel(); let u=new SpeechSynthesisUtterance(msg); u.rate=0.9; u.pitch=1.1; u.volume=1; u.lang='en-US'; window.speechSynthesis.speak(u); }
+        function showAlertBanner(msg,dur=4000){ let b=document.getElementById('alertBanner'); b.innerHTML=msg; b.style.display='block'; setTimeout(()=>b.style.display='none',dur); }
+        
+        // ========== THREE.JS SCENE ==========
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
+        const scene=new THREE.Scene(); scene.background=new THREE.Color(0x0a1a2a); scene.fog=new THREE.FogExp2(0x0a1a2a,0.003);
+        const renderer=new THREE.WebGLRenderer({antialias:true}); renderer.setSize(window.innerWidth,window.innerHeight); renderer.shadowMap.enabled=true; document.body.appendChild(renderer.domElement);
+        const labelRenderer=new CSS2DRenderer(); labelRenderer.setSize(window.innerWidth,window.innerHeight); labelRenderer.domElement.style.position='absolute'; labelRenderer.domElement.style.top='0px'; labelRenderer.domElement.style.left='0px'; labelRenderer.domElement.style.pointerEvents='none'; document.body.appendChild(labelRenderer.domElement);
+        const camera=new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.1,200); camera.position.set(18,14.4,24); camera.lookAt(0,3,0);
+        const controls=new OrbitControls(camera,renderer.domElement); controls.enableDamping=true; controls.target.set(0,3,0); controls.zoomSpeed=1.2;
+        // Lighting
+        const ambient=new THREE.AmbientLight(0x708090,0.75); scene.add(ambient);
+        const mainLight=new THREE.DirectionalLight(0xfff5e0,1.6); mainLight.position.set(8,18,6); mainLight.castShadow=true; scene.add(mainLight);
+        const fillLight=new THREE.PointLight(0xaaccff,0.65); fillLight.position.set(0,5,0); scene.add(fillLight);
+        const backLight=new THREE.PointLight(0xffccaa,0.55); backLight.position.set(-5,6,-8); scene.add(backLight);
+        const rimLight=new THREE.PointLight(0x88aaff,0.5); rimLight.position.set(4,7,-6); scene.add(rimLight);
+        const ground=new THREE.Mesh(new THREE.PlaneGeometry(50,50),new THREE.MeshStandardMaterial({color:0x2a3038,roughness:0.85,metalness:0.1})); ground.rotation.x=-Math.PI/2; ground.position.y=-1.5; ground.receiveShadow=true; scene.add(ground);
+        const gridHelper=new THREE.GridHelper(50,35,0x88aacc,0x446688); gridHelper.position.y=-1.45; gridHelper.material.transparent=true; gridHelper.material.opacity=0.25; scene.add(gridHelper);
+        
+        // ========== DOME GEOMETRY (full) ==========
+        const SQUARE_SIZE=13.5, HALF_SIZE=SQUARE_SIZE/2, GROUND_Y=-1.5, PILLAR_H=6.8, TOP_Y=GROUND_Y+PILLAR_H;
+        const steelShutter=new THREE.MeshStandardMaterial({color:0xffffff,metalness:0.99,roughness:0.02,emissive:0x444444});
+        const steelBeam=new THREE.MeshStandardMaterial({color:0xfefefe,metalness:0.99,roughness:0.03});
+        const pillarMaterial=new THREE.MeshStandardMaterial({color:0xd0b080,metalness:0.88,roughness:0.22});
+        const hardwareMat=new THREE.MeshStandardMaterial({color:0xffffff,metalness:0.99,roughness:0.02,emissive:0x222222});
+        const pillarPositions=[{x:-HALF_SIZE,z:-HALF_SIZE},{x:HALF_SIZE,z:-HALF_SIZE},{x:HALF_SIZE,z:HALF_SIZE},{x:-HALF_SIZE,z:HALF_SIZE}];
+        pillarPositions.forEach(pos=>{ const pillar=new THREE.Mesh(new THREE.BoxGeometry(0.8,PILLAR_H,0.8),pillarMaterial); pillar.position.set(pos.x,GROUND_Y+PILLAR_H/2,pos.z); pillar.castShadow=true; scene.add(pillar); const bolt=new THREE.Mesh(new THREE.SphereGeometry(0.13,12,12),hardwareMat); bolt.position.set(pos.x,TOP_Y+0.1,pos.z); scene.add(bolt); });
+        const rsjMat=steelBeam; const BAR_HEIGHT=0.6;
+        const southBar=new THREE.Mesh(new THREE.BoxGeometry(SQUARE_SIZE,BAR_HEIGHT,0.6),rsjMat); southBar.position.set(0,TOP_Y,-HALF_SIZE); scene.add(southBar);
+        const eastBar=new THREE.Mesh(new THREE.BoxGeometry(0.6,BAR_HEIGHT,SQUARE_SIZE),rsjMat); eastBar.position.set(HALF_SIZE,TOP_Y,0); scene.add(eastBar);
+        const northBar=new THREE.Mesh(new THREE.BoxGeometry(SQUARE_SIZE,BAR_HEIGHT,0.6),rsjMat); northBar.position.set(0,TOP_Y,HALF_SIZE); scene.add(northBar);
+        const westBar=new THREE.Mesh(new THREE.BoxGeometry(0.6,BAR_HEIGHT,SQUARE_SIZE),rsjMat); westBar.position.set(-HALF_SIZE,TOP_Y,0); scene.add(westBar);
+        const connectorMat=new THREE.MeshStandardMaterial({color:0xfcfcfc,metalness:0.99,roughness:0.03});
+        const cornerPositionsList=[{x:-HALF_SIZE,z:-HALF_SIZE},{x:HALF_SIZE,z:-HALF_SIZE},{x:HALF_SIZE,z:HALF_SIZE},{x:-HALF_SIZE,z:HALF_SIZE}];
+        cornerPositionsList.forEach(pos=>{ const connector=new THREE.Mesh(new THREE.BoxGeometry(0.75,BAR_HEIGHT+0.15,0.75),connectorMat); connector.position.set(pos.x,TOP_Y,pos.z); scene.add(connector); const screw=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.09,0.06,6),hardwareMat); screw.position.set(pos.x,TOP_Y+0.14,pos.z); scene.add(screw); });
+        const beadingMat=new THREE.MeshStandardMaterial({color:0xf0f0f6,metalness:0.98,roughness:0.08});
+        [-4.0,-1.3,1.3,4.0].forEach(xPos=>{ const beadingBar=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.12,SQUARE_SIZE),beadingMat); beadingBar.position.set(xPos,TOP_Y+0.06,0); scene.add(beadingBar); });
+        const bracketMat=new THREE.MeshStandardMaterial({color:0xf0f0f4,metalness:0.98,roughness:0.08});
+        const midPoints=[{x:0,z:-HALF_SIZE},{x:HALF_SIZE,z:0},{x:0,z:HALF_SIZE},{x:-HALF_SIZE,z:0}];
+        midPoints.forEach(mp=>{ const bracket=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.14,0.4),bracketMat); bracket.position.set(mp.x,TOP_Y+0.1,mp.z); scene.add(bracket); const boltSmall=new THREE.Mesh(new THREE.SphereGeometry(0.07,8,8),hardwareMat); boltSmall.position.set(mp.x,TOP_Y+0.17,mp.z); scene.add(boltSmall); });
+        // Floor Motors
+        const motorMat=new THREE.MeshStandardMaterial({color:0xcc8844,metalness:0.7,roughness:0.4});
+        const motorDetailMat=new THREE.MeshStandardMaterial({color:0xaa6644,metalness:0.5});
+        const floorMotorPositions=[{x:-HALF_SIZE-0.6,z:-HALF_SIZE-0.6,y:GROUND_Y+0.4},{x:HALF_SIZE+0.6,z:-HALF_SIZE-0.6,y:GROUND_Y+0.4},{x:HALF_SIZE+0.6,z:HALF_SIZE+0.6,y:GROUND_Y+0.4},{x:-HALF_SIZE-0.6,z:HALF_SIZE+0.6,y:GROUND_Y+0.4}];
+        floorMotorPositions.forEach(pos=>{ const motorBase=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.4,0.7),motorMat); motorBase.position.set(pos.x,pos.y,pos.z); motorBase.castShadow=true; scene.add(motorBase); const motorTop=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.4,0.2,8),motorDetailMat); motorTop.position.set(pos.x,pos.y+0.25,pos.z); motorTop.castShadow=true; scene.add(motorTop); const motorGlow=new THREE.Mesh(new THREE.SphereGeometry(0.12,6,6),new THREE.MeshStandardMaterial({color:0xffaa44,emissive:0xff4422})); motorGlow.position.set(pos.x+0.2,pos.y+0.15,pos.z+0.2); scene.add(motorGlow); });
+        // Top Motors (South side)
+        const southBeamZ=-HALF_SIZE; const bracketWidth=1.2,bracketDepth=0.8,bracketHeight=0.2,motorBaseY=TOP_Y+0.28;
+        const eastSouthBracket=new THREE.Mesh(new THREE.BoxGeometry(bracketWidth,bracketHeight,bracketDepth),new THREE.MeshStandardMaterial({color:0xccaa88,metalness:0.7})); eastSouthBracket.position.set(HALF_SIZE-0.8,TOP_Y+0.12,southBeamZ+0.2); eastSouthBracket.castShadow=true; scene.add(eastSouthBracket);
+        const eastSouthMotorBase=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.35,0.7),motorMat); eastSouthMotorBase.position.set(HALF_SIZE-0.8,motorBaseY,southBeamZ+0.2); eastSouthMotorBase.castShadow=true; scene.add(eastSouthMotorBase);
+        const eastSouthMotorTop=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.4,0.25,8),motorDetailMat); eastSouthMotorTop.position.set(HALF_SIZE-0.8,motorBaseY+0.2,southBeamZ+0.2); eastSouthMotorTop.castShadow=true; scene.add(eastSouthMotorTop);
+        const eastSouthMotorGlow=new THREE.Mesh(new THREE.SphereGeometry(0.12,6,6),new THREE.MeshStandardMaterial({color:0xffaa44,emissive:0xff4422})); eastSouthMotorGlow.position.set(HALF_SIZE-0.8+0.2,motorBaseY+0.1,southBeamZ+0.35); scene.add(eastSouthMotorGlow);
+        const westSouthBracket=new THREE.Mesh(new THREE.BoxGeometry(bracketWidth,bracketHeight,bracketDepth),new THREE.MeshStandardMaterial({color:0xccaa88,metalness:0.7})); westSouthBracket.position.set(-HALF_SIZE+0.8,TOP_Y+0.12,southBeamZ+0.2); westSouthBracket.castShadow=true; scene.add(westSouthBracket);
+        const westSouthMotorBase=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.35,0.7),motorMat); westSouthMotorBase.position.set(-HALF_SIZE+0.8,motorBaseY,southBeamZ+0.2); westSouthMotorBase.castShadow=true; scene.add(westSouthMotorBase);
+        const westSouthMotorTop=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.4,0.25,8),motorDetailMat); westSouthMotorTop.position.set(-HALF_SIZE+0.8,motorBaseY+0.2,southBeamZ+0.2); westSouthMotorTop.castShadow=true; scene.add(westSouthMotorTop);
+        const westSouthMotorGlow=new THREE.Mesh(new THREE.SphereGeometry(0.12,6,6),new THREE.MeshStandardMaterial({color:0xffaa44,emissive:0xff4422})); westSouthMotorGlow.position.set(-HALF_SIZE+0.8+0.2,motorBaseY+0.1,southBeamZ+0.35); scene.add(westSouthMotorGlow);
+        // Radar Dish
+        const radarGroup=new THREE.Group(); radarGroup.position.set(-12,-1.5,-10);
+        const radarBase=new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.4,0.8,8),new THREE.MeshStandardMaterial({color:0x88aacc,metalness:0.7})); radarBase.position.y=0; radarBase.castShadow=true; radarGroup.add(radarBase);
+        const radarPole=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.4,2.5,8),new THREE.MeshStandardMaterial({color:0xaaaaff,metalness:0.8})); radarPole.position.y=0.8; radarPole.castShadow=true; radarGroup.add(radarPole);
+        const radarDishGroupObj=new THREE.Group(); const dishBack=new THREE.Mesh(new THREE.SphereGeometry(0.9,32,32),new THREE.MeshStandardMaterial({color:0xccddff,metalness:0.9})); dishBack.scale.set(1,1,0.25); dishBack.position.z=-0.3; radarDishGroupObj.add(dishBack);
+        const radarSensor=new THREE.Mesh(new THREE.SphereGeometry(0.15,16,16),new THREE.MeshStandardMaterial({color:0xff3300,emissive:0xff2200})); radarSensor.position.z=0.2; radarDishGroupObj.add(radarSensor);
+        radarDishGroupObj.position.y=2.0; radarDishGroupObj.rotation.x=0.7; radarGroup.add(radarDishGroupObj); scene.add(radarGroup);
+        function animateDish(){ radarDishGroupObj.rotation.y+=0.012; requestAnimationFrame(animateDish); } animateDish();
+        
+        // Laser Turrets
+        let autoTurretObj, autoLaserBeam=null, autoLaserActive=false, autoLaserCooldown=0;
+        function createAutoLaserTurret(){ const turretGroup=new THREE.Group(); turretGroup.position.set(12,-1.5,-9);
+            const baseStand=new THREE.Mesh(new THREE.CylinderGeometry(1.0,1.2,0.6,8),new THREE.MeshStandardMaterial({color:0x88aacc,metalness:0.7})); baseStand.position.y=0; baseStand.castShadow=true; turretGroup.add(baseStand);
+            const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.35,2.2,8),new THREE.MeshStandardMaterial({color:0xaaaaff,metalness:0.8})); pole.position.y=0.7; pole.castShadow=true; turretGroup.add(pole);
+            const turretHead=new THREE.Group(); turretHead.position.y=1.9;
+            const ring=new THREE.Mesh(new THREE.TorusGeometry(0.55,0.08,16,32),new THREE.MeshStandardMaterial({color:0x44ffaa,metalness:0.9,emissive:0x22aa88})); ring.rotation.x=Math.PI/2; turretHead.add(ring);
+            const barrel=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.18,1.0,8),new THREE.MeshStandardMaterial({color:0xccddff,metalness:0.95})); barrel.position.z=0.45; barrel.rotation.x=Math.PI/2; turretHead.add(barrel);
+            const tipGlow=new THREE.Mesh(new THREE.SphereGeometry(0.1,8,8),new THREE.MeshStandardMaterial({color:0x00ffcc,emissive:0x00ffaa,emissiveIntensity:0.5})); tipGlow.position.z=0.95; turretHead.add(tipGlow);
+            turretGroup.add(turretHead); scene.add(turretGroup); return {group:turretGroup, head:turretHead, tipGlow:tipGlow}; }
+        autoTurretObj = createAutoLaserTurret();
+        
+        let manualTurretObj, manualLaserBeam=null, manualLaserCooldown=0;
+        function createManualLaserTurret(){ const turretGroup=new THREE.Group(); turretGroup.position.set(12, -1.5, 12);
+            const baseStand=new THREE.Mesh(new THREE.CylinderGeometry(0.9,1.1,0.6,8),new THREE.MeshStandardMaterial({color:0xcc6644,metalness:0.8})); baseStand.position.y=0; baseStand.castShadow=true; turretGroup.add(baseStand);
+            const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.35,2.2,8),new THREE.MeshStandardMaterial({color:0xdd8866,metalness:0.8})); pole.position.y=0.7; pole.castShadow=true; turretGroup.add(pole);
+            const turretHead=new THREE.Group(); turretHead.position.y=1.9;
+            const ring=new THREE.Mesh(new THREE.TorusGeometry(0.55,0.08,16,32),new THREE.MeshStandardMaterial({color:0xffaa66,metalness:0.9,emissive:0xff4422})); ring.rotation.x=Math.PI/2; turretHead.add(ring);
+            const barrel=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.18,1.0,8),new THREE.MeshStandardMaterial({color:0xff8866,metalness:0.95})); barrel.position.z=0.45; barrel.rotation.x=Math.PI/2; turretHead.add(barrel);
+            const tipGlow=new THREE.Mesh(new THREE.SphereGeometry(0.1,8,8),new THREE.MeshStandardMaterial({color:0xff6600,emissive:0xff2200,emissiveIntensity:0.5})); tipGlow.position.z=0.95; turretHead.add(tipGlow);
+            turretGroup.add(turretHead); scene.add(turretGroup); return {group:turretGroup, head:turretHead, tipGlow:tipGlow}; }
+        manualTurretObj = createManualLaserTurret();
+        
+        // ========== TANK AND SHUTTERS ==========
+        let tankGroup=new THREE.Group(), tankCyl=null, stairSteps=[], railPillars=[];
+        let oilSpills=[]; const GROUND_SURFACE_Y=-1.48;
+        function createOilSpillOnGround(pos,rad=1.5){ const oilMat=new THREE.MeshStandardMaterial({color:0x1a0a00,metalness:0.05,roughness:0.3,emissive:0x220000}); const seg=32; const verts=[0,0.02,0]; for(let i=0;i<=seg;i++){ const ang=(i/seg)*Math.PI*2; const r=rad*(0.7+Math.random()*0.6); verts.push(Math.cos(ang)*r,0.02+Math.random()*0.02,Math.sin(ang)*r); } const idx=[]; for(let i=1;i<=seg;i++) idx.push(0,i,i+1); idx.push(0,seg,1); const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(verts),3)); geo.setIndex(idx); geo.computeVertexNormals(); const puddle=new THREE.Mesh(geo,oilMat); puddle.position.copy(pos); puddle.position.y=GROUND_SURFACE_Y; puddle.castShadow=false; puddle.receiveShadow=true; scene.add(puddle); oilSpills.push(puddle); for(let i=0;i<25+Math.random()*30;i++){ const ang2=Math.random()*Math.PI*2; const r2=rad*(0.8+Math.random()*1.2); const xOff=Math.cos(ang2)*r2, zOff=Math.sin(ang2)*r2; const droplet=new THREE.Mesh(new THREE.SphereGeometry(0.08+Math.random()*0.12,6),oilMat); droplet.position.set(pos.x+xOff,GROUND_SURFACE_Y+0.01,pos.z+zOff); droplet.castShadow=false; scene.add(droplet); oilSpills.push(droplet); } }
+        function createLargeGroundOilSpill(center,rad=7){ const oilMat=new THREE.MeshStandardMaterial({color:0x2a1a08,metalness:0.02,roughness:0.6,emissive:0x110000,transparent:true,opacity:0.85}); const spillMain=new THREE.Mesh(new THREE.CylinderGeometry(rad,rad*1.1,0.05,48),oilMat); spillMain.position.set(center.x,GROUND_SURFACE_Y+0.01,center.z); spillMain.castShadow=false; spillMain.receiveShadow=true; scene.add(spillMain); oilSpills.push(spillMain); for(let i=0;i<12;i++){ const ang=Math.random()*Math.PI*2; const r=rad*(0.8+Math.random()*1.4); const xOff=Math.cos(ang)*r, zOff=Math.sin(ang)*r; const patchRad=0.8+Math.random()*1.2; const patchGeo=new THREE.CylinderGeometry(patchRad,patchRad*1.2,0.03,16); const patchMat=new THREE.MeshStandardMaterial({color:0x2a1a08,roughness:0.5,metalness:0}); const patch=new THREE.Mesh(patchGeo,patchMat); patch.position.set(center.x+xOff,GROUND_SURFACE_Y+0.005,center.z+zOff); patch.castShadow=false; scene.add(patch); oilSpills.push(patch); } }
+        function clearOilSpills(){ oilSpills.forEach(s=>scene.remove(s)); oilSpills=[]; }
+        function buildTank(){ const group=new THREE.Group(); const r=2.9*1.25, h=5.8, gy=-1.5, cy=gy+h/2; const cyl=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,64,32),new THREE.MeshStandardMaterial({color:0xdddddd,metalness:0.1,roughness:0.6})); cyl.castShadow=true; cyl.receiveShadow=true; cyl.position.y=cy; group.add(cyl); const stairMat=new THREE.MeshStandardMaterial({color:0xbcbcbc,metalness:0.5}); for(let i=0;i<24;i++){ const ang=i*0.45; const yPos=gy+0.4+i*0.24; if(yPos>gy+h-0.3) break; const step=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.1,1.1),stairMat); const rad=r+0.55; step.position.x=Math.sin(ang)*rad; step.position.z=Math.cos(ang)*rad; step.position.y=yPos; step.castShadow=true; group.add(step); stairSteps.push(step); } const railMat=new THREE.MeshStandardMaterial({color:0xccccaa}); for(let i=0;i<20;i++){ const ang=i*0.5; const yPos=gy+0.8+i*0.28; if(yPos>gy+h-0.6) continue; const pillar=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.09,0.9,4),railMat); const rad=r+0.75; pillar.position.x=Math.sin(ang)*rad; pillar.position.z=Math.cos(ang)*rad; pillar.position.y=yPos; group.add(pillar); railPillars.push(pillar); } scene.add(group); return {group, cylinder:cyl}; }
+        let tankComponents=buildTank(); tankGroup=tankComponents.group; tankCyl=tankComponents.cylinder;
+        // Shutters (top)
+        let shuttersList=[]; const SECTION_LENGTH=SQUARE_SIZE/4, SHUTTER_THICK=0.016; const shutterTracks=[{centerX:-5.4,width:2.7},{centerX:-2.7,width:2.7},{centerX:0,width:2.7},{centerX:2.7,width:2.7},{centerX:5.4,width:2.7}]; let topShutterExtension=0;
+        shutterTracks.forEach(track=>{for(let i=0;i<4;i++){ const shutter=new THREE.Mesh(new THREE.BoxGeometry(track.width,SHUTTER_THICK,SECTION_LENGTH),steelShutter); const startZ=-HALF_SIZE+i*SECTION_LENGTH; const centerZ=startZ+SECTION_LENGTH/2; const retractedZ=-HALF_SIZE, extendedZ=centerZ; const offsetY=i*0.018; shutter.position.set(track.centerX,TOP_Y+0.1+offsetY,retractedZ); shutter.castShadow=true; shutter.userData={retractedZ,extendedZ,stackOffsetY:offsetY}; scene.add(shutter); shuttersList.push(shutter); }});
+        function updateTopShutters(factor){ topShutterExtension=Math.min(1,Math.max(0,factor)); shuttersList.forEach(s=>{ const tZ=s.userData.retractedZ+(s.userData.extendedZ-s.userData.retractedZ)*topShutterExtension; const yOff=(1-topShutterExtension)*s.userData.stackOffsetY; s.position.z=tZ; s.position.y=TOP_Y+0.1+yOff; }); document.getElementById('topFillBar').style.width=Math.floor(topShutterExtension*100)+'%'; updateButtons(); updateDomeStatus(); }
+        function animateTopShutters(target,dur=5000){ const start=topShutterExtension; const startTime=performance.now(); if(start!==target) playShutterSound(); function step(now){ const t=Math.min(1,(now-startTime)/dur); updateTopShutters(start+(target-start)*t); if(t<1) requestAnimationFrame(step); } requestAnimationFrame(step); }
+        // Face Doors
+        const DOOR_WIDTH=SQUARE_SIZE/4, DOOR_HEIGHT=PILLAR_H-0.5, DOOR_Y=GROUND_Y+DOOR_HEIGHT/2, STACK_OFFSET_DOOR=0.2; const doorColors=[0xffffff,0xfefefe,0xfdfdfd,0xffffff];
+        function createFoldedDoor(w,h,x,z,rot,ci){ const g=new THREE.Group(); const panelMat=new THREE.MeshStandardMaterial({color:doorColors[ci%4],metalness:0.99,roughness:0.02,emissive:0x333333}); const panel=new THREE.Mesh(new THREE.BoxGeometry(w,h,0.08),panelMat); panel.castShadow=true; g.add(panel); g.position.set(x,DOOR_Y,z); g.rotation.y=rot; scene.add(g); return g; }
+        const doors=[];
+        const southZ=-HALF_SIZE; doors.push({obj:createFoldedDoor(DOOR_WIDTH,DOOR_HEIGHT,-HALF_SIZE,southZ,0,0),axis:'x',open:-HALF_SIZE,closed:-HALF_SIZE+DOOR_WIDTH/2});
+        doors.push({obj:createFoldedDoor(DOOR_WIDTH,DOOR_HEIGHT,-HALF_SIZE+STACK_OFFSET_DOOR,southZ,0,1),axis:'x',open:-HALF_SIZE+STACK_OFFSET_DOOR,closed:-HALF_SIZE+DOOR_WIDTH*1.5});
+        doors.push({obj:createFoldedDoor(DOOR_WIDTH,DOOR_HEIGHT,HALF_SIZE-STACK_OFFSET_DOOR,southZ,0,2),axis:'x',open:HALF_SIZE-STACK_OFFSET_DOOR,closed:HALF_SIZE-DOOR_WIDTH*1.5});
+        doors.push({obj:createFoldedDoor(DOOR_WIDTH,DOOR_HEIGHT,HALF_SIZE,southZ,0,3),axis:'x',open:HALF_SIZE,closed:HALF_SIZE-DOOR_WIDTH/2});
+        const eastX=HALF_SIZE; doors.push({obj:createFoldedDoor(DOOR_WIDTH,DOOR_HEIGHT,eastX,-HALF_SIZE,Math.PI/2,0),axis:'z',open:-HALF_SIZE,closed:-HALF_SIZE+DOOR_WIDTH/2});
+        doors.push({obj:createFoldedDoor(DOOR_WIDTH,DOOR_HEIGHT,eastX,-HALF_SIZE+STACK_OFFSET_DOOR,Math.PI/2,1),axis:'z',open:-HALF_SIZE+STACK_OFFSET_DOOR,closed:-HALF_SIZE+DOOR_WIDTH*1.5});
+        doors.push({obj:createFoldedDoor(DOOR_WIDTH,DOOR_HEIGHT,eastX,HALF_SIZE-STACK_OFFSET_DOOR,Math.PI/2,2),axis:'z',open:HALF_SIZE-STACK_OFFSET_DOOR,closed:HALF_SIZE-DOOR_WIDTH*1.5});
+        doors.push({obj:createFoldedDoor(DOOR_WIDTH,DOOR_HEIGHT,eastX,HALF_SIZE,Math.PI/2,3),axis:'z',open:HALF_SIZE,closed:HALF_SIZE-DOOR_WIDTH/2});
+        const northZ=HALF_SIZE; doors.push({obj:createFoldedDoor(DOOR_WIDTH,DOOR_HEIGHT,HALF_SIZE,northZ,Math.PI,0),axis:'x',open:HALF_SIZE,closed:HALF_SIZE-DOOR_WIDTH/2});
+        doors.push({obj:createFoldedDoor(DOOR_WIDTH,DOOR_HEIGHT,HALF_SIZE-STACK_OFFSET_DOOR,northZ,Math.PI,1),axis:'x',open:HALF_SIZE-STACK_OFFSET_DOOR,closed:HALF_SIZE-DOOR_WIDTH*1.5});
+        doors.push({obj:createFoldedDoor(DOOR_WIDTH,DOOR_HEIGHT,-HALF_SIZE+STACK_OFFSET_DOOR,northZ,Math.PI,2),axis:'x',open:-HALF_SIZE+STACK_OFFSET_DOOR,closed:-HALF_SIZE+DOOR_WIDTH*1.5});
+        doors.push({obj:createFoldedDoor(DOOR_WIDTH,DOOR_HEIGHT,-HALF_SIZE,northZ,Math.PI,3),axis:'x',open:-HALF_SIZE,closed:-HALF_SIZE+DOOR_WIDTH/2});
+        const westX=-HALF_SIZE; doors.push({obj:createFoldedDoor(DOOR_WIDTH,DOOR_HEIGHT,westX,HALF_SIZE,-Math.PI/2,0),axis:'z',open:HALF_SIZE,closed:HALF_SIZE-DOOR_WIDTH/2});
+        doors.push({obj:createFoldedDoor(DOOR_WIDTH,DOOR_HEIGHT,westX,HALF_SIZE-STACK_OFFSET_DOOR,-Math.PI/2,1),axis:'z',open:HALF_SIZE-STACK_OFFSET_DOOR,closed:HALF_SIZE-DOOR_WIDTH*1.5});
+        doors.push({obj:createFoldedDoor(DOOR_WIDTH,DOOR_HEIGHT,westX,-HALF_SIZE+STACK_OFFSET_DOOR,-Math.PI/2,2),axis:'z',open:-HALF_SIZE+STACK_OFFSET_DOOR,closed:-HALF_SIZE+DOOR_WIDTH*1.5});
+        doors.push({obj:createFoldedDoor(DOOR_WIDTH,DOOR_HEIGHT,westX,-HALF_SIZE,-Math.PI/2,3),axis:'z',open:-HALF_SIZE,closed:-HALF_SIZE+DOOR_WIDTH/2});
+        let doorExtension=0;
+        function updateDoors(factor){ doorExtension=Math.min(1,Math.max(0,factor)); doors.forEach(d=>{ if(d.axis==='x') d.obj.position.x=d.open+(d.closed-d.open)*doorExtension; else d.obj.position.z=d.open+(d.closed-d.open)*doorExtension; }); document.getElementById('faceFillBar').style.width=Math.floor(doorExtension*100)+'%'; updateButtons(); updateDomeStatus(); }
+        function animateDoors(target,dur=5000){ const start=doorExtension; const startTime=performance.now(); if(start!==target) playShutterSound(); function step(now){ const t=Math.min(1,(now-startTime)/dur); updateDoors(start+(target-start)*t); if(t<1) requestAnimationFrame(step); } requestAnimationFrame(step); }
+        let allItemsOnShutters=[];
+        function createDebrisPiece(pos,col,siz=0.15){ const debris=new THREE.Mesh(new THREE.DodecahedronGeometry(siz),new THREE.MeshStandardMaterial({color:col,metalness:0.3,roughness:0.7})); debris.position.copy(pos); debris.castShadow=true; scene.add(debris); return debris; }
+        function addItemToShutters(item){ allItemsOnShutters.push(item); updateItemsCounter(); }
+        function dropAllItemsFromShutters(){ if(allItemsOnShutters.length===0) return; const groundYLev=GROUND_SURFACE_Y+0.02, dur=800; for(let it of allItemsOnShutters){ if(it.animating) continue; const startPos=it.mesh.position.clone(); const ang=Math.random()*Math.PI*2, rad=3+Math.random()*8; const endX=Math.cos(ang)*rad, endZ=Math.sin(ang)*rad; const endPos=new THREE.Vector3(endX,groundYLev,endZ); it.startPos=startPos; it.endPos=endPos; it.animating=true; it.startTime=performance.now(); it.duration=dur; } function anim(now){ let any=false; for(let it of allItemsOnShutters){ if(it.animating){ any=true; let t=Math.min(1,(now-it.startTime)/it.duration); t=1-Math.pow(1-t,3); const nx=it.startPos.x+(it.endPos.x-it.startPos.x)*t; const ny=it.startPos.y+(it.endPos.y-it.startPos.y)*t; const nz=it.startPos.z+(it.endPos.z-it.startPos.z)*t; it.mesh.position.set(nx,ny,nz); if(t>=1) it.animating=false; } } if(any) requestAnimationFrame(anim); } requestAnimationFrame(anim); }
+        function clearAllItemsFromShutters(){ allItemsOnShutters.forEach(it=>scene.remove(it.mesh)); allItemsOnShutters=[]; updateItemsCounter(); }
+        function updateItemsCounter(){ let cnt=allItemsOnShutters.filter(it=>!it.animating).length; document.getElementById('partsOnShuttersCounter').innerHTML=`🔶 Items on shutters: ${cnt}`; }
+        function closeTopShutters(){ animateTopShutters(1,5000); } function openTopShutters(){ animateTopShutters(0,5000); setTimeout(()=>dropAllItemsFromShutters(),5000); }
+        function closeFaceDoors(){ animateDoors(1,5000); } function openFaceDoors(){ animateDoors(0,5000); setTimeout(()=>dropAllItemsFromShutters(),5000); }
+        function closeAllShutters(){ animateTopShutters(1,5000); animateDoors(1,5000); } function openAllShutters(){ animateTopShutters(0,5000); animateDoors(0,5000); setTimeout(()=>dropAllItemsFromShutters(),5000); }
+        function areAllShuttersClosed(){ return topShutterExtension>=0.99 && doorExtension>=0.99; }
+        function updateDomeStatus(){ if(areAllShuttersClosed()){ document.getElementById('domeStatus').innerHTML='🛡️ PROTECTED - SHUTTERS CLOSED'; document.getElementById('domeStatus').style.color='#88ff88'; } else{ document.getElementById('domeStatus').innerHTML='⚠️ VULNERABLE - SHUTTERS OPEN'; document.getElementById('domeStatus').style.color='#ff8888'; } }
+        let domeDamaged=false; function damageDome(){ if(domeDamaged) return; domeDamaged=true; shuttersList.forEach(s=>s.material.color.setHex(0xaa8888)); doors.forEach(d=>d.obj.children.forEach(c=>{if(c.isMesh)c.material.color.setHex(0xaa8888);})); document.getElementById('domeStatus').innerHTML='💥 DOME DAMAGED - REPAIR NEEDED'; document.getElementById('domeStatus').style.color='#ff6644'; }
+        function repairDome(){ domeDamaged=false; shuttersList.forEach(s=>s.material.color.setHex(0xffffff)); doors.forEach((door,idx)=>{door.obj.children.forEach((child,ci)=>{if(child.isMesh)child.material.color.setHex(doorColors[ci%4]);});}); updateDomeStatus(); }
+        
+        // ========== GAME STATE ==========
+        let tempDebris=[], tempSmokePuffs=[];
+        let damagePercent=0, pressure=50, integrity=100, coolingActive=false, ventsOpen=false, foamActive=false, isExploded=false, systemDisabled=false, autoSafetyEnabled=true;
+        let kamikazeCount=0, normalButtons=[], threatButtons=[], kamikazeActive=false, activeMissile=null, missileAnimFrame=null, pressureInterval=null, currentDamagedTank=null;
+        let mainDroneObj=null, isMainDroneFlying=false, swarmDrones=[], droneCount=0;
+        let mainDroneAnimationFrame = null;
+        
+        // ========== DRONE FUNCTIONS ==========
+        function createSwarmDroneModel(){ const drone=new THREE.Group(); const body=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.25,0.7),new THREE.MeshStandardMaterial({color:0x885566,metalness:0.72})); drone.add(body); for(let i=0;i<4;i++){ const a=(i/4)*Math.PI*2; const arm=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.06,0.8),new THREE.MeshStandardMaterial({color:0x886677})); arm.position.set(Math.cos(a)*0.65,0,Math.sin(a)*0.65); drone.add(arm); const rotor=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.04,0.12),new THREE.MeshStandardMaterial({color:0xccaa99})); rotor.position.set(Math.cos(a)*1.0,0.16,Math.sin(a)*1.0); drone.add(rotor); } const light=new THREE.Mesh(new THREE.SphereGeometry(0.12,10,10),new THREE.MeshStandardMaterial({color:0xff8866,emissive:0xff4422})); light.position.set(0,0.22,0.35); drone.add(light); scene.add(drone); return drone; }
+        
+        // ====== DESTROY SWARM DRONE - NOW SAME AS MAIN DRONE (USING createBigExplosion) ======
+        function destroySingleSwarmDrone(drone, idx) {
+            const id = drone.userData?.droneId;
+            if (id && swarmSounds.has(id)) {
+                const s = swarmSounds.get(id);
+                if (s) { s.pause(); s.currentTime=0; }
+                swarmSounds.delete(id);
+            }
+            const pos = drone.position.clone();
+            
+            // Use the same explosion effect as main drone (with reduced intensity)
+            createBigExplosion(pos, 0.7, 0xff8844);
+            
+            // Add debris on ground (same as before)
+            const debrisPos = pos.clone();
+            debrisPos.y = GROUND_SURFACE_Y + 0.05;
+            const dCount = 10 + Math.floor(Math.random() * 15);
+            for (let i = 0; i < dCount; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = 0.3 + Math.random() * 1.5;
+                const xOff = Math.cos(angle) * radius;
+                const zOff = Math.sin(angle) * radius;
+                const debrisMat = new THREE.MeshStandardMaterial({ color: 0x886644 + Math.random() * 0x333333, metalness: 0.3 });
+                const debris = new THREE.Mesh(new THREE.BoxGeometry(0.08 + Math.random() * 0.15, 0.05 + Math.random() * 0.1, 0.08 + Math.random() * 0.15), debrisMat);
+                debris.position.set(debrisPos.x + xOff, debrisPos.y, debrisPos.z + zOff);
+                debris.castShadow = true;
+                scene.add(debris);
+                oilSpills.push(debris);
+            }
+            
+            scene.remove(drone);
+            swarmDrones.splice(idx, 1);
+            document.getElementById('presenceLiveVal').innerHTML = swarmDrones.length;
+            document.getElementById('impactMessage').innerHTML = '💥 DRONE DESTROYED! Explosion + Debris!';
+            if (swarmDrones.length === 0 && !isMainDroneFlying) nuclearSoundKiller();
+            setTimeout(() => {
+                if (document.getElementById('impactMessage').innerHTML.includes('DESTROYED'))
+                    document.getElementById('impactMessage').innerHTML = '🛡️ CLOSE SHUTTERS = DOME PROTECTS TANK';
+            }, 2500);
+        }
+        
+        function spawnSwarmDrone(){ if(swarmDrones.length>=5){ document.getElementById('impactMessage').innerHTML='⚠️ Maximum 5 swarm drones reached'; setTimeout(()=>{if(document.getElementById('impactMessage').innerHTML.includes('Maximum')) document.getElementById('impactMessage').innerHTML='🛡️ CLOSE SHUTTERS = DOME PROTECTS TANK';},2000); return; } startAudioContext(); playSwarmSpawnSound(); const drone=createSwarmDroneModel(); const id=nextDroneId++; const ang=Math.random()*Math.PI*2; const farR=16+Math.random()*5; drone.position.set(Math.cos(ang)*farR,10+Math.random()*5,Math.sin(ang)*farR); const orbitR=9+Math.random()*4; const orbitH=-1.5+5.8/2+2+Math.random()*3; drone.userData={arrived:true, orbitAngle:Math.random()*Math.PI*2, orbitRadius:orbitR, orbitSpeed:0.5+Math.random()*0.6, orbitHeight:orbitH, orbitYOffset:Math.random()*Math.PI*2, droneId:id}; let newSound=null; if(audioEnabled&&SOUND_FILES.drone){ try{ const snd=audioElements.drone; if(snd){ newSound=snd.cloneNode(); newSound.loop=true; newSound.volume=0.15; newSound.play(); } else{ newSound=new Audio(SOUND_FILES.drone); newSound.loop=true; newSound.volume=0.15; newSound.play(); } }catch(e){} } if(newSound) swarmSounds.set(id,newSound); swarmDrones.push(drone); updateDroneCountDisplay(); }
+        function updateSwarmDrones(dt){ for(let d of swarmDrones){ d.userData.orbitAngle+=d.userData.orbitSpeed*dt; const x=Math.cos(d.userData.orbitAngle)*d.userData.orbitRadius; const z=Math.sin(d.userData.orbitAngle)*d.userData.orbitRadius; const y=d.userData.orbitHeight+Math.sin(d.userData.orbitAngle*1.5+d.userData.orbitYOffset)*1.2; d.position.set(x,y,z); d.lookAt(0,-1.5+5.8/2,0); d.children.forEach(c=>{ if(c.isMesh&&c.geometry?.parameters?.width===0.5) c.rotation.x+=0.2; }); } }
+        function clearSwarm(){ nuclearSoundKiller(); for(let d of swarmDrones) scene.remove(d); swarmDrones=[]; updateDroneCountDisplay(); }
+        function updateDroneCountDisplay(){ droneCount=(isMainDroneFlying?1:0)+swarmDrones.length; document.getElementById('presenceLiveVal').innerHTML=droneCount; }
+        function launchMainDrone(){ if(mainDroneAnimationFrame) cancelAnimationFrame(mainDroneAnimationFrame); if(mainDroneObj) scene.remove(mainDroneObj); const drone=new THREE.Group(); const body=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.25,0.7),new THREE.MeshStandardMaterial({color:0x445566,metalness:0.72})); drone.add(body); for(let i=0;i<4;i++){ const a=(i/4)*Math.PI*2; const arm=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.06,0.8),new THREE.MeshStandardMaterial({color:0x667788})); arm.position.set(Math.cos(a)*0.65,0,Math.sin(a)*0.65); drone.add(arm); const rotor=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.04,0.12),new THREE.MeshStandardMaterial({color:0xaaaabb})); rotor.position.set(Math.cos(a)*1.0,0.16,Math.sin(a)*1.0); drone.add(rotor); } const light=new THREE.Mesh(new THREE.SphereGeometry(0.12,10,10),new THREE.MeshStandardMaterial({color:0x44ff88,emissive:0x44ff88})); light.position.set(0,0.22,0.35); drone.add(light); drone.position.set(9,11,0); scene.add(drone); mainDroneObj=drone; isMainDroneFlying=true; let t=0; function fly(){ if(!mainDroneObj) return; t+=0.006; mainDroneObj.position.set(Math.cos(t)*9,11+Math.sin(t*0.6)*0.6,Math.sin(t)*9); mainDroneObj.lookAt(0,-1.5+5.8/2,0); mainDroneObj.children.forEach(c=>{ if(c.isMesh&&c.geometry?.parameters?.width===0.5) c.rotation.x+=0.25; }); mainDroneAnimationFrame=requestAnimationFrame(fly); } mainDroneAnimationFrame=requestAnimationFrame(fly); startDroneHoverSound(); updateDroneCountDisplay(); }
+        function landMainDrone(){ if(mainDroneAnimationFrame) cancelAnimationFrame(mainDroneAnimationFrame); if(mainDroneObj) scene.remove(mainDroneObj); mainDroneObj=null; isMainDroneFlying=false; if(swarmDrones.length===0) nuclearSoundKiller(); updateDroneCountDisplay(); }
+        
+        // ========== MANUAL LASER ==========
+        function fireManualLaser() { if(!isMainDroneFlying || !mainDroneObj) { document.getElementById('impactMessage').innerHTML='❌ No main drone to target!'; setTimeout(()=>{if(document.getElementById('impactMessage').innerHTML.includes('No main drone')) document.getElementById('impactMessage').innerHTML='🛡️ CLOSE SHUTTERS = DOME PROTECTS TANK';},2000); return; } if(manualLaserCooldown > 0) { document.getElementById('impactMessage').innerHTML = `⏱️ Manual laser recharging (${manualLaserCooldown.toFixed(1)}s)`; return; } const startPos = manualTurretObj.group.position.clone(); startPos.y += 1.9; const endPos = mainDroneObj.position.clone(); const dir = new THREE.Vector3().subVectors(endPos, startPos).normalize(); const barrelTip = startPos.clone().add(dir.clone().multiplyScalar(0.95)); const geom = new THREE.BufferGeometry().setFromPoints([barrelTip, endPos]); if(manualLaserBeam) scene.remove(manualLaserBeam); manualLaserBeam = new THREE.Line(geom, new THREE.LineBasicMaterial({ color: 0xff6600, linewidth: 4 })); scene.add(manualLaserBeam); const len = barrelTip.distanceTo(endPos); const beamCyl = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, len, 8), new THREE.MeshStandardMaterial({ color: 0xff8844, emissive: 0xff4422, emissiveIntensity: 1.2 })); const mid = barrelTip.clone().add(endPos).multiplyScalar(0.5); beamCyl.position.copy(mid); beamCyl.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir); scene.add(beamCyl); const orb = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 12), new THREE.MeshStandardMaterial({ color: 0xffaa66, emissive: 0xff6622, emissiveIntensity: 1.5 })); orb.position.copy(barrelTip); scene.add(orb); const startTime = performance.now(); const duration = 0.3; function animateBeam(now) { const elapsed = (now - startTime) / 1000; let t = Math.min(1, elapsed / duration); const curPos = barrelTip.clone().lerp(endPos, t); orb.position.copy(curPos); if(t >= 1) { const impactGlow = new THREE.Mesh(new THREE.SphereGeometry(0.6, 12,12), new THREE.MeshStandardMaterial({ color: 0xff8844, emissive: 0xff4422, emissiveIntensity: 1.5 })); impactGlow.position.copy(endPos); scene.add(impactGlow); setTimeout(() => impactGlow.parent && scene.remove(impactGlow), 300); scene.remove(orb); scene.remove(beamCyl); if(manualLaserBeam) scene.remove(manualLaserBeam); manualLaserBeam = null; if(audioEnabled) playLaserSound(); manualTurretObj.tipGlow.material.emissiveIntensity = 1.8; setTimeout(() => manualTurretObj.tipGlow.material.emissiveIntensity = 0.5, 400); manualLaserCooldown = 4; destroyMainDroneByManualLaser(); } else { requestAnimationFrame(animateBeam); } } requestAnimationFrame(animateBeam); }
+        function destroyMainDroneByManualLaser() { if(!isMainDroneFlying || !mainDroneObj) return; stopDroneHoverSound(); const pos = mainDroneObj.position.clone(); createBigExplosion(pos, 1.5, 0xff8844); const debrisCount = 15 + Math.floor(Math.random() * 18); for(let i=0;i<debrisCount;i++) { const ang = Math.random() * Math.PI*2; const rad = 1.5 + Math.random()*4; const xOff = Math.cos(ang)*rad, zOff = Math.sin(ang)*rad; const debrisMat = new THREE.MeshStandardMaterial({ color: 0x886644, metalness:0.3 }); const debris = new THREE.Mesh(new THREE.BoxGeometry(0.12+Math.random()*0.25, 0.1+Math.random()*0.15, 0.12+Math.random()*0.25), debrisMat); debris.position.set(pos.x + xOff, GROUND_SURFACE_Y+0.05, pos.z + zOff); debris.castShadow = true; scene.add(debris); oilSpills.push(debris); } landMainDrone(); document.getElementById('toggleDroneBtn').innerHTML = '🚁 LAUNCH MAIN DRONE'; document.getElementById('fusionStatusText').innerHTML = '🟢 SYSTEM ONLINE | AWAITING DRONE'; document.getElementById('targetType').innerHTML = 'NONE'; document.getElementById('radarStatus').innerHTML = '🟡 STANDBY'; updateDroneCountDisplay(); nuclearSoundKiller(); document.getElementById('impactMessage').innerHTML = '🔴 MANUAL LASER DESTROYED MAIN DRONE!'; setTimeout(() => { if(document.getElementById('impactMessage').innerHTML.includes('MANUAL LASER')) document.getElementById('impactMessage').innerHTML = '🛡️ CLOSE SHUTTERS = DOME PROTECTS TANK'; }, 2500); }
+        
+        // ========== AUTO LASER (NO YELLOW BLOBS) ==========
+        function autoFireLaser(targetPos, targetDroneObj, durationSec=0.28){ if(!autoLaserActive||autoLaserCooldown>0) return false; if(!targetDroneObj || !targetDroneObj.parent) return false; const startPos=autoTurretObj.group.position.clone(); startPos.y+=1.9; const dir=new THREE.Vector3().subVectors(targetPos,startPos).normalize(); const barrelTip=startPos.clone().add(dir.clone().multiplyScalar(0.95)); const endPos=targetPos.clone(); const geom=new THREE.BufferGeometry().setFromPoints([barrelTip,endPos]); if(autoLaserBeam) scene.remove(autoLaserBeam); autoLaserBeam=new THREE.Line(geom,new THREE.LineBasicMaterial({color:0x33ffcc,linewidth:4})); scene.add(autoLaserBeam); const len=barrelTip.distanceTo(endPos); const beamCyl=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,len,8),new THREE.MeshStandardMaterial({color:0x00ffcc,emissive:0x00ffaa,emissiveIntensity:1.2})); const mid=barrelTip.clone().add(endPos).multiplyScalar(0.5); beamCyl.position.copy(mid); beamCyl.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir); scene.add(beamCyl); const orb=new THREE.Mesh(new THREE.SphereGeometry(0.18,12,12),new THREE.MeshStandardMaterial({color:0xffffff,emissive:0x33ffcc,emissiveIntensity:1.5})); orb.position.copy(barrelTip); scene.add(orb); const startTime=performance.now(); const dur=durationSec; let cancelled=false; function animate(now){ if(cancelled) return; if(!targetDroneObj || !targetDroneObj.parent){ cancelled=true; cleanup(); return; } const elapsed=(now-startTime)/1000; let t=Math.min(1,elapsed/dur); const curPos=barrelTip.clone().lerp(endPos,t); orb.position.copy(curPos); if(t>=1){ const impactGlow=new THREE.Mesh(new THREE.SphereGeometry(0.5,12,12),new THREE.MeshStandardMaterial({color:0xffaa66,emissive:0xff4422,emissiveIntensity:1.2})); impactGlow.position.copy(endPos); scene.add(impactGlow); setTimeout(()=>impactGlow.parent && scene.remove(impactGlow), 200); cleanup(); if(audioEnabled) playLaserSound(); autoTurretObj.tipGlow.material.emissiveIntensity=1.8; setTimeout(()=>{if(autoTurretObj.tipGlow) autoTurretObj.tipGlow.material.emissiveIntensity=0.5;},300); autoLaserCooldown=5; destroySingleSwarmDrone(targetDroneObj, swarmDrones.indexOf(targetDroneObj)); return true; } requestAnimationFrame(animate); } function cleanup(){ scene.remove(orb); scene.remove(beamCyl); if(autoLaserBeam) scene.remove(autoLaserBeam); autoLaserBeam=null; } requestAnimationFrame(animate); return true; }
+        function autoUpdateLaserTurret(dt){ if(autoLaserCooldown>0){ autoLaserCooldown-=dt; if(autoLaserCooldown<=0){ document.getElementById('laserStatusText').innerHTML='⚡ Auto Turret: READY'; document.getElementById('laserStatus').innerHTML='🟢 READY'; } else{ document.getElementById('laserStatusText').innerHTML=`⚡ Auto Turret: COOLDOWN (${autoLaserCooldown.toFixed(1)}s)`; document.getElementById('laserStatus').innerHTML=`⏱️ COOLDOWN`; } } if(!autoLaserActive||autoLaserCooldown>0) return; if(swarmDrones.length===0){ autoTurretObj.head.rotation.y+=0.02; return; } const turretPos=autoTurretObj.group.position.clone(); turretPos.y+=1.9; let closest=null, closestIdx=-1, closestDist=Infinity; swarmDrones.forEach((d,i)=>{ const dist=d.position.distanceTo(turretPos); if(dist<closestDist && dist<25){ closestDist=dist; closest=d; closestIdx=i; } }); if(closest){ const dir=new THREE.Vector3().subVectors(closest.position,turretPos).normalize(); autoTurretObj.head.rotation.y=Math.atan2(dir.x,dir.z); autoFireLaser(closest.position, closest, 0.28); } else { autoTurretObj.head.rotation.y+=0.02; } }
+        
+        // ========== DAMAGE & EXPLOSION (NO YELLOW EMBERS) ==========
+        function createBigExplosion(pos, intensity = 1, col = 0xff6600) {
+            // Flash
+            const flash = new THREE.Mesh(new THREE.SphereGeometry(0.8 * intensity, 16, 16),
+                new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 1 }));
+            flash.position.copy(pos);
+            scene.add(flash);
+            setTimeout(() => flash.parent && scene.remove(flash), 200);
+
+            const flash2 = new THREE.Mesh(new THREE.SphereGeometry(0.5 * intensity, 12, 12),
+                new THREE.MeshStandardMaterial({ color: 0xffaa44, emissive: 0xff4400, emissiveIntensity: 0.8 }));
+            flash2.position.copy(pos);
+            scene.add(flash2);
+            setTimeout(() => flash2.parent && scene.remove(flash2), 150);
+
+            // Smoke only – no yellow embers
+            const smokeCount = 25 + Math.floor(15 * intensity);
+            for (let i = 0; i < smokeCount; i++) {
+                const smoke = new THREE.Mesh(new THREE.SphereGeometry(0.25 + Math.random() * 0.4, 6, 6),
+                    new THREE.MeshStandardMaterial({ color: 0x333333, emissive: 0x111111, transparent: true, opacity: 0.7 }));
+                smoke.position.copy(pos);
+                smoke.position.x += (Math.random() - 0.5) * 2;
+                smoke.position.z += (Math.random() - 0.5) * 2;
+                smoke.userData = {
+                    velocity: new THREE.Vector3((Math.random() - 0.5) * 2, Math.random() * 2 + 0.5, (Math.random() - 0.5) * 2),
+                    life: 1.5,
+                    scale: 0.6
+                };
+                scene.add(smoke);
+                tempSmokePuffs.push(smoke);
+            }
+        }
+        
+        function addDamageEffects(pos,intensity=1,threatMode=false){ createBigExplosion(pos,intensity,0xff8844); if(threatMode&&areAllShuttersClosed()){ const dCount=5+Math.floor(Math.random()*8); for(let i=0;i<dCount;i++){ const rPos=getRandomPositionOnShutters(); const col=[0xff6644,0xff8844,0xcc4422][Math.floor(Math.random()*3)]; const piece=createDebrisPiece(rPos,col,0.1+Math.random()*0.12); addItemToShutters({mesh:piece,animating:false}); } document.getElementById('impactMessage').innerHTML=`💥 +${dCount} debris pieces added to shutters!`; } if(threatMode&&areAllShuttersClosed()){ for(let i=0;i<20+Math.floor(10*intensity);i++){ const sz=0.2+Math.random()*0.35; const debrisMat=new THREE.MeshStandardMaterial({color:0x886644,metalness:0.3}); const debris=new THREE.Mesh(new THREE.BoxGeometry(sz,sz*0.6,sz),debrisMat); const startPos=new THREE.Vector3((Math.random()-0.5)*SQUARE_SIZE,TOP_Y+1+Math.random()*2,(Math.random()-0.5)*SQUARE_SIZE); debris.position.copy(startPos); debris.userData={velocity:new THREE.Vector3((Math.random()-0.5)*4,Math.random()*4+2,(Math.random()-0.5)*4), life:1.5, rotSpeed:new THREE.Vector3(Math.random()*7,Math.random()*7,Math.random()*7)}; scene.add(debris); tempDebris.push(debris); } } else{ for(let i=0;i<35+Math.floor(20*intensity);i++){ const sz=0.2+Math.random()*0.4; const debrisMat=new THREE.MeshStandardMaterial({color:0x886644,metalness:0.3}); const debris=new THREE.Mesh(new THREE.BoxGeometry(sz,sz*0.6,sz),debrisMat); debris.position.copy(pos); debris.userData={velocity:new THREE.Vector3((Math.random()-0.5)*5.5,Math.random()*5.5+1,(Math.random()-0.5)*5.5), life:1.5, rotSpeed:new THREE.Vector3(Math.random()*7,Math.random()*7,Math.random()*7)}; scene.add(debris); tempDebris.push(debris); } } }
+        function updateDamageEffects(dt=0.016){ for(let i=tempDebris.length-1;i>=0;i--){ const d=tempDebris[i]; d.userData.life-=dt; if(d.userData.life<=0){ scene.remove(d); tempDebris.splice(i,1); continue; } d.position.x+=d.userData.velocity.x*dt; d.position.y+=d.userData.velocity.y*dt; d.position.z+=d.userData.velocity.z*dt; d.userData.velocity.y-=8*dt; if(d.userData.rotSpeed){ d.rotation.x+=d.userData.rotSpeed.x*dt; d.rotation.z+=d.userData.rotSpeed.z*dt; } } for(let i=tempSmokePuffs.length-1;i>=0;i--){ const s=tempSmokePuffs[i]; s.userData.life-=dt; if(s.userData.life<=0){ scene.remove(s); tempSmokePuffs.splice(i,1); continue; } s.position.x+=s.userData.velocity.x*dt; s.position.y+=s.userData.velocity.y*dt; s.position.z+=s.userData.velocity.z*dt; s.scale.setScalar(s.userData.scale+dt*0.6); s.material.opacity=0.7*(s.userData.life/1.5); } }
+        function getRandomPositionOnShutters(){ return new THREE.Vector3((Math.random()-0.5)*11,TOP_Y+0.4,(Math.random()-0.5)*11); }
+        
+        // --- DAMAGED TANK: WHITE CYLINDER + 2 STEPS + OIL ON TOP (VISIBLE) ---
+        function createDamagedTankWithOil(remainingPercent = 0.3, impactPoint = null) {
+            const tankRadius = 2.9 * 1.25;
+            const tankFullHeight = 5.8;
+            const groundY = -1.5;
+            const remainingHeight = tankFullHeight * remainingPercent;
+            const oilSurfaceY = groundY + remainingHeight;
+            const group = new THREE.Group();
+            
+            const whiteSteelMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.1, roughness: 0.6 });
+            const greyAccentMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.2, roughness: 0.5 });
+            
+            const remainingCylinder = new THREE.Mesh(new THREE.CylinderGeometry(tankRadius - 0.05, tankRadius - 0.05, remainingHeight, 64, 32), whiteSteelMat);
+            remainingCylinder.position.y = groundY + remainingHeight / 2;
+            remainingCylinder.castShadow = true;
+            remainingCylinder.receiveShadow = true;
+            group.add(remainingCylinder);
+            
+            // 2 steps
+            const stepMat = new THREE.MeshStandardMaterial({ color: 0xbcbcbc, metalness: 0.5, roughness: 0.6 });
+            const stepCount = 2;
+            const stepWidth = 0.8;
+            const stepHeight = 0.15;
+            const stepDepth = 0.9;
+            const startY = groundY + 0.4;
+            const stepSpacing = 0.45;
+            for (let i = 0; i < stepCount; i++) {
+                const step = new THREE.Mesh(new THREE.BoxGeometry(stepWidth, stepHeight, stepDepth), stepMat);
+                const angle = Math.PI * 0.25;
+                const rad = tankRadius + 0.45;
+                step.position.x = Math.sin(angle) * rad;
+                step.position.z = Math.cos(angle) * rad;
+                step.position.y = startY + i * stepSpacing;
+                step.castShadow = true;
+                group.add(step);
+            }
+            
+            // Dark oil on top (same colour as ground spills)
+            const oilMatTop = new THREE.MeshStandardMaterial({ color: 0x1a0a00, metalness: 0.05, roughness: 0.3, emissive: 0x220000 });
+            const oilSurface = new THREE.Mesh(new THREE.CylinderGeometry(tankRadius - 0.08, tankRadius - 0.08, 0.08, 64), oilMatTop);
+            oilSurface.position.y = oilSurfaceY;
+            oilSurface.castShadow = false;
+            group.add(oilSurface);
+            
+            // Droplets
+            for (let i = 0; i < 150; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const rad = Math.random() * (tankRadius - 0.15);
+                const x = Math.cos(angle) * rad;
+                const z = Math.sin(angle) * rad;
+                const yOff = oilSurfaceY + 0.05 + (Math.random() - 0.5) * 0.08;
+                const oilDrop = new THREE.Mesh(new THREE.SphereGeometry(0.05 + Math.random() * 0.09, 6), oilMatTop);
+                oilDrop.position.set(x, yOff, z);
+                oilDrop.castShadow = false;
+                group.add(oilDrop);
+            }
+            
+            // Jagged top edge
+            const segments = 48;
+            for (let i = 0; i < segments; i++) {
+                const angle = (i / segments) * Math.PI * 2;
+                const nextAngle = ((i + 1) / segments) * Math.PI * 2;
+                const jaggedOffset1 = Math.sin(angle * 8) * 0.2 + Math.cos(angle * 3) * 0.1;
+                const jaggedOffset2 = Math.sin(nextAngle * 8) * 0.2 + Math.cos(nextAngle * 3) * 0.1;
+                const topY1 = groundY + remainingHeight + jaggedOffset1;
+                const topY2 = groundY + remainingHeight + jaggedOffset2;
+                const bottomY = groundY + remainingHeight - 0.15;
+                const x1 = Math.cos(angle) * tankRadius;
+                const z1 = Math.sin(angle) * tankRadius;
+                const x2 = Math.cos(nextAngle) * tankRadius;
+                const z2 = Math.sin(nextAngle) * tankRadius;
+                const wallGeometry = new THREE.BufferGeometry();
+                const verts = [];
+                verts.push(x1, bottomY, z1);
+                verts.push(x2, bottomY, z2);
+                verts.push(x1, topY1, z1);
+                verts.push(x2, topY2, z2);
+                const idx = [0, 1, 2, 1, 3, 2];
+                wallGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(verts), 3));
+                wallGeometry.setIndex(idx);
+                wallGeometry.computeVertexNormals();
+                const useDarker = (i % 5 === 0);
+                const wallPiece = new THREE.Mesh(wallGeometry, useDarker ? greyAccentMat : whiteSteelMat);
+                wallPiece.castShadow = true;
+                group.add(wallPiece);
+            }
+            
+            // Drips
+            const dripMat = new THREE.MeshStandardMaterial({ color: 0x1a0a00, metalness: 0.05, roughness: 0.5 });
+            for (let i = 0; i < 60; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const x = Math.cos(angle) * (tankRadius - 0.1);
+                const z = Math.sin(angle) * (tankRadius - 0.1);
+                const yStart = groundY + remainingHeight - 0.2;
+                const yEnd = groundY + Math.random() * (remainingHeight - 0.5);
+                for (let y = yStart; y > yEnd; y -= 0.15) {
+                    const drip = new THREE.Mesh(new THREE.SphereGeometry(0.05 + Math.random() * 0.08, 4), dripMat);
+                    drip.position.set(x, y, z);
+                    drip.castShadow = false;
+                    group.add(drip);
+                }
+            }
+            
+            scene.add(group);
+            
+            // Ground oil spills (unchanged)
+            const impactAngle = impactPoint ? Math.atan2(impactPoint.z, impactPoint.x) : Math.random() * Math.PI * 2;
+            for (let s = 0; s < 20 + Math.floor(Math.random() * 25); s++) {
+                const angleSpill = impactAngle + (Math.random() - 0.5) * Math.PI * 1.8;
+                const radiusSpill = tankRadius + 1.5 + Math.random() * 4;
+                const xSpill = Math.cos(angleSpill) * radiusSpill;
+                const zSpill = Math.sin(angleSpill) * radiusSpill;
+                createOilSpillOnGround(new THREE.Vector3(xSpill, 0, zSpill), 1.0 + Math.random() * 1.8);
+            }
+            const debrisMat = new THREE.MeshStandardMaterial({ color: 0x886644, metalness: 0.2 });
+            for (let i = 0; i < 30 + Math.floor(Math.random() * 35); i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const rad = tankRadius + 1.2 + Math.random() * 4.5;
+                const x = Math.cos(angle) * rad;
+                const z = Math.sin(angle) * rad;
+                const debris = new THREE.Mesh(new THREE.DodecahedronGeometry(0.1 + Math.random() * 0.15), debrisMat);
+                debris.position.set(x, GROUND_SURFACE_Y + 0.02, z);
+                debris.castShadow = true;
+                scene.add(debris);
+                oilSpills.push(debris);
+            }
+            return group;
+        }
+        
+        function applyNormalStrike(target){ if(isExploded) return; damagePercent=Math.min(100,damagePercent+30); integrity=100-damagePercent; updateTankDisplay(); addDamageEffects(target,1.2,false); playStrikeSound(); pressure=Math.min(300,pressure+8); updateTankDisplay(); tankCyl.material.color.setHex(Math.max(0x886666,0xdddddd-Math.floor(damagePercent*2))); if(damagePercent>=100) shatterTank(target); }
+        function shatterTank(impact){ if(isExploded) return; isExploded=true; if(pressureInterval) clearInterval(pressureInterval); playTankExplosionSound(); playAlarmSound(); document.getElementById('impactMessage').innerHTML="💥💥💥 TANK DESTROYED! Press RESET. 💥💥💥"; document.getElementById('targetType').innerHTML='💥 DESTROYED'; document.getElementById('fireRisk').innerHTML='💥 TANK DESTROYED - Press RESET'; document.querySelectorAll('button').forEach(btn=>{if(btn.id!=='resetAllActionsBtn'&&btn.id!=='resetPanelPos') btn.disabled=true;}); createBigExplosion(impact,2.5,0xff3300); createBigExplosion(new THREE.Vector3(impact.x+1.5,impact.y+1,impact.z),1.8,0xff4400); createBigExplosion(new THREE.Vector3(impact.x-1.5,impact.y+0.5,impact.z-1.5),1.8,0xff4400); scene.remove(tankGroup); tankGroup.children.forEach(c=>{if(c.parent) scene.remove(c);}); currentDamagedTank=createDamagedTankWithOil(0.3,impact); createLargeGroundOilSpill(new THREE.Vector3(0,0,0),8.5); for(let i=0;i<25;i++){ const ang=Math.random()*Math.PI*2; const rad=5+Math.random()*7; const xOff=Math.cos(ang)*rad, zOff=Math.sin(ang)*rad; createOilSpillOnGround(new THREE.Vector3(xOff,0,zOff),1.2+Math.random()*1.5); } }
+        function updateTankDisplay(){ if(isExploded){ document.getElementById('pressureValue').innerText='0'; document.getElementById('pressureFill').style.width='0%'; document.getElementById('integrityValue').innerText='0'; document.getElementById('integrityFill').style.width='0%'; return; } document.getElementById('pressureValue').innerText=Math.floor(pressure); document.getElementById('pressureFill').style.width=`${(pressure/300)*100}%`; document.getElementById('integrityValue').innerText=Math.floor(integrity); document.getElementById('integrityFill').style.width=`${integrity}%`; const fr=document.getElementById('fireRisk'); if(pressure>250) fr.innerHTML='💥 CRITICAL - IMMINENT EXPLOSION! 💥'; else if(pressure>200) fr.innerHTML='🔥 EXTREME PRESSURE - DANGER! 🔥'; else if(pressure>150) fr.innerHTML='⚠️ HIGH PRESSURE - Reduce immediately! ⚠️'; else if(pressure>100) fr.innerHTML='⚡ ELEVATED PRESSURE - Monitor ⚡'; else fr.innerHTML='✅ PRESSURE NORMAL'; }
+        function setCooling(act){ coolingActive=act; document.getElementById('coolingPercent').innerText=act?'100':'0'; document.getElementById('coolingFill').style.width=act?'100%':'0%'; playBeep(act?400:300,0.25,0.1,'sine'); }
+        function setVents(open){ ventsOpen=open; document.getElementById('ventPercent').innerText=open?'100':'0'; document.getElementById('ventFill').style.width=open?'100%':'0%'; playBeep(open?200:180,0.3,0.12,'sine'); }
+        function setFoam(act){ foamActive=act; document.getElementById('foamPercent').innerText=act?'100':'0'; document.getElementById('foamFill').style.width=act?'100%':'0%'; playBeep(act?350:320,0.3,0.1,'sine'); }
+        function emergencyDepressurize(){ pressure=Math.max(0,pressure-50); updateTankDisplay(); playAlarmSound(); }
+        function strikeNormalAction(){ if(isExploded) return; const ang=Math.random()*Math.PI*2; const x=Math.cos(ang)*(2.9*1.25+0.2), z=Math.sin(ang)*(2.9*1.25+0.2), y=-1.5+0.8+Math.random()*(5.8-1); const target=new THREE.Vector3(x,y,z); if(isMainDroneFlying&&mainDroneObj) launchMissile(mainDroneObj.position.clone(),target,()=>applyNormalStrike(target)); else launchMissile(new THREE.Vector3(0,8,-15),target,()=>applyNormalStrike(target)); }
+        function strikeNormal(){ if(currentMode!=='normal'){ document.getElementById('impactMessage').innerHTML='❌ Select NORMAL MODE first!'; return; } if(areAllShuttersClosed()){ document.getElementById('impactMessage').innerHTML='❌ Normal Mode requires OPEN SHUTTERS!'; return; } if(systemDisabled){ document.getElementById('impactMessage').innerHTML='❌ System disabled! Press RESET.'; return; } strikeNormalAction(); }
+        let currentMode=null;
+        function setMode(mode){ if((systemDisabled||isExploded)&&mode!==null){ document.getElementById('impactMessage').innerHTML='❌ System disabled or tank exploded! Press RESET first.'; return; } currentMode=mode; document.getElementById('normalModeBtn').style.background=mode==='normal'?'#ffaa44':'#2a5a3a'; document.getElementById('threatModeBtn').style.background=mode==='threat'?'#ffaa44':'#8a3a2a'; document.getElementById('kamikazeModeBtn').style.background=mode==='kamikaze'?'#ff4400':'#8b0000'; document.getElementById('kamikazeAttackBtn').disabled=mode!=='kamikaze'; updateButtons(); if(mode==='kamikaze') document.getElementById('kamikazeStatus').innerHTML='💀 SHUTTERS CLOSED = Dome protects tank | SHUTTERS OPEN = Tank destroyed'; document.getElementById('impactMessage').innerHTML=mode==='normal'?'🟢 NORMAL MODE':(mode==='threat'?'🔴 THREAT MODE':(mode==='kamikaze'?'💀 KAMIKAZE MODE':'Select mode')); }
+        function clearMode(){ currentMode=null; document.getElementById('normalModeBtn').style.background='#2a5a3a'; document.getElementById('threatModeBtn').style.background='#8a3a2a'; document.getElementById('kamikazeModeBtn').style.background='#8b0000'; document.getElementById('kamikazeAttackBtn').disabled=true; updateButtons(); }
+        function updateButtons(){ if(isExploded) return; if(!systemDisabled&&!isExploded){ const canNorm=currentMode==='normal'&&!areAllShuttersClosed(); const canThreat=currentMode==='threat'&&areAllShuttersClosed(); normalButtons.forEach(b=>{b.disabled=!canNorm; b.style.opacity=canNorm?'1':'0.4';}); threatButtons.forEach(b=>{b.disabled=!canThreat; b.style.opacity=canThreat?'1':'0.4';}); let txt=(currentMode==='normal'?'🟢 NORMAL MODE'+(areAllShuttersClosed()?' (DISABLED)':' (ACTIVE)'):(currentMode==='threat'?'🔴 THREAT MODE'+(areAllShuttersClosed()?' (ACTIVE)':' (NEED SHUTTERS)'):(currentMode==='kamikaze'?'💀 KAMIKAZE MODE ACTIVE':'Select mode'))); document.getElementById('droneStatus').innerHTML=txt; } }
+        const threatPositions=[{name:"🎯 TOP Edge",pos:{x:0,y:-1.5+5.8-0.1,z:0}},{name:"🎯 SIDE Wall",pos:{x:2.9*1.25+0.3,y:-1.5+5.8/2+0.2,z:0}},{name:"🎯 VALVE Area",pos:{x:2.2,y:-1.5+5.8/2-0.5,z:2.2}},{name:"🎯 BASE Support",pos:{x:1.5,y:-1.5+0.2,z:1.5}},{name:"🎯 REAR Panel",pos:{x:-2.2,y:-1.5+5.8/2-0.2,z:2.2}},{name:"🎯 FRONT Panel",pos:{x:2.2,y:-1.5+5.8/2-0.2,z:-2.2}}];
+        function strikeThreatAction(idx){ if(isExploded) return; const p=threatPositions[idx].pos; const target=new THREE.Vector3(p.x,p.y,p.z); const doDamage=()=>{ addDamageEffects(target,0.8,true); pressure=Math.min(300,pressure+10); updateTankDisplay(); playStrikeSound(); document.getElementById('impactMessage').innerHTML=`⚠️ +10 PSI from ${threatPositions[idx].name}! + debris! Now: ${Math.floor(pressure)}/280 PSI`; setTimeout(()=>{if(!isExploded&&!systemDisabled&&document.getElementById('impactMessage').innerHTML.includes('PSI')) document.getElementById('impactMessage').innerHTML='🛢️ Refinery Tank Defense Active';},2000); updateTrends(pressure,0,20,droneCount); }; if(isMainDroneFlying&&mainDroneObj) launchMissile(mainDroneObj.position.clone(),target,doDamage); else launchMissile(new THREE.Vector3(0,8,-15),target,doDamage); }
+        function strikeThreat(idx){ if(currentMode!=='threat'){ document.getElementById('impactMessage').innerHTML='❌ Select THREAT MODE first!'; return; } if(!areAllShuttersClosed()){ document.getElementById('impactMessage').innerHTML='❌ Threat Mode requires ALL SHUTTERS CLOSED!'; return; } if(systemDisabled){ document.getElementById('impactMessage').innerHTML='❌ System disabled! Press RESET.'; return; } strikeThreatAction(idx); }
+        let kamikazeAnimationFrame=null;
+        function launchKamikazeDrone(){ if(currentMode!=='kamikaze'){ document.getElementById('impactMessage').innerHTML='❌ Select KAMIKAZE MODE first!'; return; } if(isExploded){ document.getElementById('impactMessage').innerHTML='❌ Tank already exploded! Press RESET.'; return; } if(systemDisabled){ document.getElementById('impactMessage').innerHTML='❌ System already disabled! Press RESET.'; return; } if(isMainDroneFlying&&mainDroneObj){ landMainDrone(); isMainDroneFlying=false; document.getElementById('toggleDroneBtn').innerHTML='🚁 LAUNCH MAIN DRONE'; } startKamikazeHumming(); closeAllShutters(); document.getElementById('impactMessage').innerHTML='🛡️ KAMIKAZE APPROACHING! SHUTTERS CLOSING (5 sec)!'; speakAlert("Kamikaze inbound. Shutters closing automatically over 5 seconds. Keep them closed for protection.",true); kamikazeCount++; document.getElementById('kamikazeCounter').innerHTML=`💀 Kamikaze strikes: ${kamikazeCount}`; speakAlert("WARNING. KAMIKAZE DRONE INBOUND. SHUTTERS ARE CLOSING. DO NOT OPEN THEM.",true); showAlertBanner("🚨 KAMIKAZE DRONE DETECTED! SHUTTERS CLOSING (5s)! 🚨",5000); kamikazeActive=true; const kamGroup=new THREE.Group(); const body=new THREE.Mesh(new THREE.BoxGeometry(1,0.4,1),new THREE.MeshStandardMaterial({color:0xff0000,metalness:0.2,emissive:0x440000})); kamGroup.add(body); const lw=new THREE.Mesh(new THREE.BoxGeometry(1.2,0.1,0.3),new THREE.MeshStandardMaterial({color:0xcc0000})); lw.position.set(-0.7,0,0); kamGroup.add(lw); const rw=new THREE.Mesh(new THREE.BoxGeometry(1.2,0.1,0.3),new THREE.MeshStandardMaterial({color:0xcc0000})); rw.position.set(0.7,0,0); kamGroup.add(rw); const tail=new THREE.Mesh(new THREE.ConeGeometry(0.25,0.5,4),new THREE.MeshStandardMaterial({color:0xff3333})); tail.position.set(0,0.2,-0.6); kamGroup.add(tail); const glow=new THREE.Mesh(new THREE.SphereGeometry(0.2,8,8),new THREE.MeshStandardMaterial({color:0xff6600,emissive:0xff4400})); glow.position.set(0,-0.1,-0.7); kamGroup.add(glow); scene.add(kamGroup); const targetPos=new THREE.Vector3(0,TOP_Y,0); const angRad=Math.random()*Math.PI*2; const dist=25+Math.random()*15; const startH=12+Math.random()*8; const startPos=new THREE.Vector3(Math.cos(angRad)*dist,startH,Math.sin(angRad)*dist); kamGroup.position.copy(startPos); kamGroup.lookAt(targetPos); const totalDur=12000; let startTime=performance.now(), explTrigger=false; const cntDiv=document.getElementById('countdownTimer'), etaDiv=document.getElementById('targetETA'), distDiv=document.getElementById('distanceDisplay'), typeDiv=document.getElementById('targetType'); cntDiv.classList.add('kamikaze-active'); const dirAngle=Math.atan2(startPos.z,startPos.x)*180/Math.PI; document.getElementById('targetDirection').innerHTML=dirAngle.toFixed(0)+"°"; function animKam(now){ if(!kamGroup.parent||explTrigger){ if(kamikazeAnimationFrame) cancelAnimationFrame(kamikazeAnimationFrame); return; } const elapsed=now-startTime; let t=Math.min(1,elapsed/totalDur); const eased=t*t*t; const nx=startPos.x+(targetPos.x-startPos.x)*eased; const ny=startPos.y+(targetPos.y-startPos.y)*eased; const nz=startPos.z+(targetPos.z-startPos.z)*eased; kamGroup.position.set(nx,ny,nz); kamGroup.lookAt(targetPos); const dToTarget=Math.hypot(nx,ny,nz); const timeLeft=Math.max(0,(totalDur-elapsed)/1000); distDiv.innerHTML=`📏 DISTANCE: ${(dToTarget/1000).toFixed(2)} km`; etaDiv.innerHTML=`${timeLeft.toFixed(1)} sec`; cntDiv.innerHTML=`${timeLeft.toFixed(1)}s`; typeDiv.innerHTML='💀 KAMIKAZE INBOUND'; const threatDiv=document.getElementById('threatLevel'); if(dToTarget>15000) threatDiv.innerHTML='🟢 THREAT: LOW'; else if(dToTarget>10000) threatDiv.innerHTML='🟡 THREAT: MEDIUM'; else if(dToTarget>5000) threatDiv.innerHTML='🟠 THREAT: HIGH'; else threatDiv.innerHTML='🔴 THREAT: CRITICAL'; if(!explTrigger&&(t>=1||dToTarget<0.8)){ explTrigger=true; stopKamikazeHumming(); playTankExplosionSound(); scene.remove(kamGroup); kamikazeActive=false; cntDiv.classList.remove('kamikaze-active'); cntDiv.innerHTML='--.-'; typeDiv.innerHTML='NONE'; document.getElementById('targetDirection').innerHTML='---'; const closed=areAllShuttersClosed(); if(closed){ document.getElementById('impactMessage').innerHTML='🛡️ KAMIKAZE HIT THE DOME! Parts + debris on shutters!'; damageDome(); createBigExplosion(new THREE.Vector3(0,TOP_Y,0),1.8,0xff8844); pressure=Math.min(300,pressure+5); integrity=Math.max(0,integrity-2); updateTankDisplay(); const parts=['nose','engine','right_wing','left_wing']; for(let i=0;i<4;i++){ const partMesh=createKamikazePartOnShutters(getRandomPositionOnShutters(),parts[i]); addItemToShutters({mesh:partMesh,animating:false}); } const extra=8+Math.floor(Math.random()*10); for(let i=0;i<extra;i++){ const col=[0xff6644,0xff8844,0xcc4422][Math.floor(Math.random()*3)]; const piece=createDebrisPiece(getRandomPositionOnShutters(),col,0.08+Math.random()*0.12); addItemToShutters({mesh:piece,animating:false}); } } else{ document.getElementById('impactMessage').innerHTML='💥 KAMIKAZE HIT THE TANK DIRECTLY! Severe damage!'; const tankHit=new THREE.Vector3(0,-1.5+5.8-0.5,0); createBigExplosion(tankHit,2.2,0xff3300); createBigExplosion(new THREE.Vector3(0,-1.5+5.8-1,0),1.8,0xff4400); pressure=Math.min(300,pressure+60); integrity=Math.max(0,integrity-40); updateTankDisplay(); if(pressure>=280||integrity<=0){ createBigExplosion(tankHit,2.5,0xff2200); shatterTank(tankHit); } } if(kamikazeAnimationFrame) cancelAnimationFrame(kamikazeAnimationFrame); kamikazeAnimationFrame=null; return; } kamikazeAnimationFrame=requestAnimationFrame(animKam); } if(kamikazeAnimationFrame) cancelAnimationFrame(kamikazeAnimationFrame); kamikazeAnimationFrame=requestAnimationFrame(animKam); }
+        function createKamikazePartOnShutters(pos,type){ const group=new THREE.Group(); const orangeMat=new THREE.MeshStandardMaterial({color:0xff6600,metalness:0.7,roughness:0.3,emissive:0x442200}); if(type==='nose'){ const body=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.45,0.8,12),orangeMat); body.rotation.x=Math.PI/2; group.add(body); const cone=new THREE.Mesh(new THREE.ConeGeometry(0.38,0.6,12),orangeMat); cone.position.x=0.55; group.add(cone); const sensor=new THREE.Mesh(new THREE.SphereGeometry(0.1,8,8),new THREE.MeshStandardMaterial({color:0xffaa44,emissive:0xff4400})); sensor.position.x=0.9; group.add(sensor); } else if(type==='engine'){ const main=new THREE.Mesh(new THREE.CylinderGeometry(0.45,0.5,0.9,12),orangeMat); main.rotation.x=Math.PI/2; group.add(main); const exhaust=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.35,0.35,8),new THREE.MeshStandardMaterial({color:0xcc4400,metalness:0.8})); exhaust.position.x=-0.55; group.add(exhaust); const ring=new THREE.Mesh(new THREE.TorusGeometry(0.48,0.07,16,32),orangeMat); ring.rotation.z=Math.PI/2; ring.position.x=0.2; group.add(ring); const ring2=new THREE.Mesh(new THREE.TorusGeometry(0.48,0.07,16,32),orangeMat); ring2.rotation.z=Math.PI/2; ring2.position.x=-0.25; group.add(ring2); } else if(type==='right_wing'){ const wing=new THREE.Mesh(new THREE.BoxGeometry(1.2,0.1,0.6),orangeMat); wing.position.x=0.6; group.add(wing); const tip=new THREE.Mesh(new THREE.BoxGeometry(0.35,0.08,0.4),orangeMat); tip.position.x=1.2; group.add(tip); const aileron=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.05,0.25),orangeMat); aileron.position.set(0.7,-0.08,0.15); group.add(aileron); } else{ const wing=new THREE.Mesh(new THREE.BoxGeometry(1.2,0.1,0.6),orangeMat); wing.position.x=-0.6; group.add(wing); const tip=new THREE.Mesh(new THREE.BoxGeometry(0.35,0.08,0.4),orangeMat); tip.position.x=-1.2; group.add(tip); const aileron=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.05,0.25),orangeMat); aileron.position.set(-0.7,-0.08,0.15); group.add(aileron); } group.position.copy(pos); group.castShadow=true; scene.add(group); return group; }
+        function resetAll(){ pressure=50; integrity=100; damagePercent=0; isExploded=false; kamikazeCount=0; setCooling(false); setVents(false); setFoam(false); openAllShutters(); stopKamikazeHumming(); if(currentDamagedTank){ scene.remove(currentDamagedTank); currentDamagedTank=null; } clearOilSpills(); if(tankGroup) scene.remove(tankGroup); stairSteps=[]; railPillars=[]; const newTank=buildTank(); tankGroup=newTank.group; tankCyl=newTank.cylinder; repairDome(); clearAllItemsFromShutters(); tempDebris.forEach(d=>scene.remove(d)); tempDebris=[]; tempSmokePuffs.forEach(s=>scene.remove(s)); tempSmokePuffs=[]; if(activeMissile){ scene.remove(activeMissile); activeMissile=null; } if(missileAnimFrame) cancelAnimationFrame(missileAnimFrame); if(kamikazeAnimationFrame){ cancelAnimationFrame(kamikazeAnimationFrame); kamikazeAnimationFrame=null; } kamikazeActive=false; landMainDrone(); isMainDroneFlying=false; document.getElementById('toggleDroneBtn').innerHTML='🚁 LAUNCH MAIN DRONE'; clearSwarm(); normalButtons.forEach(b=>{b.disabled=false; b.style.opacity='1'; b.style.background='#2a5a3a';}); threatButtons.forEach(b=>{b.disabled=false; b.style.opacity='1'; b.style.background='#8a3a2a';}); document.getElementById('normalModeBtn').style.background='#2a5a3a'; document.getElementById('threatModeBtn').style.background='#8a3a2a'; document.getElementById('kamikazeModeBtn').style.background='#8b0000'; currentMode=null; document.getElementById('kamikazeAttackBtn').disabled=true; document.querySelectorAll('button').forEach(b=>b.disabled=false); document.getElementById('impactMessage').innerHTML='✅ System reset! Dome repaired. Tank fully restored.'; document.getElementById('fusionStatusText').innerHTML='🟢 SYSTEM ONLINE | AWAITING DRONE'; document.getElementById('fireRisk').innerHTML='✅ PRESSURE NORMAL'; document.getElementById('targetType').innerHTML='NONE'; document.getElementById('targetSpeed').innerHTML='--- km/h'; document.getElementById('targetETA').innerHTML='--- sec'; document.getElementById('radarStatus').innerHTML='🟡 STANDBY'; document.getElementById('distanceDisplay').innerHTML='📏 DISTANCE: --- km'; document.getElementById('countdownTimer').innerHTML='--.-'; document.getElementById('countdownTimer').classList.remove('kamikaze-active'); document.getElementById('laserStatus').innerHTML='STANDBY'; document.getElementById('laserStatusText').innerHTML='⚡ Auto Turret: INACTIVE | Targets swarm drones'; updateTankDisplay(); updateDroneCountDisplay(); updateItemsCounter(); if(pressureInterval) clearInterval(pressureInterval); pressureInterval=setInterval(()=>{ if(isExploded||systemDisabled) return; let change=0; if(coolingActive) change-=2; if(ventsOpen) change-=3; if(foamActive) change-=1.5; change-=0.5; pressure=Math.max(0,Math.min(300,pressure+change)); if(pressure>250) integrity-=(pressure-250)/25; else if(pressure>200) integrity-=(pressure-200)/50; else if(pressure>150) integrity-=(pressure-150)/100; else if(pressure>100) integrity-=(pressure-100)/200; integrity=Math.max(0,Math.min(100,integrity)); updateTankDisplay(); if(pressure>=280){ createBigExplosion(new THREE.Vector3(0,-1.5+5.8/2,0),2.5,0xff2200); shatterTank(new THREE.Vector3(0,-1.5+5.8/2,0)); } },1000); }
+        function toggleAutoSafety(){ autoSafetyEnabled=!autoSafetyEnabled; document.getElementById('autoSafetyBtn').innerHTML=autoSafetyEnabled?'🤖 AUTO-SAFETY: ON':'🤖 AUTO-SAFETY: OFF'; }
+        function createStrikeButtons(){ const normGrid=document.getElementById('normalStrikesGrid'); const threatGrid=document.getElementById('threatStrikesGrid'); normGrid.innerHTML=''; threatGrid.innerHTML=''; normalButtons=[]; threatButtons=[]; for(let i=0;i<6;i++){ const nb=document.createElement('button'); nb.className='loc-btn loc-btn-normal'; nb.textContent=`Surface Strike ${i+1}`; nb.onclick=strikeNormal; nb.disabled=true; nb.style.opacity='0.4'; normGrid.appendChild(nb); normalButtons.push(nb); const tb=document.createElement('button'); tb.className='loc-btn loc-btn-threat'; tb.textContent=threatPositions[i].name; tb.onclick=()=>strikeThreat(i); tb.disabled=true; tb.style.opacity='0.4'; threatGrid.appendChild(tb); threatButtons.push(tb); } }
+        function launchMissile(from,target,onHit){ if(activeMissile) return; const missile=new THREE.Group(); const bodyGeo=new THREE.CylinderGeometry(0.12,0.18,0.6,8); const bodyMat=new THREE.MeshStandardMaterial({color:0xff4400,emissive:0xff2200}); const body=new THREE.Mesh(bodyGeo,bodyMat); body.rotation.x=Math.PI/2; missile.add(body); const tip=new THREE.Mesh(new THREE.ConeGeometry(0.1,0.25,8),new THREE.MeshStandardMaterial({color:0xff6600,emissive:0xff4400})); tip.position.z=0.35; missile.add(tip); for(let i=0;i<4;i++){ const ang=(i/4)*Math.PI*2; const fin=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.15,0.12),new THREE.MeshStandardMaterial({color:0xcc3300})); fin.position.set(Math.cos(ang)*0.2,Math.sin(ang)*0.2,-0.25); missile.add(fin); } const glow=new THREE.Mesh(new THREE.SphereGeometry(0.1,6,6),new THREE.MeshStandardMaterial({color:0xffaa44,emissive:0xff6600})); glow.position.z=-0.35; missile.add(glow); missile.position.copy(from); const dir=new THREE.Vector3().subVectors(target,from).normalize(); missile.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),dir); scene.add(missile); const startVec=from.clone(), endVec=target.clone(); const dur=0.4, startTime=performance.now(); const trailParts=[]; const trailInt=setInterval(()=>{ if(!missile.parent){ clearInterval(trailInt); return; } const trail=new THREE.Mesh(new THREE.SphereGeometry(0.05,4,4),new THREE.MeshStandardMaterial({color:0xff8844,emissive:0xff4422,transparent:true,opacity:0.8})); trail.position.copy(missile.position); scene.add(trail); trailParts.push(trail); setTimeout(()=>{ if(trail.parent) scene.remove(trail); },200); },30); function update(now){ const elapsed=(now-startTime)/1000; let t=Math.min(1,elapsed/dur); t=1-Math.pow(1-t,2); const newPos=startVec.clone().lerp(endVec,t); missile.position.copy(newPos); glow.material.emissiveIntensity=0.5+Math.random()*0.5; if(t>=1){ clearInterval(trailInt); trailParts.forEach(p=>{if(p.parent)scene.remove(p);}); scene.remove(missile); activeMissile=null; if(onHit) onHit(); cancelAnimationFrame(missileAnimFrame); missileAnimFrame=null; } else{ missileAnimFrame=requestAnimationFrame(update); } } activeMissile=missile; missileAnimFrame=requestAnimationFrame(update); }
+        
+        // ========== EVENT LISTENERS ==========
+        document.getElementById('closeTopShuttersBtn').onclick=closeTopShutters;
+        document.getElementById('openTopShuttersBtn').onclick=openTopShutters;
+        document.getElementById('closeFaceDoorsBtn').onclick=closeFaceDoors;
+        document.getElementById('openFaceDoorsBtn').onclick=openFaceDoors;
+        document.getElementById('closeAllShuttersBtn').onclick=()=>{ closeAllShutters(); updateButtons(); };
+        document.getElementById('openAllShuttersBtn').onclick=()=>{ openAllShutters(); updateButtons(); };
+        document.getElementById('activateCoolingBtn').onclick=()=>setCooling(true);
+        document.getElementById('deactivateCoolingBtn').onclick=()=>setCooling(false);
+        document.getElementById('openVentsBtn').onclick=()=>setVents(true);
+        document.getElementById('closeVentsBtn').onclick=()=>setVents(false);
+        document.getElementById('activateFoamBtn').onclick=()=>setFoam(true);
+        document.getElementById('deactivateFoamBtn').onclick=()=>setFoam(false);
+        document.getElementById('emergencyDepressurizeBtn').onclick=emergencyDepressurize;
+        document.getElementById('toggleDroneBtn').onclick=()=>{ if(isMainDroneFlying) landMainDrone(); else launchMainDrone(); };
+        document.getElementById('spawnSwarmBtn').onclick=()=>{ if(swarmDrones.length<5) spawnSwarmDrone(); };
+        document.getElementById('clearSwarmBtn').onclick=clearSwarm;
+        document.getElementById('toggleLaserBtn').onclick=()=>{ autoLaserActive=!autoLaserActive; const btn=document.getElementById('toggleLaserBtn'); if(autoLaserActive){ btn.innerHTML='🔫 DEACTIVATE AUTO LASER'; btn.style.background='#ff6644'; document.getElementById('laserStatusText').innerHTML='⚡ Auto Turret: ACTIVE | Targets swarm drones'; document.getElementById('laserStatus').innerHTML='🟢 ACTIVE'; } else{ btn.innerHTML='🔫 ACTIVATE AUTO LASER'; btn.style.background='#44aa88'; document.getElementById('laserStatusText').innerHTML='⚡ Auto Turret: INACTIVE | Targets swarm drones'; document.getElementById('laserStatus').innerHTML='⚫ INACTIVE'; } };
+        document.getElementById('manualLaserBtn').onclick=fireManualLaser;
+        document.getElementById('normalModeBtn').onclick=()=>setMode('normal');
+        document.getElementById('threatModeBtn').onclick=()=>setMode('threat');
+        document.getElementById('kamikazeModeBtn').onclick=()=>setMode('kamikaze');
+        document.getElementById('clearModeBtn').onclick=clearMode;
+        document.getElementById('kamikazeAttackBtn').onclick=launchKamikazeDrone;
+        document.getElementById('resetAllActionsBtn').onclick=resetAll;
+        document.getElementById('autoSafetyBtn').onclick=toggleAutoSafety;
+        document.getElementById('killAllSoundsBtn').onclick=()=>{ nuclearSoundKiller(); if(audioContext) audioContext.close(); };
+        document.getElementById('audioToggleBtn').onclick=()=>{ audioEnabled=!audioEnabled; document.getElementById('audioToggleBtn').innerHTML=audioEnabled?'🔊 SOUND ON':'🔇 MUTED'; if(!audioEnabled) nuclearSoundKiller(); };
+        
+        // Panel drag
+        const fusionPanel=document.getElementById('fusionScreen'); let fDrag=false,fX,fY; document.getElementById('fusionDragHandle').addEventListener('mousedown',e=>{ fDrag=true; const rect=fusionPanel.getBoundingClientRect(); fX=e.clientX-rect.left; fY=e.clientY-rect.top; fusionPanel.style.cursor='grabbing'; }); window.addEventListener('mousemove',e=>{ if(fDrag){ let nl=e.clientX-fX, nt=e.clientY-fY; nl=Math.max(5,Math.min(window.innerWidth-fusionPanel.offsetWidth-5,nl)); nt=Math.max(5,Math.min(window.innerHeight-fusionPanel.offsetHeight-5,nt)); fusionPanel.style.left=nl+'px'; fusionPanel.style.top=nt+'px'; } }); window.addEventListener('mouseup',()=>{ fDrag=false; fusionPanel.style.cursor=''; });
+        const mainPanel=document.getElementById('movablePanel'); let pDrag=false,pX,pY; document.getElementById('dragHandle').addEventListener('mousedown',e=>{ if(e.target.closest('button')) return; pDrag=true; const rect=mainPanel.getBoundingClientRect(); pX=e.clientX-rect.left; pY=e.clientY-rect.top; mainPanel.style.cursor='grabbing'; }); window.addEventListener('mousemove',e=>{ if(pDrag){ let nl=e.clientX-pX, nt=e.clientY-pY; nl=Math.max(5,Math.min(window.innerWidth-mainPanel.offsetWidth-5,nl)); nt=Math.max(5,Math.min(window.innerHeight-mainPanel.offsetHeight-5,nt)); mainPanel.style.left=nl+'px'; mainPanel.style.top=nt+'px'; } }); window.addEventListener('mouseup',()=>{ pDrag=false; mainPanel.style.cursor=''; }); document.getElementById('resetPanelPos').onclick=()=>{ mainPanel.style.left='auto'; mainPanel.style.right='15px'; mainPanel.style.top='5px'; mainPanel.style.bottom='5px'; mainPanel.style.width='280px'; };
+        const trendPanel=document.getElementById('scadaTrendPanel'); let tDrag=false,tX,tY; document.getElementById('trendDragHandle').addEventListener('mousedown',e=>{ tDrag=true; const rect=trendPanel.getBoundingClientRect(); tX=e.clientX-rect.left; tY=e.clientY-rect.top; trendPanel.style.cursor='grabbing'; }); window.addEventListener('mousemove',e=>{ if(tDrag){ let nl=e.clientX-tX, nt=e.clientY-tY; nl=Math.max(5,Math.min(window.innerWidth-trendPanel.offsetWidth-5,nl)); nt=Math.max(5,Math.min(window.innerHeight-trendPanel.offsetHeight-5,nt)); trendPanel.style.left=nl+'px'; trendPanel.style.top=nt+'px'; } }); window.addEventListener('mouseup',()=>{ tDrag=false; trendPanel.style.cursor=''; });
+        
+        createStrikeButtons(); updateTopShutters(0); updateDoors(0); updateTankDisplay(); updateButtons(); updateDomeStatus(); updateDroneCountDisplay(); updateItemsCounter();
+        let lastDronePos=null, lastDroneTime=null;
+        function updateSCADA(){ let pres=droneCount; if(kamikazeActive) pres=5; let speed=0, distKm=20; if(isMainDroneFlying&&mainDroneObj){ const pos=mainDroneObj.position; const dist=Math.hypot(pos.x,pos.z); distKm=dist/1000; const now=performance.now(); if(lastDronePos&&lastDroneTime){ const dt=(now-lastDroneTime)/1000; const dx=pos.x-lastDronePos.x, dz=pos.z-lastDronePos.z; const moved=Math.hypot(dx,dz); speed=(moved/dt)*3.6; } lastDronePos=pos.clone(); lastDroneTime=now; if(!kamikazeActive){ document.getElementById('targetType').innerHTML='🛸 HOSTILE DRONE'; document.getElementById('targetSpeed').innerHTML=`${speed.toFixed(1)} km/h`; document.getElementById('radarStatus').innerHTML='🟢 TRACKING'; } } else if(!kamikazeActive){ document.getElementById('targetType').innerHTML='NONE'; document.getElementById('targetSpeed').innerHTML='--- km/h'; document.getElementById('radarStatus').innerHTML='🟡 STANDBY'; lastDronePos=null; } updateTrends(pressure,speed,distKm,pres); }
+        setInterval(updateSCADA,100);
+        let lastTime=performance.now();
+        function animDamage(){ const now=performance.now(); let dt=Math.min(0.033,(now-lastTime)/1000); lastTime=now; updateDamageEffects(dt); updateSwarmDrones(dt); autoUpdateLaserTurret(dt); if(manualLaserCooldown>0) manualLaserCooldown-=dt; requestAnimationFrame(animDamage); }
+        animDamage();
+        function animateScene(){ controls.update(); renderer.render(scene,camera); labelRenderer.render(scene,camera); requestAnimationFrame(animateScene); } animateScene();
+        window.onresize=()=>{ camera.aspect=window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth,window.innerHeight); labelRenderer.setSize(window.innerWidth,window.innerHeight); resizeTrendCanvases(); };
+        setTimeout(()=>{ resizeTrendCanvases(); new ResizeObserver(()=>resizeTrendCanvases()).observe(trendPanel); },200);
+        window.addEventListener('resize',()=>resizeTrendCanvases());
+        initAudio(); initExternalSounds(); pressureInterval=setInterval(()=>{ if(isExploded||systemDisabled) return; let change=0; if(coolingActive) change-=2; if(ventsOpen) change-=3; if(foamActive) change-=1.5; change-=0.5; pressure=Math.max(0,Math.min(300,pressure+change)); if(pressure>250) integrity-=(pressure-250)/25; else if(pressure>200) integrity-=(pressure-200)/50; else if(pressure>150) integrity-=(pressure-150)/100; else if(pressure>100) integrity-=(pressure-100)/200; integrity=Math.max(0,Math.min(100,integrity)); updateTankDisplay(); if(pressure>=280){ createBigExplosion(new THREE.Vector3(0,-1.5+5.8/2,0),2.5,0xff2200); shatterTank(new THREE.Vector3(0,-1.5+5.8/2,0)); } },1000);
+        console.log("✅ FINAL: FUSION title centered, all panels have green scrollbars. No yellow blobs anywhere.");
+    </script>
+</body>
+</html>

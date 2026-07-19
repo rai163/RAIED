@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Minimal Working Simulator Example</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background: #f0f0f0;
+    color: #222;
+  }
+  .container {
+    max-width: 600px;
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  label {
+    display: block;
+    margin-top: 12px;
+    font-weight: bold;
+  }
+  input[type=number], select {
+    width: 100%;
+    padding: 8px;
+    margin-top: 6px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+  }
+  button {
+    margin-top: 20px;
+    padding: 10px 16px;
+    font-size: 1rem;
+    font-weight: bold;
+    background-color: #1f5fb8;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  button:hover {
+    background-color: #164a8a;
+  }
+  #output {
+    margin-top: 20px;
+    font-size: 1.1rem;
+    font-weight: bold;
+  }
+  #cubeCanvas {
+    display: block;
+    margin: 20px auto 0;
+    background: #f9fafb;
+    border: 1px solid #ccc;
+    border-radius: 12px;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h2>Minimal Simulator Example</h2>
+
+    <label for="energyInput">Energy Absorbed by 1st Steel Sheet (MJ):</label>
+    <input type="number" id="energyInput" min="0" max="2" step="0.01" value="0.0" />
+
+    <button id="runButton">Run Simulation</button>
+
+    <div id="output">Energy Absorbed: 0.00 MJ</div>
+
+    <canvas id="cubeCanvas" width="160" height="160" aria-label="Energy absorber cube visualization"></canvas>
+  </div>
+
+<script>
+  const runButton = document.getElementById('runButton');
+  const energyInput = document.getElementById('energyInput');
+  const output = document.getElementById('output');
+  const cubeCanvas = document.getElementById('cubeCanvas');
+  const cubeCtx = cubeCanvas.getContext('2d');
+
+  // Damage states thresholds (MJ)
+  const damageThresholds = [
+    { maxEnergy: 0.2, label: 'No Damage', color: '#4ade80' },   // green
+    { maxEnergy: 0.5, label: 'Minor Dent', color: '#facc15' },  // yellow
+    { maxEnergy: 0.8, label: 'Major Dent', color: '#f97316' },  // orange
+    { maxEnergy: Infinity, label: 'Cracked', color: '#ef4444' } // red
+  ];
+
+  function drawCube(energyMJ) {
+    cubeCtx.clearRect(0, 0, cubeCanvas.width, cubeCanvas.height);
+
+    let state = damageThresholds.find(t => energyMJ <= t.maxEnergy);
+
+    const cx = cubeCanvas.width / 2;
+    const cy = cubeCanvas.height / 2 + 10;
+    const size = 80;
+
+    // Draw front face
+    cubeCtx.fillStyle = state.color;
+    cubeCtx.strokeStyle = '#333';
+    cubeCtx.lineWidth = 2;
+
+    cubeCtx.beginPath();
+    cubeCtx.moveTo(cx - size/2, cy - size/2);
+    cubeCtx.lineTo(cx + size/2, cy - size/2);
+    cubeCtx.lineTo(cx + size/2, cy + size/2);
+    cubeCtx.lineTo(cx - size/2, cy + size/2);
+    cubeCtx.closePath();
+    cubeCtx.fill();
+    cubeCtx.stroke();
+
+    // Draw top face (lighter)
+    cubeCtx.fillStyle = lightenColor(state.color, 0.3);
+    cubeCtx.beginPath();
+    cubeCtx.moveTo(cx - size/2, cy - size/2);
+    cubeCtx.lineTo(cx, cy - size);
+    cubeCtx.lineTo(cx + size, cy - size);
+    cubeCtx.lineTo(cx + size/2, cy - size/2);
+    cubeCtx.closePath();
+    cubeCtx.fill();
+    cubeCtx.stroke();
+
+    // Draw side face (darker)
+    cubeCtx.fillStyle = darkenColor(state.color, 0.2);
+    cubeCtx.beginPath();
+    cubeCtx.moveTo(cx + size/2, cy - size/2);
+    cubeCtx.lineTo(cx + size, cy - size);
+    cubeCtx.lineTo(cx + size, cy);
+    cubeCtx.lineTo(cx + size/2, cy + size/2);
+    cubeCtx.closePath();
+    cubeCtx.fill();
+    cubeCtx.stroke();
+
+    // Draw dents or cracks
+    if(state.label === 'Minor Dent'){
+      drawDent(cx, cy, size);
+    } else if(state.label === 'Major Dent'){
+      drawDent(cx, cy, size, true);
+    } else if(state.label === 'Cracked'){
+      drawCracks(cx, cy, size);
+    }
+
+    // Draw label text
+    cubeCtx.fillStyle = '#1f2627';
+    cubeCtx.font = 'bold 16px Arial';
+    cubeCtx.textAlign = 'center';
+    cubeCtx.fillText(state.label, cx, cy + size/2 + 30);
+    cubeCtx.font = '14px Arial';
+    cubeCtx.fillText(`Energy: ${energyMJ.toFixed(2)} MJ`, cx, cy + size/2 + 50);
+  }
+
+  function lightenColor(color, amount){
+    const c = hexToRgb(color);
+    const r = Math.min(255, c.r + 255 * amount);
+    const g = Math.min(255, c.g + 255 * amount);
+    const b = Math.min(255, c.b + 255 * amount);
+    return `rgb(${r},${g},${b})`;
+  }
+
+  function darkenColor(color, amount){
+    const c = hexToRgb(color);
+    const r = Math.max(0, c.r - 255 * amount);
+    const g = Math.max(0, c.g - 255 * amount);
+    const b = Math.max(0, c.b - 255 * amount);
+    return `rgb(${r},${g},${b})`;
+  }
+
+  function hexToRgb(hex) {
+    hex = hex.replace('#','');
+    if(hex.length === 3){
+      hex = hex.split('').map(c=>c+c).join('');
+    }
+    const bigint = parseInt(hex, 16);
+    return {
+      r: (bigint >> 16) & 255,
+      g: (bigint >> 8) & 255,
+      b: bigint & 255
+    };
+  }
+
+  function drawDent(cx, cy, size, major=false){
+    const ctx = cubeCtx;
+    ctx.strokeStyle = '#7a4a00';
+    ctx.lineWidth = major ? 4 : 2;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, major ? size/4 : size/6, major ? size/8 : size/12, 0, 0, Math.PI*2);
+    ctx.stroke();
+  }
+
+  function drawCracks(cx, cy, size){
+    const ctx = cubeCtx;
+    ctx.strokeStyle = '#660000';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx - size/4, cy - size/4);
+    ctx.lineTo(cx - size/8, cy);
+    ctx.lineTo(cx, cy - size/8);
+    ctx.lineTo(cx + size/8, cy + size/8);
+    ctx.moveTo(cx + size/4, cy - size/6);
+    ctx.lineTo(cx + size/8, cy);
+    ctx.stroke();
+  }
+
+  function runSimulation() {
+    let energy = parseFloat(energyInput.value);
+    if(isNaN(energy) || energy < 0) energy = 0;
+    output.textContent = `Energy Absorbed: ${energy.toFixed(2)} MJ`;
+    drawCube(energy);
+  }
+
+  runButton.addEventListener('click', runSimulation);
+
+  // Initial draw
+  drawCube(0);
+</script>
+</body>
+</html>

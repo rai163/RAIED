@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cube with Crack Layers Overlay and Intact State</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background: #f0f0f0;
+    color: #222;
+    text-align: center;
+  }
+  .container {
+    max-width: 320px;
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    margin: 0 auto;
+  }
+  .cube-container {
+    position: relative;
+    width: 300px;
+    height: 300px;
+    margin: 20px auto;
+  }
+  .cube-container img {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    transition: opacity 0.4s ease;
+    user-select: none;
+    pointer-events: none;
+  }
+  #damageRange {
+    width: 100%;
+    margin-top: 15px;
+  }
+  #damageLabel {
+    margin-top: 12px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #333;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h2>Cube with Crack Layers Overlay and Intact State</h2>
+
+    <div class="cube-container" aria-label="Cube with layered crack images">
+      <!-- Intact cube image (no cracks) -->
+      <img id="cubeIntact" src="cube_intact.png" alt="Intact Cube" style="z-index: 1; opacity: 1;" />
+
+      <!-- Crack images with transparent backgrounds -->
+      <img id="crack0" src="image-76031652.png" alt="Crack Small" style="opacity: 0; z-index: 2;" />
+      <img id="crack50" src="image-533495328.png" alt="Crack Medium" style="opacity: 0; z-index: 3;" />
+      <img id="crack100" src="image-1824399022.png" alt="Crack Large" style="opacity: 0; z-index: 4;" />
+    </div>
+
+    <input type="range" id="damageRange" min="0" max="100" value="0" aria-label="Damage Level Slider" />
+    <div id="damageLabel">Damage: 0%</div>
+  </div>
+
+<script>
+  const damageRange = document.getElementById('damageRange');
+  const damageLabel = document.getElementById('damageLabel');
+
+  // Using three crack steps: 0%, 50%, 100%
+  const steps = [0, 50, 100];
+
+  function updateCrackOpacity(damagePercent) {
+    damageLabel.textContent = `Damage: ${damagePercent}%`;
+
+    const intactCube = document.getElementById('cubeIntact');
+    intactCube.style.opacity = 1; // Cube always visible
+
+    // Hide all cracks initially
+    ['crack0', 'crack50', 'crack100'].forEach(id => {
+      const img = document.getElementById(id);
+      if (img) img.style.opacity = 0;
+    });
+
+    if (damagePercent === 0) {
+      // No cracks visible at 0%
+      return;
+    }
+
+    // Fade between crack images for damage > 0
+    for (let i = 0; i < steps.length - 1; i++) {
+      if (damagePercent >= steps[i] && damagePercent <= steps[i + 1]) {
+        const ratio = (damagePercent - steps[i]) / (steps[i + 1] - steps[i]);
+        const currentImg = document.getElementById(`crack${steps[i]}`);
+        const nextImg = document.getElementById(`crack${steps[i + 1]}`);
+
+        if (currentImg) currentImg.style.opacity = 1 - ratio;
+        if (nextImg) nextImg.style.opacity = ratio;
+        break;
+      }
+    }
+  }
+
+  damageRange.addEventListener('input', () => {
+    const val = parseInt(damageRange.value, 10);
+    updateCrackOpacity(val);
+  });
+
+  // Initialize
+  updateCrackOpacity(0);
+</script>
+</body>
+</html>

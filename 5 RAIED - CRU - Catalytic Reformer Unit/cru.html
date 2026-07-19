@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAIED - Integrated Defense System | CRU</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { height: 100vh; background: #0a0f1a; font-family: 'Segoe UI', Arial, sans-serif; }
+        .tab-content { display: none; width: 100%; height: 100%; }
+        .tab-content.active { display: block; }
+        iframe { width: 100%; height: 100%; border: none; }
+
+        /* Outer wrapper – column flex, centred at top */
+        .floating-tabs {
+            position: absolute; left: 50%; top: 8px;
+            transform: translateX(-50%);
+            z-index: 1000; display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            white-space: nowrap;
+        }
+
+        /* Row containing only the 5 items (buttons + image) */
+        .tab-row {
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .tab-button {
+            background: rgba(30,41,59,0.85); backdrop-filter: blur(8px);
+            border: 1px solid #2dd4bf; color: #cbd5e1; padding: 6px 12px;
+            font-size: 0.6rem; font-weight: bold; cursor: pointer; border-radius: 20px;
+            transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        }
+        .tab-button.active { background: #2dd4bf; color: #0f1724; border-color: #0f1724; }
+        .tab-button:hover:not(.active) { background: #475569; color: white; }
+
+        /* Title placed outside the row – centred under the image */
+        .tab-module-name {
+            color: #ffffff; font-family: 'Segoe UI', monospace;
+            font-size: 0.8rem; font-weight: bold;
+            text-shadow: 0 0 6px rgba(0,0,0,0.5);
+            text-align: center;
+            background: rgba(0,0,0,0.3);
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="floating-tabs" id="floatingTabs">
+        <!-- Row: 2 buttons + logo image + 2 buttons -->
+        <div class="tab-row">
+            <button class="tab-button active" data-tab="tab1">⚗️ CRU</button>
+            <button class="tab-button" data-tab="tab2">⏱️ Timing</button>
+
+            <img src="REFINERY ANTI-drone INTERCEPTION ENVIRONMENT DOME - Logo.png"
+                 alt="RAIED Logo" style="height:62px; width:auto; display:block;"
+                 onerror="this.style.display='none';">
+
+            <button class="tab-button" data-tab="tab3">📐 Layers</button>
+            <button class="tab-button" data-tab="tab4">📊 Cost</button>
+        </div>
+
+        <!-- Centred title BELOW the row -->
+        <div class="tab-module-name">⚙️ CRU – Catalytic Reformer Unit</div>
+    </div>
+
+    <div id="tab1" class="tab-content active">
+        <iframe src="part1.html" title="CRU Defense"></iframe>
+    </div>
+    <div id="tab2" class="tab-content">
+        <iframe src="part2.html" title="CRU Shutter Timing" id="timingIframe"></iframe>
+    </div>
+    <div id="tab3" class="tab-content">
+        <iframe src="part3.html" title="Shutter Layer Editor"></iframe>
+    </div>
+    <div id="tab4" class="tab-content">
+        <iframe src="part4.html" title="Material & Cost Dashboard"
+                style="margin-top:70px; height:calc(100% - 140px); border:none;">
+        </iframe>
+    </div>
+
+    <script>
+        const tabs = document.querySelectorAll('.tab-button');
+        const contents = document.querySelectorAll('.tab-content');
+        tabs.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabId = btn.getAttribute('data-tab');
+                contents.forEach(c => c.classList.remove('active'));
+                tabs.forEach(b => b.classList.remove('active'));
+                document.getElementById(tabId).classList.add('active');
+                btn.classList.add('active');
+            });
+        });
+
+        const timingIframe = document.getElementById('timingIframe');
+        if (timingIframe) timingIframe.src = 'part2.html?nocache=' + Date.now();
+
+        window.addEventListener('message', function(event) {
+            const data = event.data;
+            if (data && data.type === 'updateParams') {
+                ['tab1', 'tab2', 'tab4'].forEach(tabId => {
+                    const iframe = document.querySelector(`#${tabId} iframe`);
+                    if (iframe && iframe.contentWindow) iframe.contentWindow.postMessage(data, '*');
+                });
+            }
+        });
+
+        function notifyPart4Module() {
+            const part4Iframe = document.querySelector('#tab4 iframe');
+            if (part4Iframe && part4Iframe.contentWindow) {
+                part4Iframe.contentWindow.postMessage({
+                    type: 'setModule',
+                    module: 'CRU'
+                }, '*');
+            }
+        }
+        const part4Iframe = document.querySelector('#tab4 iframe');
+        if (part4Iframe) {
+            part4Iframe.addEventListener('load', notifyPart4Module);
+            if (part4Iframe.contentWindow && part4Iframe.contentWindow.document.readyState === 'complete') {
+                notifyPart4Module();
+            }
+        }
+    </script>
+</body>
+</html>

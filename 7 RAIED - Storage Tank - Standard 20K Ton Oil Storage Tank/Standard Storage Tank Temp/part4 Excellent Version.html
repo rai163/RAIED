@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>RAIED - Material & Cost Analysis Dashboard</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 70px 12px 12px 12px;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(145deg, #f4f8fd 0%, #eaf0f8 100%);
+            color: #1a2c3e;
+            min-height: 100vh;
+        }
+        
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: white;
+            padding: 12px 20px;
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border: 1px solid rgba(45,212,191,0.3);
+        }
+        .title-section h1 {
+            font-size: 0.85rem;
+            margin: 0;
+            border-left: 4px solid #2dd4bf;
+            padding-left: 12px;
+            color: #1f5fb8;
+        }
+        .title-section .subtitle {
+            font-size: 0.65rem;
+            color: #64748b;
+            margin: 4px 0 0 16px;
+        }
+        .button-group { display: flex; gap: 8px; flex-wrap: wrap; }
+        .specs-btn, .cost-btn, .manufacturing-btn, .guide-btn {
+            padding: 3px 8px;
+            border-radius: 16px;
+            font-weight: bold;
+            font-size: 0.55rem;
+            color: white;
+            cursor: pointer;
+            border: none;
+            transition: transform 0.2s ease;
+        }
+        .specs-btn { background: linear-gradient(135deg, #2d6a4f, #1b4d3d); }
+        .specs-btn:hover { transform: translateY(-2px); background: linear-gradient(135deg, #40916c, #2d6a4f); }
+        .cost-btn { background: linear-gradient(135deg, #1f5fb8, #153e75); }
+        .cost-btn:hover { transform: translateY(-2px); background: linear-gradient(135deg, #2a6fc9, #1a4685); }
+        .manufacturing-btn { background: linear-gradient(135deg, #7c3aed, #5b21b6); }
+        .manufacturing-btn:hover { transform: translateY(-2px); background: linear-gradient(135deg, #8b5cf6, #6d28b6); }
+        .guide-btn { background: linear-gradient(135deg, #dc2626, #991b1b); }
+        .guide-btn:hover { transform: translateY(-2px); background: linear-gradient(135deg, #ef4444, #b91c1c); }
+        
+        .status-panel {
+            background: #1e293b;
+            border-radius: 16px;
+            padding: 12px 20px;
+            color: #cbd5e1;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+            border: 1px solid #334155;
+        }
+        .status-item { display: flex; align-items: center; gap: 8px; font-size: 0.7rem; }
+        .status-label { color: #94a3b8; }
+        .status-value { color: #facc15; font-weight: bold; font-family: monospace; font-size: 0.8rem; }
+        
+        .two-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border: 1px solid #e2e8f0;
+        }
+        .card h3 { margin: 0 0 12px 0; font-size: 0.9rem; color: #1f5fb8; border-bottom: 2px solid #2dd4bf; display: inline-block; padding-bottom: 4px; }
+        .card h4 { font-size: 0.7rem; color: #2d6a4f; margin: 12px 0 8px 0; border-left: 3px solid #2d6a4f; padding-left: 8px; }
+        
+        .spec-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-size: 0.7rem; }
+        .spec-item .label { font-weight: bold; color: #1e293b; }
+        .spec-item .value { color: #2d6a4f; font-family: monospace; }
+        
+        .pillar-stress-container { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin: 16px 0; }
+        .pillar-card { text-align: center; background: #f8fafc; border-radius: 12px; padding: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .pillar-canvas { width: 90px; height: 160px; background: #e2e8f0; border-radius: 8px; margin-bottom: 8px; }
+        .pillar-label { font-size: 0.65rem; font-weight: bold; margin-top: 5px; }
+        .pillar-load { font-size: 0.55rem; color: #475569; }
+        .stress-indicator { width: 100%; height: 6px; border-radius: 3px; margin-top: 5px; }
+        .stress-low { background: linear-gradient(90deg, #10b981, #34d399); }
+        .stress-medium { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+        .stress-high { background: linear-gradient(90deg, #ef4444, #f87171); }
+        .stress-critical { background: linear-gradient(90deg, #7f1d1d, #991b1b); animation: pulse 1s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+        
+        .real-time-load { background: #f8fafc; border-radius: 12px; padding: 12px; margin: 16px 0; text-align: center; border: 2px solid #2dd4bf; }
+        .load-value { font-size: 1.6rem; font-weight: 800; color: #1f5fb8; }
+        .load-unit { font-size: 0.7rem; color: #64748b; }
+        .load-gauge { width: 100%; height: 12px; background: #e2e8f0; border-radius: 6px; margin-top: 8px; overflow: hidden; }
+        .load-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444); border-radius: 6px; transition: width 0.3s ease; }
+        
+        .note-box { padding: 10px; border-radius: 10px; margin-top: 12px; text-align: center; font-size: 0.6rem; background: #e0f2e9; color: #1b4d3d; }
+        .warning-box { background: #fef3c7; color: #92400e; }
+        .critical-box { background: #fee2e2; color: #991b1b; }
+        
+        .cost-table { width: 100%; border-collapse: collapse; font-size: 0.65rem; }
+        .cost-table td, .cost-table th { padding: 6px 4px; border-bottom: 1px solid #e2e8f0; text-align: left; }
+        .cost-table th { color: #1f5fb8; font-weight: bold; }
+        .cost-table td:last-child, .cost-table th:last-child { text-align: right; }
+        
+        .export-btn-group { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        .pdf-btn { background: #dc2626; color: white; border: none; padding: 8px 16px; border-radius: 40px; font-weight: bold; font-size: 0.65rem; cursor: pointer; transition: transform 0.2s ease; }
+        .pdf-btn:hover { transform: translateY(-2px); background: #b91c1c; }
+        .word-btn { background: #2563eb; color: white; border: none; padding: 8px 16px; border-radius: 40px; font-weight: bold; font-size: 0.65rem; cursor: pointer; transition: transform 0.2s ease; }
+        .word-btn:hover { transform: translateY(-2px); background: #1d4ed8; }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 70px;
+            left: 0;
+            width: 100%;
+            height: calc(100% - 70px);
+            background: rgba(0,0,0,0.85);
+            z-index: 999;
+            justify-content: center;
+            align-items: flex-start;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        .modal-content {
+            background: linear-gradient(135deg, #f0f4f9, #e8edf5);
+            border-radius: 20px;
+            padding: 20px;
+            max-width: 1000px;
+            width: 95%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 2px solid #2dd4bf;
+            margin: 10px auto;
+        }
+        .modal-content h3 { color: #1f5fb8; margin-top: 0; font-size: 1.1rem; }
+        .modal-content h4 { font-size: 0.85rem; color: #2d6a4f; margin: 16px 0 8px 0; border-left: 3px solid #2d6a4f; padding-left: 8px; }
+        .modal-content h5 { font-size: 0.75rem; color: #1f5fb8; margin: 12px 0 6px 0; }
+        .close-modal { background: #1f5fb8; color: white; border: none; padding: 8px 20px; border-radius: 40px; cursor: pointer; margin-top: 16px; }
+        .manufacturing-text { font-size: 0.7rem; line-height: 1.6; }
+        .manufacturing-text ul { margin: 6px 0; padding-left: 20px; }
+        .manufacturing-text li { margin-bottom: 3px; }
+        .manufacturing-text p { margin: 6px 0; }
+        
+        .guide-section {
+            background: white;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin: 10px 0;
+            border-left: 4px solid #1f5fb8;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        }
+        .guide-section h5 { margin: 0 0 8px 0; color: #1f5fb8; font-size: 0.75rem; }
+        
+        .chemical-equation {
+            background: #1e293b;
+            color: #2dd4bf;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.65rem;
+            margin: 8px 0;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            line-height: 1.8;
+        }
+        
+        .factory-layout {
+            background: #1e293b;
+            color: #cbd5e1;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.5rem;
+            overflow-x: auto;
+            white-space: pre;
+            line-height: 1.2;
+            margin: 8px 0;
+        }
+        
+        .refinery-table { width: 100%; border-collapse: collapse; font-size: 0.6rem; margin: 8px 0; }
+        .refinery-table td, .refinery-table th { padding: 4px 6px; border: 1px solid #cbd5e1; text-align: left; }
+        .refinery-table th { background: #eef2f6; color: #1f5fb8; font-weight: bold; }
+        .refinery-table .highlight { background: #d1fae5; }
+        
+        .diagram-box {
+            background: #1e293b;
+            color: #facc15;
+            padding: 12px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.5rem;
+            overflow-x: auto;
+            white-space: pre;
+            line-height: 1.1;
+            text-align: center;
+        }
+        
+        .beautiful-symmetry-box {
+            background: #1e293b;
+            color: #facc15;
+            padding: 16px;
+            border-radius: 12px;
+            margin-top: 16px;
+            text-align: center;
+            font-size: 0.75rem;
+            line-height: 1.8;
+            border: 2px solid #facc15;
+        }
+        .beautiful-symmetry-box strong {
+            color: #fbbf24;
+            font-size: 0.85rem;
+        }
+        
+        .toc-item {
+            display: inline-block;
+            padding: 4px 10px;
+            color: #1f5fb8;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 0.6rem;
+            margin: 2px 4px;
+            background: #e0e7f7;
+            text-decoration: none;
+        }
+        .toc-item:hover { background: #c4d5f7; }
+    </style>
+</head>
+<body>
+<div class="dashboard">
+    <div class="header">
+        <div class="title-section">
+            <h1>📐 RAIED - Material & Cost Analysis Dashboard</h1>
+            <div class="subtitle">Real-time pillar load | Shutter specifications | Cost analysis | Manufacturing details | PDF & Word Export</div>
+        </div>
+        <div class="button-group">
+            <button class="guide-btn" id="showGuideBtn">📖 MFG GUIDE</button>
+            <button class="manufacturing-btn" id="showManufacturingBtn">🔬 Manufacturing</button>
+            <button class="specs-btn" id="showSpecsBtn">📐 MATERIAL SPECS</button>
+            <button class="cost-btn" id="showCostBtn">💰 COST/BENEFIT</button>
+        </div>
+    </div>
+    
+    <div class="status-panel">
+        <div class="status-item"><span class="status-label">🛡️ Current Shutter:</span><span class="status-value" id="currentShutterName">Composite (3.0x)</span></div>
+        <div class="status-item"><span class="status-label">📏 Physical Thickness:</span><span class="status-value" id="currentThickness">8 mm</span></div>
+        <div class="status-item"><span class="status-label">✨ Effective Thickness:</span><span class="status-value" id="currentEffectiveThick">24 mm</span></div>
+        <div class="status-item"><span class="status-label">⚖️ Weight per m²:</span><span class="status-value" id="currentWeight">36 kg/m²</span></div>
+        <div class="status-item"><span class="status-label">💪 MJ Capacity:</span><span class="status-value" id="currentCapacity">2.40 MJ</span></div>
+        <div class="status-item"><span class="status-label">🏛️ Pillar Load:</span><span class="status-value" id="currentPillarLoad">0 kN</span></div>
+    </div>
+    
+    <div class="two-columns">
+        <div class="card">
+            <h3>🛡️ 8 Shutter Types Reference</h3>
+            <table class="cost-table">
+                <tr><th>Type</th><th>Multiplier</th><th>Density (kg/m³)</th><th>Weight @8mm</th><th>Cost/kg</th></tr>
+                <tr><td>📄 Standard</td><td>1.0×</td><td>7,930</td><td>63 kg/m²</td><td>$2.80</td></tr>
+                <tr><td>📐 Sloped</td><td>1.4×</td><td>7,930</td><td>69 kg/m²</td><td>$2.80</td></tr>
+                <tr><td>〰️ Corrugated</td><td>1.8×</td><td>7,930</td><td>57 kg/m²</td><td>$2.80</td></tr>
+                <tr><td>🛡️ Composite</td><td>3.0×</td><td>4,500</td><td>36 kg/m²</td><td>$8.50</td></tr>
+                <tr><td>💥 Reactive</td><td>5.0×</td><td>5,000</td><td>40 kg/m²</td><td>$15.00</td></tr>
+                <tr><td>🪨 UHPC</td><td>2.2×</td><td>2,800</td><td>48 kg/m²</td><td>$1.20</td></tr>
+                <tr><td>🔷 Ceramic</td><td>4.0×</td><td>3,700</td><td>32 kg/m²</td><td>$25.00</td></tr>
+                <tr><td>⚡ Nanocomposite</td><td>6.0×</td><td>1,600</td><td>18 kg/m²</td><td>$120.00</td></tr>
+            </table>
+            <div class="note-box" style="margin-top: 12px;">
+                💡 Multiplier = Protection efficiency relative to standard steel.
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3>🏛️ Pillar Load Analysis</h3>
+            <div class="real-time-load">
+                <div class="load-value" id="livePillarLoad">0</div>
+                <div class="load-unit">kN per pillar (Design capacity: 1,225 kN)</div>
+                <div class="load-gauge"><div class="load-fill" id="loadFillBar"></div></div>
+                <div id="loadStatusText" style="font-size: 0.55rem; margin-top: 8px;"></div>
+            </div>
+            <div class="pillar-stress-container" id="pillarStressContainer"></div>
+            <div id="safetyNote" class="note-box">
+                💡 Current configuration is within safe limits.
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3>🏗️ Foundation & Structural Specifications</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px;">
+            <div>
+                <h4>🏛️ Pillars (4×)</h4>
+                <div class="spec-item"><span class="label">Material:</span><span class="value">C50/60 Reinforced Concrete</span></div>
+                <div class="spec-item"><span class="label">Dimensions:</span><span class="value">800 × 800 mm, height 6,800 mm</span></div>
+                <div class="spec-item"><span class="label">Longitudinal bars:</span><span class="value">12 × Ø25 mm B500C</span></div>
+                <div class="spec-item"><span class="label">Stirrups:</span><span class="value">Ø10 mm B500C @ 150 mm c/c</span></div>
+            </div>
+            <div>
+                <h4>🧱 Raft Foundation</h4>
+                <div class="spec-item"><span class="label">Dimensions:</span><span class="value">15,000 × 15,000 × 500 mm</span></div>
+                <div class="spec-item"><span class="label">Reinforcement:</span><span class="value">Ø16 mm B500C @ 150 mm c/c (top & bottom)</span></div>
+                <div class="spec-item"><span class="label">Concrete cover:</span><span class="value">50 mm</span></div>
+                <div class="spec-item"><span class="label">Soil capacity:</span><span class="value">150 kPa (conservative)</span></div>
+            </div>
+            <div>
+                <h4>🔩 Shutter Track</h4>
+                <div class="spec-item"><span class="label">Track type:</span><span class="value">C-channel S355 steel</span></div>
+                <div class="spec-item"><span class="label">Dimensions:</span><span class="value">150 × 200 × 12 mm</span></div>
+                <div class="spec-item"><span class="label">Bolts:</span><span class="value">M24 grade 10.9 @ 400 mm c/c</span></div>
+                <div class="spec-item"><span class="label">Coating:</span><span class="value">Zinc-rich epoxy</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODALS -->
+<div id="specsModal" class="modal">
+    <div class="modal-content">
+        <h3>📐 COMPLETE MATERIAL SPECIFICATIONS</h3>
+        <div id="specsModalContent"></div>
+        <div class="export-btn-group">
+            <button class="pdf-btn" id="exportSpecsPDFBtn">📄 EXPORT PDF</button>
+            <button class="word-btn" id="exportSpecsWordBtn">📝 EXPORT WORD</button>
+        </div>
+        <button class="close-modal" id="closeSpecsModalBtn">Close</button>
+    </div>
+</div>
+
+<div id="costModal" class="modal">
+    <div class="modal-content">
+        <h3>💰 COST / BENEFIT ANALYSIS</h3>
+        <div id="costModalContent"></div>
+        <div class="export-btn-group">
+            <button class="pdf-btn" id="exportCostPDFBtn">📄 EXPORT PDF</button>
+            <button class="word-btn" id="exportCostWordBtn">📝 EXPORT WORD</button>
+        </div>
+        <button class="close-modal" id="closeCostModalBtn">Close</button>
+    </div>
+</div>
+
+<div id="manufacturingModal" class="modal">
+    <div class="modal-content manufacturing-text">
+        <div id="manufacturingModalContent"></div>
+        <div class="export-btn-group">
+            <button class="pdf-btn" id="exportMfgPDFBtn">📄 EXPORT PDF</button>
+            <button class="word-btn" id="exportMfgWordBtn">📝 EXPORT WORD</button>
+        </div>
+        <button class="close-modal" id="closeManufacturingModalBtn">Close</button>
+    </div>
+</div>
+
+<div id="guideModal" class="modal">
+    <div class="modal-content manufacturing-text" style="max-width: 1100px;">
+        <h3>📖 CNT NANOCOMPOSITE ARMOR — COMPLETE MANUFACTURING GUIDE</h3>
+        <p style="text-align:center; color:#64748b; font-size:0.6rem; margin-bottom:12px;">
+            From Raw Materials → Finished Shutters | Chemistry · Physics · Mathematics · Factory Design · Refinery Integration
+        </p>
+        <div id="guideContent"></div>
+        <div class="export-btn-group">
+            <button class="pdf-btn" id="exportGuidePDFBtn">📄 EXPORT FULL GUIDE PDF</button>
+            <button class="word-btn" id="exportGuideWordBtn">📝 EXPORT FULL GUIDE WORD</button>
+        </div>
+        <button class="close-modal" id="closeGuideModalBtn">Close</button>
+    </div>
+</div>
+
+<script>
+    // Load jsPDF library for text-based PDF
+    const scriptJsPDF = document.createElement('script');
+    scriptJsPDF.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    scriptJsPDF.crossOrigin = 'anonymous';
+    document.head.appendChild(scriptJsPDF);
+    
+    // Load jspdf-autotable plugin for tables
+    const scriptAutoTable = document.createElement('script');
+    scriptAutoTable.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
+    scriptAutoTable.crossOrigin = 'anonymous';
+    document.head.appendChild(scriptAutoTable);
+    
+    const scriptDocx = document.createElement('script');
+    scriptDocx.src = 'https://unpkg.com/docx@8.5.0/build/index.umd.js';
+    scriptDocx.crossOrigin = 'anonymous';
+    document.head.appendChild(scriptDocx);
+    
+    // ========== SHUTTER DATA ==========
+    const shutterData = {
+        standard: { multiplier: 1.0, name: "Standard SS304", density: 7930, pricePerKg: 2.80, fabrication: 1.3, maintenance: 8 },
+        sloped: { multiplier: 1.4, name: "Sloped 30°", density: 7930, pricePerKg: 2.80, fabrication: 1.5, maintenance: 9 },
+        corrugated: { multiplier: 1.8, name: "Corrugated Steel", density: 7930, pricePerKg: 2.80, fabrication: 1.8, maintenance: 12 },
+        composite: { multiplier: 3.0, name: "Composite Armor", density: 4500, pricePerKg: 8.50, fabrication: 2.5, maintenance: 20 },
+        reactive: { multiplier: 5.0, name: "Reactive Armor", density: 5000, pricePerKg: 15.00, fabrication: 3.5, maintenance: 45 },
+        uhpc: { multiplier: 2.2, name: "UHPC / Ductal®", density: 2800, pricePerKg: 1.20, fabrication: 2.0, maintenance: 5 },
+        ceramic: { multiplier: 4.0, name: "Ceramic-Faced Armor", density: 3700, pricePerKg: 25.00, fabrication: 3.0, maintenance: 15 },
+        nanocomposite: { multiplier: 6.0, name: "CNT Nanocomposite", density: 1600, pricePerKg: 120.00, fabrication: 5.0, maintenance: 8 }
+    };
+    
+    const manufacturingData = {
+        standard: `<h4>Standard SS304 Stainless Steel</h4><ol><li>Melting & Casting — EAF + AOD refining</li><li>Hot Rolling — 1250°C, roughing + finishing mills</li><li>Cold Rolling & Annealing — precise gauge, bright anneal</li><li>Cutting & Finishing — plasma/laser, passivation</li></ol>`,
+        sloped: `<h4>Sloped 30° Steel</h4><ol><li>Base Plate Production — hot/cold rolling</li><li>Forming — press brake bends to 30° angle</li><li>Stiffener Welding — vertical stiffeners added</li><li>Surface Treatment — shot blasting, zinc-rich primer</li></ol>`,
+        corrugated: `<h4>Corrugated Steel</h4><ol><li>Coil Preparation — galvanized S350GD unrolled</li><li>Roll Forming — contoured rollers shape corrugation</li><li>Cut-to-Length — flying shear</li><li>Edge Protection — deburr, touch-up galvanizing</li></ol>`,
+        composite: `<h4>Composite Armor (Steel + Ceramic + Polymer)</h4><ol><li>Ceramic Tile Production — Al₂O₃ pressed & sintered at 1600°C</li><li>Backing Laminate — aramid fabric + toughened epoxy</li><li>Lay-up & Bonding — vacuum bagging, autoclave 120–150°C</li><li>Encapsulation — PU edge seal, anti-spall liner</li></ol>`,
+        reactive: `<h4>Reactive Armor (ERA)</h4><ol><li>Explosive Layer — PBX/C4 cast into thin sheets</li><li>Metal Plate Assembly — flyer + base plates cut to size</li><li>Sandwich Construction — explosive between plates, sealed</li><li>Casing & Integration — steel cassette, electrical initiation</li></ol>`,
+        uhpc: `<h4>UHPC / Ductal®</h4><ol><li>Mix Design — cement, silica fume, quartz sand, fibers, w/b <0.20</li><li>High-Shear Mixing — self-compacting fluid paste</li><li>Casting — flat moulds with vibration</li><li>Curing — 90°C/48h heat cure or 28-day wet cure</li></ol>`,
+        ceramic: `<h4>Ceramic-Faced Armor</h4><ol><li>Tile Manufacturing — Al₂O₃/SiC pressed and sintered</li><li>Backing Plate — aluminum alloy surface prep</li><li>Adhesive Bonding — 2-part epoxy under pressure</li><li>Encapsulation — spall liner, edge seal, steel frame</li></ol>`,
+        nanocomposite: `<h4>CNT Nanocomposite Armor</h4><ol><li>CNT Synthesis — CVD at 600–900°C with Fe/Co catalyst</li><li>Dispersion — high-shear mixing/ultrasonication into resin (1–2 wt%)</li><li>Lay-up — ceramic tile + CNT-doped fabric via VARTM</li><li>Curing — hot press 120–180°C, 5–30 bar or autoclave</li><li>Post-Processing — water-jet cutting, edge sealing, C-scan QC</li></ol>`
+    };
+    
+    let currentParams = {
+        shutterType: 'composite', thickness: 8, mass: 40, velocity: 250,
+        shutterCount: 1, numLayers: 0, sheetCount: 1, layerCount: 0
+    };
+    
+    function getCurrentShutterData() { return shutterData[currentParams.shutterType] || shutterData.composite; }
+    function getThreatEnergy() { return 0.5 * currentParams.mass * currentParams.velocity * currentParams.velocity / 1000000; }
+    
+    function computeEnergy() {
+        const imea = getThreatEnergy(); let remaining = imea;
+        const shutter = getCurrentShutterData();
+        const cap = (currentParams.thickness * shutter.multiplier) * 0.1;
+        const alphaS = 0.98;
+        const totalPlates = currentParams.shutterCount + (currentParams.numLayers * 2);
+        for (let i = 0; i < totalPlates; i++) {
+            const ratio = remaining / cap;
+            remaining = Math.max(0, (remaining - (ratio <= 1.0 ? remaining * 0.85 * alphaS : cap * alphaS)) * 1.0);
+        }
+        return { imea, emea: remaining, absorbed: imea - remaining };
+    }
+    
+    function calculatePillarLoad() {
+        const shutter = getCurrentShutterData();
+        const wpm2 = (currentParams.thickness / 1000) * shutter.density;
+        const sw = 150 * wpm2;
+        const pc = 10880, pr = 1366, bw = 152604, mw = 1000, pCount = 4;
+        const slk = (pc + pr + (bw / pCount) + sw / pCount + mw) * 9.81 / 1000;
+        const df = 1 + ((currentParams.shutterCount + currentParams.numLayers) * 0.05);
+        return { load: Math.round(slk * df), weightPerM2: Math.round(wpm2), effectiveThick: currentParams.thickness * shutter.multiplier };
+    }
+    
+    function getStressColor(p) { return p < 40 ? '#10b981' : p < 70 ? '#f59e0b' : p < 90 ? '#ef4444' : '#7f1d1d'; }
+    function getStressClass(p) { return p < 40 ? 'stress-low' : p < 70 ? 'stress-medium' : p < 90 ? 'stress-high' : 'stress-critical'; }
+    
+    function drawPillarCanvas(ctx, color, percent) {
+        const w = 90, h = 160;
+        ctx.clearRect(0, 0, w, h); ctx.fillStyle = '#e2e8f0'; ctx.fillRect(8, 8, w-16, h-16);
+        const fh = (h-16)*(percent/100); ctx.fillStyle = color; ctx.fillRect(8, 8+(h-16-fh), w-16, fh);
+        ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1.5; ctx.strokeRect(8, 8, w-16, h-16);
+        ctx.fillStyle = '#475569';
+        for (let i=0; i<4; i++) { ctx.beginPath(); ctx.arc(16+i*16, h/2, 2.5, 0, 2*Math.PI); ctx.fill(); }
+        ctx.fillStyle = '#1e293b'; ctx.font = 'bold 10px monospace'; ctx.fillText(`${Math.round(percent)}%`, w/2-12, h-10);
+    }
+    
+    function updateAllDisplays() {
+        const shutter = getCurrentShutterData();
+        const eff = currentParams.thickness * shutter.multiplier;
+        const cap = eff * 0.1;
+        const ld = calculatePillarLoad();
+        const pct = Math.min(100, (ld.load/1225)*100);
+        
+        document.getElementById('currentShutterName').innerHTML = `${shutter.name} (${shutter.multiplier}×)`;
+        document.getElementById('currentThickness').innerHTML = `${currentParams.thickness} mm`;
+        document.getElementById('currentEffectiveThick').innerHTML = `${eff} mm`;
+        document.getElementById('currentWeight').innerHTML = `${ld.weightPerM2} kg/m²`;
+        document.getElementById('currentCapacity').innerHTML = `${cap.toFixed(2)} MJ`;
+        document.getElementById('currentPillarLoad').innerHTML = `${ld.load} kN`;
+        document.getElementById('livePillarLoad').innerHTML = ld.load;
+        document.getElementById('loadFillBar').style.width = pct+'%';
+        document.getElementById('loadStatusText').innerHTML = pct<40?'✅ SAFE':pct<70?'⚠️ MODERATE':pct<90?'⚠️ HIGH':'🔴 CRITICAL';
+        
+        const cont = document.getElementById('pillarStressContainer'); cont.innerHTML = '';
+        ['P1 (SW)','P2 (SE)','P3 (NE)','P4 (NW)'].forEach((n,i)=>{
+            const card = document.createElement('div'); card.className='pillar-card';
+            const c = document.createElement('canvas'); c.width=90; c.height=160; c.className='pillar-canvas';
+            drawPillarCanvas(c.getContext('2d'), getStressColor(pct), pct);
+            const l=document.createElement('div'); l.className='pillar-label'; l.textContent=n;
+            const ls=document.createElement('div'); ls.className='pillar-load'; ls.textContent=`${ld.load} kN / 1,225 kN`;
+            const ind=document.createElement('div'); ind.className=`stress-indicator ${getStressClass(pct)}`;
+            card.appendChild(c); card.appendChild(l); card.appendChild(ls); card.appendChild(ind); cont.appendChild(card);
+        });
+        
+        const sn = document.getElementById('safetyNote');
+        if(pct>85){ sn.className='note-box critical-box'; sn.innerHTML='🔴 CRITICAL: Exceeds recommended pillar load.'; }
+        else if(pct>65){ sn.className='note-box warning-box'; sn.innerHTML='⚠️ WARNING: Pillar load elevated.'; }
+        else{ sn.className='note-box'; sn.innerHTML='💡 Configuration within safe limits.'; }
+        updateSpecsModalContent(); updateCostModalContent();
+    }
+    
+    function updateSpecsModalContent() {
+        const shutter = getCurrentShutterData(); const ld = calculatePillarLoad();
+        const pct = Math.min(100,(ld.load/1225)*100);
+        document.getElementById('specsModalContent').innerHTML = `
+            <div class="real-time-load"><div class="load-value">${ld.load} kN</div><div class="load-unit">Current Pillar Load (Design: 1,225 kN)</div>
+            <div class="load-gauge"><div class="load-fill" style="width:${pct}%;"></div></div></div>
+            <h4>🛡️ Current Shutter: ${shutter.name} (${shutter.multiplier}×)</h4>
+            <div class="spec-item"><span class="label">Physical Thickness:</span><span class="value">${currentParams.thickness} mm</span></div>
+            <div class="spec-item"><span class="label">Effective Thickness:</span><span class="value">${ld.effectiveThick} mm</span></div>
+            <div class="spec-item"><span class="label">Weight per m²:</span><span class="value">${ld.weightPerM2} kg/m²</span></div>
+            <div class="spec-item"><span class="label">Density:</span><span class="value">${shutter.density} kg/m³</span></div>
+            <h4>🏛️ Pillar & Foundation</h4>
+            <div class="spec-item"><span class="label">Load per pillar:</span><span class="value">${ld.load} kN / 1,225 kN</span></div>
+            <div class="spec-item"><span class="label">Concrete grade:</span><span class="value">C50/60 (pillars) | C35/45 (raft)</span></div>
+            <div class="spec-item"><span class="label">Pillar dimensions:</span><span class="value">800 × 800 mm, h=6,800 mm</span></div>
+            <div class="spec-item"><span class="label">Longitudinal bars:</span><span class="value">12 × Ø25 mm B500C</span></div>
+            <h4>🧱 Raft Foundation</h4>
+            <div class="spec-item"><span class="label">Dimensions:</span><span class="value">15,000 × 15,000 × 500 mm</span></div>
+            <div class="spec-item"><span class="label">Reinforcement:</span><span class="value">Ø16 mm @ 150 mm c/c</span></div>
+            <h4>🔩 Shutter Track</h4>
+            <div class="spec-item"><span class="label">Material:</span><span class="value">S355 C-channel, M24 bolts grade 10.9</span></div>`;
+    }
+    
+    function updateCostModalContent() {
+        const shutter = getCurrentShutterData(); const energy = computeEnergy();
+        const eff = currentParams.thickness * shutter.multiplier; const cap = eff * 0.1;
+        const wkg = (currentParams.thickness/1000)*shutter.density;
+        const mc = wkg*shutter.pricePerKg; const fc = mc*(shutter.fabrication-1); const tcpm2 = mc+fc;
+        const tpc=tcpm2*100; const am=shutter.maintenance*100; const t10=tpc+(am*10);
+        const cpmj=tcpm2/cap; const apct = (energy.absorbed/energy.imea*100);
+        const pr = energy.emea<0.05?"Excellent":energy.emea<0.2?"Good":energy.emea<energy.imea*0.5?"Fair":"Poor";
+        const rec = energy.emea<0.05?"✅ FULL PROTECTION":energy.emea<0.2?"⚠️ PARTIAL":"❌ NOT PROTECTED";
+        const f = (n)=>'$'+n.toLocaleString(undefined,{maximumFractionDigits:0});
+        document.getElementById('costModalContent').innerHTML = `
+            <div class="spec-item"><span class="label">🛡️ Technology:</span><span>${shutter.name} (${shutter.multiplier}×)</span></div>
+            <div class="spec-item"><span class="label">📏 Effective Thickness:</span><span>${eff} mm</span></div>
+            <div class="spec-item"><span class="label">💥 MJ Capacity:</span><span>${cap.toFixed(2)} MJ</span></div>
+            <div class="spec-item"><span class="label">⚡ Threat Energy:</span><span>${energy.imea.toFixed(3)} MJ</span></div>
+            <div class="spec-item"><span class="label">💚 Absorbed:</span><span>${energy.absorbed.toFixed(3)} MJ (${apct.toFixed(0)}%)</span></div>
+            <div class="spec-item"><span class="label">💔 Residual:</span><span>${energy.emea.toFixed(6)} MJ</span></div>
+            <div class="spec-item"><span class="label">💰 Cost per m²:</span><span>${f(tcpm2)}</span></div>
+            <div class="spec-item"><span class="label">💎 Cost per MJ:</span><span>${f(cpmj)}/MJ</span></div>
+            <div class="spec-item"><span class="label">🏭 100m² Facility:</span><span>${f(tpc)}</span></div>
+            <div class="spec-item"><span class="label">🔧 Annual Maintenance:</span><span>${f(am)}/year</span></div>
+            <div class="spec-item"><span class="label">📅 10-Year Total:</span><span>${f(t10)}</span></div>
+            <div class="spec-item"><span class="label">📊 Weight:</span><span>${wkg.toFixed(0)} kg/m²</span></div>
+            <div class="spec-item"><span class="label">🛡️ Protection Rating:</span><span>${pr}</span></div>
+            <div class="note-box" style="margin-top:12px;">${rec}</div>`;
+    }
+    
+    function updateManufacturingModal() {
+        const type = currentParams.shutterType;
+        const shutter = getCurrentShutterData();
+        document.getElementById('manufacturingModalContent').innerHTML = `
+            <h3>🔬 ${shutter.name} — Manufacturing Process</h3>
+            ${manufacturingData[type] || manufacturingData.composite}
+        `;
+    }
+    
+    function buildGuideContent() {
+        return `
+            <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px;">
+                <a class="toc-item" href="#guide-raw">Raw Materials</a>
+                <a class="toc-item" href="#guide-physics">Physics & Math</a>
+                <a class="toc-item" href="#guide-factory">Factory & Equipment</a>
+                <a class="toc-item" href="#guide-process">Mfg Process</a>
+                <a class="toc-item" href="#guide-qc">QC & Testing</a>
+                <a class="toc-item" href="#guide-costs">Costs & Scale</a>
+                <a class="toc-item" href="#guide-refinery">Refinery Integration</a>
+            </div>
+            <div class="guide-section" id="guide-raw">
+                <h4>1. RAW MATERIALS & CHEMISTRY</h4>
+                <h5>1.1 Carbon Nanotubes (MWCNT)</h5>
+                <p><strong>Specification:</strong> Multi-Walled CNT, Ø10–40 nm, L:10–100 μm, Purity >95%, Carboxyl-functionalized (-COOH). Suppliers: Nanocyl®, Arkema, OCSiAl.</p>
+                <div class="chemical-equation">CNT Functionalization: MWCNT + HNO₃/H₂SO₄ (3:1) → MWCNT-COOH  (60°C, 4h, sonication)\nThe -COOH groups enable covalent bonding with epoxy matrix.</div>
+                <h5>1.2 Polymer Matrix</h5>
+                <table class="refinery-table">
+                    <tr><th>Component</th><th>Material</th><th>Purpose</th></tr>
+                    <tr><td>Resin</td><td>Bisphenol-A epoxy (DGEBA)</td><td>Load transfer, toughness</td></tr>
+                    <tr><td>Hardener</td><td>Amine-based (DETA/TETA)</td><td>Crosslinking</td></tr>
+                    <tr><td>Toughener</td><td>CTBN rubber (5–10 wt%)</td><td>Impact resistance</td></tr>
+                    <tr><td>Dispersant</td><td>Triton X-100 / SDS</td><td>CNT dispersion</td></tr>
+                </table>
+                <h5>1.3 Ceramic Strike Face & Backing Fabric</h5>
+                <p>Al₂O₃ 99.5% (or SiC), hexagonal tiles 50–100mm, 4–8mm thick, >1400 HV. Aramid (Kevlar® 29/49, 200–400 g/m²) or UHMWPE (Dyneema®).</p>
+            </div>
+            <div class="guide-section" id="guide-physics">
+                <h4>2. PHYSICS & MATHEMATICS OF PROTECTION</h4>
+                <h5>2.1 Energy Dissipation Mechanisms (6.0× Multiplier)</h5>
+                <p><strong>CNT Pullout Energy:</strong></p>
+                <div class="chemical-equation">E_pullout = (π · d · L² · τ) / 6\nd=20×10⁻⁹ m, L=50×10⁻⁶ m, τ≈50 MPa → ~2.6×10⁻¹² J per CNT</div>
+                <p><strong>CNT Fracture:</strong></p>
+                <div class="chemical-equation">σ_fracture ≈ 50 GPa, E_young ≈ 1000 GPa\nE_fracture = σ²·V / (2·E)</div>
+                <p><strong>Crack Bridging:</strong></p>
+                <div class="chemical-equation">K_IC(composite) = K_IC(matrix) + ΔK_bridging\nΔK_bridging ∝ (V_f · σ_f · √d) / √(1-V_f),  V_f = 1–2%</div>
+                <h5>2.2 Effective Thickness</h5>
+                <div class="chemical-equation">8mm physical × 6.0 = 48mm RHA equivalent\nMJ Capacity = 48 × 0.1 = 4.80 MJ per sheet</div>
+                <h5>2.3 Kinetic Energy Model (40kg drone, 250 m/s)</h5>
+                <div class="chemical-equation">IMEA = ½ × 40 × 250² / 10⁶ = 1.250 MJ\nSheet 1: 1.041 MJ → Dent (0.22) | Sheet 2: 0.174 MJ → SA (0.04)\nSheet 3: 0.029 MJ → SA (0.01) | Sheet 4: 0.005 MJ → SA (0.001)\nEMEA ≈ 0.001 MJ → FULL PROTECTION</div>
+                <h5>2.4 Rule of Mixtures</h5>
+                <div class="chemical-equation">E_composite = η₀·η_L·V_f·E_f + V_m·E_m\nExpected: 8–15 GPa (vs ~3 GPa neat epoxy)</div>
+            </div>
+            <div class="guide-section" id="guide-factory">
+                <h4>3. FACTORY LAYOUT & EQUIPMENT (~2,000–2,500 m²)</h4>
+                <div class="factory-layout">
+┌──────────────────────────────────────────────────────────────┐
+│ RAW MATERIAL STORAGE (200 m²)  │ OFFICES / QC LAB (150 m²)   │
+├────────────────┬───────────────┼──────────────────────────────┤
+│ MIXING (300 m²)│ LAY-UP (500)  │ CURING BAY (400 m²)         │
+│ Sonicators,    │ Vacuum table, │ Autoclave 6×3m, Hot press   │
+│ High-shear     │ Robotic arm,  │ 2×2m, Oven 3×3×3m          │
+│ mixers         │ RTM system    │                              │
+├────────────────┴───────────────┼──────────────────────────────┤
+│ FINISHING & QC (400 m²)        │ BALLISTIC RANGE (200 m²)    │
+│ Water-jet, CNC, C-scan, CMM    │ Firing bay, cameras, radar  │
+├────────────────────────────────┼──────────────────────────────┤
+│ FINISHED GOODS (300 m²)        │ UTILITIES (150 m²)          │
+└────────────────────────────────┴──────────────────────────────┘</div>
+                <h5>Key Equipment Costs</h5>
+                <table class="refinery-table">
+                    <tr><th>Equipment</th><th>Cost (USD)</th></tr>
+                    <tr><td>Ultrasonic sonicator (1500W)</td><td>$25,000</td></tr>
+                    <tr><td>High-shear mixer (500L)</td><td>$80,000</td></tr>
+                    <tr><td>3-roll mill</td><td>$45,000</td></tr>
+                    <tr><td>CNC cutting table (6×3m)</td><td>$120,000</td></tr>
+                    <tr><td>VARTM/RTM system</td><td>$60,000</td></tr>
+                    <tr><td>Autoclave (6×3m, 10 bar)</td><td>$350,000</td></tr>
+                    <tr><td>Hot press (200 ton)</td><td>$200,000</td></tr>
+                    <tr><td>Water-jet cutter (5-axis)</td><td>$180,000</td></tr>
+                    <tr><td>Ultrasonic C-scan</td><td>$150,000</td></tr>
+                    <tr><td>High-speed cameras (2×)</td><td>$180,000</td></tr>
+                    <tr><td>Doppler radar</td><td>$40,000</td></tr>
+                    <tr><td>UTM + Split-Hopkinson bar</td><td>$140,000</td></tr>
+                    <tr><td>SEM with EDX</td><td>$200,000</td></tr>
+                    <tr><td><strong>TOTAL CAPITAL</strong></td><td><strong>~$1,770,000</strong></td></tr>
+                </table>
+            </div>
+            <div class="guide-section" id="guide-process">
+                <h4>4. MANUFACTURING PROCESS (Step-by-Step)</h4>
+                <p><strong>STEP 1: CNT Functionalization (Day 1)</strong> — Acid treat, sonicate 60°C/4h, filter, wash to pH7, vacuum dry 80°C/12h. QC: FTIR at ~1700 cm⁻¹.</p>
+                <p><strong>STEP 2: Masterbatch (Day 2)</strong> — Formula per 100kg: CNT-COOH 1.5kg, Epoxy 70kg, CTBN 8kg, Dispersant 0.5kg, Hardener 20kg. 3-roll mill 5 passes (50→10μm gap), high-shear mix 2000 RPM/30min, vacuum degas. QC: SEM <5μm agglomerates.</p>
+                <p><strong>STEP 3: Fabric Lay-up (Day 3)</strong> — Stack: Peel ply → 6× Aramid fabric (400 g/m²) interleaved with CNT-epoxy film → Ceramic tiles (Al₂O₃ 6mm hex) → Peel ply → Breather → Vacuum bag.</p>
+                <p><strong>STEP 4: VARTM Infusion (Day 3)</strong> — Pull -0.95 bar vacuum, leak check <5mbar/10min, infuse CNT-epoxy at 25°C, ~30–60min for 2.7m panel.</p>
+                <p><strong>STEP 5: Curing (Day 3–4)</strong> — 25→80°C @2°C/min, hold 80°C×2h, 80→130°C @1°C/min, hold 130°C×4h, cool @1°C/min. Total ~10h. Post-cure: 170°C×2h optional.</p>
+                <p><strong>STEP 6: Demolding & Trimming (Day 4)</strong> — Lift panel (~260 kg). Water-jet cut 4000 bar/garnet 80 mesh @500mm/min. Drill Ø25mm holes. Chamfer 2mm×45°.</p>
+                <p><strong>STEP 7: Edge Sealing (Day 5)</strong> — IPA clean, PU sealant 1–2mm, cure 23°C/50%RH/24h, spray polyurea anti-spall coating 2mm.</p>
+            </div>
+            <div class="guide-section" id="guide-qc">
+                <h4>5. QUALITY CONTROL & BALLISTIC TESTING</h4>
+                <h5>5.1 Non-Destructive Testing</h5>
+                <table class="refinery-table">
+                    <tr><th>Test</th><th>Method</th><th>Acceptance</th></tr>
+                    <tr><td>Dimensional</td><td>CMM / Laser tracker</td><td>±2mm, ±0.5mm thickness</td></tr>
+                    <tr><td>Void content</td><td>Ultrasonic C-scan</td><td><2%, no delamination >25mm²</td></tr>
+                    <tr><td>CNT dispersion</td><td>SEM on coupon</td><td>No agglomerates >5μm</td></tr>
+                    <tr><td>Density</td><td>Archimedes method</td><td>1,550–1,650 kg/m³</td></tr>
+                    <tr><td>Hardness</td><td>Shore D / Barcol</td><td>>80 Shore D</td></tr>
+                    <tr><td>Fiber volume</td><td>Acid digestion ASTM D3171</td><td>48–52%</td></tr>
+                    <tr><td>Tg</td><td>DMA ASTM E1640</td><td>>140°C</td></tr>
+                    <tr><td>Flexural strength</td><td>3-point ASTM D790</td><td>>400 MPa</td></tr>
+                    <tr><td>ILSS</td><td>Short beam ASTM D2344</td><td>>35 MPa</td></tr>
+                </table>
+                <h5>5.2 Ballistic Testing Protocol</h5>
+                <p><strong>Setup:</strong> 20mm FSP (53g), 200–850 m/s, stand-off 10m, witness plate 0.5mm Al 2024-T3 at 150mm. High-speed cameras 50,000 fps. Doppler radar.</p>
+                <p><strong>Test matrix (per 10 shutters):</strong> 1× V50 (6 shots), 3× 3-shot at 500/650/800 m/s, 1× multi-hit (5 shots in Ø100mm).</p>
+                <p><strong>Acceptance:</strong> No perforation at 800 m/s, BFD <25mm, no witness plate damage. Expected V50 >850 m/s for 8mm CNT nanocomposite.</p>
+            </div>
+            <div class="guide-section" id="guide-costs">
+                <h4>6. PRODUCTION SCALE & COSTS</h4>
+                <p>Cycle: 5–7 days/shutter. 6 parallel molds. Output: ~25 shutters/month, ~300/year. Workers: 15–20.</p>
+                <h5>Per-Shutter Cost Breakdown</h5>
+                <table class="refinery-table">
+                    <tr><th>Cost Item</th><th>Per Shutter (USD)</th></tr>
+                    <tr><td>MWCNT (1.5 kg @ $80/kg)</td><td>$120</td></tr>
+                    <tr><td>Epoxy resin (70 kg @ $12/kg)</td><td>$840</td></tr>
+                    <tr><td>Aramid fabric (16 m² @ $25/m²)</td><td>$400</td></tr>
+                    <tr><td>Ceramic tiles (7.3 m² @ $200/m²)</td><td>$1,460</td></tr>
+                    <tr><td>Consumables + Energy</td><td>$350</td></tr>
+                    <tr><td>Labor (40h @ $45/hr)</td><td>$1,800</td></tr>
+                    <tr><td>QC + Testing</td><td>$500</td></tr>
+                    <tr><td>Edge sealing</td><td>$300</td></tr>
+                    <tr><td><strong>TOTAL (with ceramic)</strong></td><td><strong>$5,770</strong></td></tr>
+                    <tr><td>Per m²</td><td>~$790/m²</td></tr>
+                </table>
+            </div>
+            <div class="guide-section" id="guide-refinery">
+                <h4>7. REFINERY INTEGRATION — The Circular Economy</h4>
+                <h5>7.1 Refinery Streams That Supply Raw Materials</h5>
+                <table class="refinery-table">
+                    <tr><th>Refinery Stream</th><th>Source Unit</th><th>Use in CNT Production</th></tr>
+                    <tr class="highlight"><td>Ethylene (C₂H₄)</td><td>FCC Unit</td><td>CVD precursor gas for CNT growth</td></tr>
+                    <tr class="highlight"><td>Propylene (C₃H₆)</td><td>FCC Unit</td><td>→ Acetone → BPA (epoxy precursor)</td></tr>
+                    <tr class="highlight"><td>Benzene (C₆H₆)</td><td>Catalytic Reformer</td><td>→ Phenol → BPA (epoxy precursor)</td></tr>
+                    <tr class="highlight"><td>Elemental Sulfur</td><td>Sulfur Recovery Unit</td><td>→ H₂SO₄ for CNT functionalization</td></tr>
+                    <tr class="highlight"><td>Hydrogen (H₂)</td><td>Steam Methane Reformer</td><td>Utility; CVD byproduct returned</td></tr>
+                    <tr class="highlight"><td>Nitrogen (N₂)</td><td>Air Separation Unit</td><td>Inerting for CNT CVD reactor</td></tr>
+                    <tr class="highlight"><td>Steam</td><td>Boilers / Co-gen</td><td>Process heating</td></tr>
+                </table>
+                <h5>7.2 Chemical Pathway: Refinery → Epoxy → Shutters</h5>
+                <div class="diagram-box">
+    REFINERY → CNT NANOCOMPOSITE SHUTTERS (CIRCULAR ECONOMY)
+    
+    Benzene (Reformer) → Phenol ──────────────┐
+    Propylene (FCC) → Acetone ─────────────────┤→ Bisphenol-A
+    Propylene (FCC) → Epichlorohydrin ─────────┘→ DGEBA Epoxy
+    Ethylene (FCC) → CNT (CVD, 700-900°C)
+    
+    Epoxy + CNT + Fabric → Shutters → PROTECT REFINERY
+                </div>
+                <h5>7.3 CVD Reaction Using Refinery Ethylene</h5>
+                <div class="chemical-equation">C₂H₄ → 2C (CNT) + 2H₂    (700–900°C, Fe/Co/Ni catalyst)\n1 kg CNT requires ~2.5–3.0 kg ethylene\n300 shutters/year need ~450 kg CNT → ~1,200 kg ethylene/year\nTypical FCC unit produces 500,000+ tonnes ethylene/year\n→ Refinery stream is MORE THAN ADEQUATE</div>
+                <h5>7.4 Co-Location Cost Savings</h5>
+                <table class="refinery-table">
+                    <tr><th>Cost Element</th><th>Standalone</th><th>Co-Located</th><th>Savings</th></tr>
+                    <tr><td>Ethylene feedstock</td><td>$3,500/yr</td><td>$400/yr</td><td>89%</td></tr>
+                    <tr><td>Benzene feedstock</td><td>$14,000/yr</td><td>$1,500/yr</td><td>89%</td></tr>
+                    <tr><td>Propylene feedstock</td><td>$18,000/yr</td><td>$2,000/yr</td><td>89%</td></tr>
+                    <tr><td>Steam</td><td>$120,000/yr</td><td>$25,000/yr</td><td>79%</td></tr>
+                    <tr><td>Electricity</td><td>$80,000/yr</td><td>$50,000/yr</td><td>38%</td></tr>
+                    <tr><td>Nitrogen</td><td>$15,000/yr</td><td>$3,000/yr</td><td>80%</td></tr>
+                    <tr><td>Site services</td><td>$60,000/yr</td><td>$10,000/yr</td><td>83%</td></tr>
+                    <tr><td><strong>TOTAL SAVINGS</strong></td><td></td><td></td><td><strong>~$277,000/yr</strong></td></tr>
+                </table>
+                <h5>7.5 Per-Shutter Cost: Integrated vs Standalone</h5>
+                <table class="refinery-table">
+                    <tr><th>Item</th><th>Standalone</th><th>Refinery-Integrated</th></tr>
+                    <tr><td>CNT (from ethylene)</td><td>$120</td><td>$45</td></tr>
+                    <tr><td>Epoxy resin</td><td>$840</td><td>$380</td></tr>
+                    <tr><td>Aramid fabric</td><td>$400</td><td>$400</td></tr>
+                    <tr><td>Ceramic tiles</td><td>$1,460</td><td>$1,460</td></tr>
+                    <tr><td>Consumables + Energy</td><td>$350</td><td>$145</td></tr>
+                    <tr><td>Labor + QC + Sealing</td><td>$2,600</td><td>$2,600</td></tr>
+                    <tr><td><strong>TOTAL per shutter</strong></td><td><strong>$5,770</strong></td><td><strong>$5,030</strong></td></tr>
+                    <tr><td>Per m²</td><td>$790/m²</td><td>$689/m²</td></tr>
+                </table>
+                <p style="margin-top:8px;"><strong>Annual savings (300 shutters): ~$222,000</strong></p>
+                
+                <div class="beautiful-symmetry-box">
+                    <strong>🏭 THE BEAUTIFUL SYMMETRY</strong><br><br>
+                    1. The REFINERY produces fuels that power hostile drones<br>
+                    2. The REFINERY produces ethylene from the FCC unit<br>
+                    3. Ethylene becomes CNTs via Chemical Vapor Deposition<br>
+                    4. CNTs + refinery benzene/propylene → armor shutters<br>
+                    5. Shutters protect THE SAME REFINERY from drone attacks<br>
+                    6. Hydrogen byproduct returns to hydrotreaters<br><br>
+                    <strong>The refinery produces raw materials<br>
+                    to defend itself from its own products.</strong><br><br>
+                    <em>A true circular economy.</em>
+                </div>
+            </div>
+        `;
+    }
+    
+    // ========== TEXT-BASED PDF EXPORT (using jsPDF + autotable) ==========
+    
+    function htmlToPlainText(html) {
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        return div.textContent || '';
+    }
+    
+    function parseHtmlToLines(html) {
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        const lines = [];
+        
+        function extract(node, level) {
+            if (node.nodeType === 3) {
+                const text = node.textContent;
+                if (text.trim()) lines.push({ type: 'text', text: text.trim(), level: level || 0 });
+                return;
+            }
+            if (node.nodeType !== 1) return;
+            const tag = node.tagName;
+            const cls = node.className || '';
+            
+            if (tag === 'H4') { lines.push({ type: 'h4', text: node.textContent.trim() }); return; }
+            if (tag === 'H5') { lines.push({ type: 'h5', text: node.textContent.trim() }); return; }
+            if (tag === 'P') { lines.push({ type: 'p', text: node.textContent.trim(), html: node.innerHTML }); return; }
+            if (tag === 'LI') { lines.push({ type: 'li', text: '• ' + node.textContent.trim() }); return; }
+            if (tag === 'TABLE') {
+                const rows = [];
+                node.querySelectorAll('tr').forEach(row => {
+                    const cells = [];
+                    row.querySelectorAll('td, th').forEach(cell => cells.push(cell.textContent.trim()));
+                    rows.push(cells);
+                });
+                lines.push({ type: 'table', rows: rows });
+                return;
+            }
+            if (cls.includes('chemical-equation')) {
+                lines.push({ type: 'code', text: node.textContent });
+                return;
+            }
+            if (cls.includes('factory-layout')) {
+                lines.push({ type: 'code', text: node.textContent });
+                return;
+            }
+            if (cls.includes('diagram-box')) {
+                lines.push({ type: 'code', text: node.textContent });
+                return;
+            }
+            if (cls.includes('beautiful-symmetry-box')) {
+                lines.push({ type: 'symmetry', text: node.textContent });
+                return;
+            }
+            if (cls.includes('note-box')) {
+                lines.push({ type: 'note', text: node.textContent.trim() });
+                return;
+            }
+            
+            for (const child of node.childNodes) {
+                extract(child, level);
+            }
+        }
+        
+        for (const child of div.childNodes) {
+            extract(child, 0);
+        }
+        return lines;
+    }
+    
+    function buildPdf(lines, title, filename) {
+        if (typeof window.jspdf === 'undefined' || typeof jspdf.jsPDF === 'undefined') {
+            alert('PDF library loading... Please try again in a moment.');
+            setTimeout(() => buildPdf(lines, title, filename), 1500);
+            return;
+        }
+        
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+        
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margin = 15;
+        const contentWidth = pageWidth - margin * 2;
+        let y = margin;
+        
+        function checkPageBreak(needed) {
+            if (y + needed > doc.internal.pageSize.getHeight() - margin) {
+                doc.addPage();
+                y = margin;
+            }
+        }
+        
+        // Title
+        doc.setFontSize(16);
+        doc.setTextColor(31, 95, 184);
+        doc.setFont(undefined, 'bold');
+        const titleLines = doc.splitTextToSize(title, contentWidth);
+        checkPageBreak(titleLines.length * 7 + 5);
+        doc.text(titleLines, pageWidth / 2, y, { align: 'center' });
+        y += titleLines.length * 7 + 3;
+        
+        // Timestamp
+        doc.setFontSize(7);
+        doc.setTextColor(100, 116, 139);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, y, { align: 'center' });
+        y += 8;
+        
+        // Content
+        lines.forEach(item => {
+            doc.setFontSize(8);
+            doc.setTextColor(26, 44, 62);
+            doc.setFont(undefined, 'normal');
+            
+            if (item.type === 'h4') {
+                checkPageBreak(10);
+                doc.setFontSize(12);
+                doc.setTextColor(45, 106, 79);
+                doc.setFont(undefined, 'bold');
+                const t = doc.splitTextToSize(item.text, contentWidth);
+                doc.text(t, margin, y);
+                y += t.length * 5 + 4;
+            } else if (item.type === 'h5') {
+                checkPageBreak(8);
+                doc.setFontSize(10);
+                doc.setTextColor(31, 95, 184);
+                doc.setFont(undefined, 'bold');
+                const t = doc.splitTextToSize(item.text, contentWidth);
+                doc.text(t, margin, y);
+                y += t.length * 5 + 3;
+            } else if (item.type === 'table') {
+                checkPageBreak(10 + item.rows.length * 6);
+                doc.autoTable({
+                    startY: y,
+                    head: item.rows.length > 0 && item.rows[0].length > 0 ? [item.rows[0]] : [],
+                    body: item.rows.length > 1 ? item.rows.slice(1) : item.rows,
+                    margin: { left: margin, right: margin },
+                    styles: { fontSize: 6, cellPadding: 2 },
+                    headStyles: { fillColor: [238, 242, 246], textColor: [31, 95, 184], fontStyle: 'bold' },
+                    theme: 'grid'
+                });
+                y = doc.lastAutoTable.finalY + 4;
+            } else if (item.type === 'code') {
+                checkPageBreak(4);
+                doc.setFontSize(6);
+                doc.setTextColor(26, 44, 62);
+                doc.setFont('Courier', 'normal');
+                const lines = item.text.split('\n');
+                lines.forEach(line => {
+                    checkPageBreak(3);
+                    doc.text(line.substring(0, 100), margin, y);
+                    y += 3;
+                });
+                y += 2;
+            } else if (item.type === 'symmetry') {
+                checkPageBreak(30);
+                doc.setDrawColor(245, 158, 11);
+                doc.setFillColor(254, 249, 195);
+                doc.roundedRect(margin, y, contentWidth, 40, 3, 3, 'FD');
+                doc.setFontSize(8);
+                doc.setTextColor(146, 64, 14);
+                doc.setFont(undefined, 'bold');
+                const lines = item.text.split('\n').filter(l => l.trim()).slice(0, 8);
+                lines.forEach((line, i) => {
+                    doc.text(line.trim().substring(0, 90), pageWidth / 2, y + 6 + (i * 4), { align: 'center' });
+                });
+                y += 45;
+            } else if (item.type === 'note') {
+                checkPageBreak(10);
+                doc.setFillColor(209, 250, 229);
+                doc.roundedRect(margin, y, contentWidth, 8, 2, 2, 'F');
+                doc.setFontSize(7);
+                doc.setTextColor(27, 77, 61);
+                doc.text(item.text.substring(0, 100), pageWidth / 2, y + 5, { align: 'center' });
+                y += 10;
+            } else if (item.type === 'li') {
+                checkPageBreak(5);
+                doc.setFontSize(8);
+                doc.setTextColor(26, 44, 62);
+                doc.setFont(undefined, 'normal');
+                const t = doc.splitTextToSize(item.text, contentWidth - 5);
+                doc.text(t, margin + 5, y);
+                y += t.length * 4 + 2;
+            } else if (item.type === 'p') {
+                checkPageBreak(8);
+                doc.setFontSize(8);
+                doc.setTextColor(26, 44, 62);
+                doc.setFont(undefined, 'normal');
+                // Check for bold markers
+                const text = item.text;
+                const t = doc.splitTextToSize(text, contentWidth);
+                doc.text(t, margin, y);
+                y += t.length * 4 + 3;
+            }
+        });
+        
+        doc.save(filename);
+    }
+    
+    function parseAndExportPdf(htmlContent, title, filename) {
+        const lines = parseHtmlToLines(htmlContent);
+        buildPdf(lines, title, filename);
+    }
+    
+    async function exportWord(htmlContent, filename, title) {
+        if (typeof docx === 'undefined') {
+            alert('Word library loading... Please try again in a moment.');
+            setTimeout(() => exportWord(htmlContent, filename, title), 1500);
+            return;
+        }
+        
+        const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, ShadingType } = docx;
+        
+        const docChildren = [];
+        
+        docChildren.push(new Paragraph({
+            text: title,
+            heading: HeadingLevel.TITLE,
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 100 }
+        }));
+        
+        docChildren.push(new Paragraph({
+            children: [new TextRun({ text: `Generated: ${new Date().toLocaleString()}`, size: 18, color: '64748b' })],
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 300 }
+        }));
+        
+        const tmp = document.createElement('div');
+        tmp.innerHTML = htmlContent;
+        
+        function processNode(node) {
+            if (node.nodeType === 3) {
+                const text = node.textContent.trim();
+                if (text) {
+                    docChildren.push(new Paragraph({
+                        children: [new TextRun({ text, size: 20 })],
+                        spacing: { after: 60 }
+                    }));
+                }
+                return;
+            }
+            if (node.nodeType !== 1) return;
+            
+            const tag = node.tagName;
+            const cls = node.className || '';
+            
+            if (tag === 'STYLE' || tag === 'SCRIPT') return;
+            if (node.style.display === 'none') return;
+            
+            if (tag === 'H4') {
+                docChildren.push(new Paragraph({
+                    children: [new TextRun({ text: node.textContent.trim(), bold: true, size: 26, color: '2d6a4f' })],
+                    heading: HeadingLevel.HEADING_2,
+                    spacing: { before: 240, after: 80 }
+                }));
+                return;
+            }
+            if (tag === 'H5') {
+                docChildren.push(new Paragraph({
+                    children: [new TextRun({ text: node.textContent.trim(), bold: true, size: 22, color: '1f5fb8' })],
+                    heading: HeadingLevel.HEADING_3,
+                    spacing: { before: 160, after: 60 }
+                }));
+                return;
+            }
+            
+            if (cls.includes('chemical-equation') || cls.includes('factory-layout') || cls.includes('diagram-box')) {
+                const lines = node.textContent.split('\n');
+                lines.forEach(line => {
+                    if (line.trim()) {
+                        docChildren.push(new Paragraph({
+                            children: [new TextRun({ text: line, font: 'Courier New', size: 14 })],
+                            spacing: { after: 15 },
+                            shading: { type: ShadingType.SOLID, color: 'f0f4f9' }
+                        }));
+                    }
+                });
+                return;
+            }
+            
+            if (cls.includes('beautiful-symmetry-box')) {
+                docChildren.push(new Paragraph({ text: '', spacing: { after: 60 } }));
+                const lines = node.textContent.trim().split('\n');
+                lines.forEach(line => {
+                    const trimmed = line.trim();
+                    if (!trimmed) return;
+                    const isBold = trimmed.includes('THE BEAUTIFUL SYMMETRY') || trimmed.includes('The refinery');
+                    docChildren.push(new Paragraph({
+                        children: [new TextRun({ text: trimmed, bold: isBold, size: isBold ? 22 : 18, color: '92400e' })],
+                        spacing: { after: 30 },
+                        alignment: AlignmentType.CENTER,
+                        shading: { type: ShadingType.SOLID, color: 'fef9c3' }
+                    }));
+                });
+                docChildren.push(new Paragraph({ text: '', spacing: { after: 60 } }));
+                return;
+            }
+            
+            if (cls.includes('note-box')) {
+                docChildren.push(new Paragraph({
+                    children: [new TextRun({ text: node.textContent.trim(), size: 18, color: '1b4d3d' })],
+                    spacing: { after: 80 },
+                    alignment: AlignmentType.CENTER,
+                    shading: { type: ShadingType.SOLID, color: 'd1fae5' }
+                }));
+                return;
+            }
+            
+            if (tag === 'TABLE') {
+                const rows = node.querySelectorAll('tr');
+                if (rows.length > 0) {
+                    const tableRows = [];
+                    const isFirstRowHeader = rows[0].querySelector('th');
+                    
+                    rows.forEach((row, rowIdx) => {
+                        const cells = row.querySelectorAll('td, th');
+                        const tableCells = [];
+                        cells.forEach(cell => {
+                            const parentRow = cell.parentElement;
+                            const isHighlight = parentRow && parentRow.classList.contains('highlight');
+                            const cellText = cell.textContent.trim();
+                            tableCells.push(new TableCell({
+                                children: [new Paragraph({
+                                    children: [new TextRun({ 
+                                        text: cellText, 
+                                        bold: (rowIdx === 0 && isFirstRowHeader) || (rowIdx === rows.length - 1 && cellText.includes('TOTAL')),
+                                        size: 16 
+                                    })],
+                                    spacing: { after: 0 }
+                                })],
+                                shading: isHighlight ? { type: ShadingType.SOLID, color: 'd1fae5' } : 
+                                         (rowIdx === 0 ? { type: ShadingType.SOLID, color: 'eef2f6' } : undefined),
+                                width: { size: Math.floor(9000 / cells.length), type: WidthType.DXA }
+                            }));
+                        });
+                        tableRows.push(new TableRow({ children: tableCells }));
+                    });
+                    
+                    docChildren.push(new Table({
+                        rows: tableRows,
+                        width: { size: 9000, type: WidthType.DXA }
+                    }));
+                    docChildren.push(new Paragraph({ text: '', spacing: { after: 80 } }));
+                }
+                return;
+            }
+            
+            if (tag === 'P') {
+                const text = node.textContent.trim();
+                if (text) {
+                    const isBold = node.querySelector('strong') !== null;
+                    docChildren.push(new Paragraph({
+                        children: [new TextRun({ text, bold: isBold, size: 20 })],
+                        spacing: { after: 60 }
+                    }));
+                }
+                return;
+            }
+            
+            if (tag === 'OL' || tag === 'UL') {
+                const items = node.querySelectorAll('li');
+                items.forEach((item, idx) => {
+                    const prefix = tag === 'OL' ? `${idx + 1}. ` : '• ';
+                    docChildren.push(new Paragraph({
+                        children: [new TextRun({ text: prefix + item.textContent.trim(), size: 20 })],
+                        spacing: { after: 30 },
+                        indent: { left: 400 }
+                    }));
+                });
+                return;
+            }
+            
+            for (const child of node.childNodes) {
+                processNode(child);
+            }
+        }
+        
+        for (const child of tmp.childNodes) {
+            processNode(child);
+        }
+        
+        const doc = new Document({
+            sections: [{
+                properties: {
+                    page: { margin: { top: 720, bottom: 720, left: 720, right: 720 } }
+                },
+                children: docChildren
+            }]
+        });
+        
+        try {
+            const blob = await Packer.toBlob(doc);
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (err) {
+            console.error('Word export error:', err);
+            alert('Word export failed.');
+        }
+    }
+    
+    function getSpecsHtml() { return document.getElementById('specsModalContent').innerHTML; }
+    function getCostHtml() { return document.getElementById('costModalContent').innerHTML; }
+    function getMfgHtml() { return document.getElementById('manufacturingModalContent').innerHTML; }
+    function getGuideHtml() { return document.getElementById('guideContent').innerHTML; }
+    
+    function exportSpecsPDF() {
+        parseAndExportPdf(getSpecsHtml(), 'Engineering Material Specifications', 'RAIED_Material_Specs.pdf');
+    }
+    async function exportSpecsWord() {
+        const shutter = getCurrentShutterData();
+        await exportWord(getSpecsHtml(), `RAIED_Material_Specs_${shutter.name.replace(/[^a-z0-9]/gi,'_')}.docx`, 'Engineering Material Specifications');
+    }
+    
+    function exportCostPDF() {
+        parseAndExportPdf(getCostHtml(), 'Cost / Benefit Analysis', 'RAIED_Cost_Analysis.pdf');
+    }
+    async function exportCostWord() {
+        const shutter = getCurrentShutterData();
+        await exportWord(getCostHtml(), `RAIED_Cost_${shutter.name.replace(/[^a-z0-9]/gi,'_')}.docx`, 'Cost / Benefit Analysis');
+    }
+    
+    function exportMfgPDF() {
+        const shutter = getCurrentShutterData();
+        parseAndExportPdf(getMfgHtml(), `${shutter.name} - Manufacturing Process`, 'RAIED_Manufacturing_Process.pdf');
+    }
+    async function exportMfgWord() {
+        const shutter = getCurrentShutterData();
+        await exportWord(getMfgHtml(), `RAIED_Manufacturing_${shutter.name.replace(/[^a-z0-9]/gi,'_')}.docx`, `${shutter.name} - Manufacturing Process`);
+    }
+    
+    function exportGuidePDF() {
+        const guideEl = document.getElementById('guideContent');
+        if (!guideEl || !guideEl.innerHTML.trim()) {
+            alert('Please open the Manufacturing Guide first before exporting.');
+            return;
+        }
+        parseAndExportPdf(getGuideHtml(), 'CNT Nanocomposite Armor - Complete Manufacturing Guide', 'RAIED_CNT_Manufacturing_Guide.pdf');
+    }
+    async function exportGuideWord() {
+        const guideEl = document.getElementById('guideContent');
+        if (!guideEl || !guideEl.innerHTML.trim()) {
+            alert('Please open the Manufacturing Guide first before exporting.');
+            return;
+        }
+        await exportWord(getGuideHtml(), 'RAIED_CNT_Manufacturing_Guide.docx', 'CNT Nanocomposite Armor - Complete Manufacturing Guide');
+    }
+    
+    // ========== EVENT LISTENERS ==========
+    document.getElementById('showSpecsBtn').onclick = ()=>{ updateSpecsModalContent(); document.getElementById('specsModal').style.display='flex'; };
+    document.getElementById('closeSpecsModalBtn').onclick = ()=>document.getElementById('specsModal').style.display='none';
+    document.getElementById('exportSpecsPDFBtn').onclick = exportSpecsPDF;
+    document.getElementById('exportSpecsWordBtn').onclick = exportSpecsWord;
+    
+    document.getElementById('showCostBtn').onclick = ()=>{ updateCostModalContent(); document.getElementById('costModal').style.display='flex'; };
+    document.getElementById('closeCostModalBtn').onclick = ()=>document.getElementById('costModal').style.display='none';
+    document.getElementById('exportCostPDFBtn').onclick = exportCostPDF;
+    document.getElementById('exportCostWordBtn').onclick = exportCostWord;
+    
+    document.getElementById('showManufacturingBtn').onclick = ()=>{ updateManufacturingModal(); document.getElementById('manufacturingModal').style.display='flex'; };
+    document.getElementById('closeManufacturingModalBtn').onclick = ()=>document.getElementById('manufacturingModal').style.display='none';
+    document.getElementById('exportMfgPDFBtn').onclick = exportMfgPDF;
+    document.getElementById('exportMfgWordBtn').onclick = exportMfgWord;
+    
+    document.getElementById('showGuideBtn').onclick = ()=>{ document.getElementById('guideContent').innerHTML = buildGuideContent(); document.getElementById('guideModal').style.display='flex'; };
+    document.getElementById('closeGuideModalBtn').onclick = ()=>document.getElementById('guideModal').style.display='none';
+    document.getElementById('exportGuidePDFBtn').onclick = exportGuidePDF;
+    document.getElementById('exportGuideWordBtn').onclick = exportGuideWord;
+    
+    window.onclick = (e) => {
+        ['specsModal','costModal','manufacturingModal','guideModal'].forEach(id => {
+            if(e.target===document.getElementById(id)) document.getElementById(id).style.display='none';
+        });
+    };
+    
+    window.addEventListener('message', function(event) {
+        const data = event.data;
+        if (data && data.type === 'updateParams') {
+            currentParams = {
+                shutterType: data.shutterType || currentParams.shutterType,
+                thickness: data.shutterThickness || currentParams.thickness,
+                mass: data.mass || currentParams.mass,
+                velocity: data.velocity || currentParams.velocity,
+                shutterCount: data.shutterCount !== undefined ? data.shutterCount : currentParams.shutterCount,
+                numLayers: data.numLayers !== undefined ? data.numLayers : currentParams.numLayers,
+                sheetCount: data.shutterCount !== undefined ? data.shutterCount : currentParams.sheetCount,
+                layerCount: data.numLayers !== undefined ? data.numLayers : currentParams.layerCount
+            };
+            updateAllDisplays();
+        }
+    });
+    
+    updateAllDisplays();
+    window.parent.postMessage({ type: 'requestParams' }, '*');
+</script>
+</body>
+</html>

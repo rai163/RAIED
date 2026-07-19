@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Title and Image in Separate Containers</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+    }
+
+    /* Title container */
+    .title-container {
+        background-color: #333;
+        color: white;
+        text-align: center;
+        padding: 20px;
+    }
+
+    /* Image container */
+    .image-container {
+        text-align: center;
+        background-color: white;
+        padding: 20px;
+    }
+
+    .image-container img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+</style>
+</head>
+<body>
+
+    <!-- Title in its own container -->
+    <div class="title-container">
+        <h1>My Awesome Title</h1>
+    </div>
+
+    <!-- Image in its own container -->
+    <div class="image-container">
+        <img src="https://via.placeholder.com/600x300" alt="Example Image">
+    </div>
+
+</body>
+</html>

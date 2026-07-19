@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Layered Crack Images with Opacity Control</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background: #f0f0f0;
+    color: #222;
+    text-align: center;
+  }
+  .container {
+    max-width: 320px;
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    margin: 0 auto;
+  }
+  .cube-container {
+    position: relative;
+    width: 300px;
+    height: 300px;
+    margin: 20px auto;
+  }
+  .cube-container img {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    transition: opacity 0.4s ease;
+    user-select: none;
+    pointer-events: none;
+  }
+  #damageRange {
+    width: 100%;
+    margin-top: 15px;
+  }
+  #damageLabel {
+    margin-top: 12px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #333;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h2>Layered Crack Images with Opacity Control</h2>
+
+    <div class="cube-container" aria-label="Cube with layered crack images">
+      <!-- Base cube image -->
+      <img src="https://i.imgur.com/0X0zXqz.png" alt="Base Cube" style="position: relative; z-index: 1;" />
+
+      <!-- Crack images with transparent backgrounds -->
+      <img id="crack0" src="https://i.imgur.com/Crack0.png" alt="Crack 0%" style="opacity: 1; z-index: 2;" />
+      <img id="crack25" src="https://i.imgur.com/Crack25.png" alt="Crack 25%" style="opacity: 0; z-index: 3;" />
+      <img id="crack50" src="https://i.imgur.com/Crack50.png" alt="Crack 50%" style="opacity: 0; z-index: 4;" />
+      <img id="crack75" src="https://i.imgur.com/Crack75.png" alt="Crack 75%" style="opacity: 0; z-index: 5;" />
+      <img id="crack100" src="https://i.imgur.com/Crack100.png" alt="Crack 100%" style="opacity: 0; z-index: 6;" />
+    </div>
+
+    <input type="range" id="damageRange" min="0" max="100" value="0" aria-label="Damage Level Slider" />
+    <div id="damageLabel">Damage: 0%</div>
+  </div>
+
+<script>
+  const damageRange = document.getElementById('damageRange');
+  const damageLabel = document.getElementById('damageLabel');
+
+  // Crack image steps
+  const steps = [0, 25, 50, 75, 100];
+
+  function updateCrackOpacity(damagePercent) {
+    damageLabel.textContent = `Damage: ${damagePercent}%`;
+
+    for (let i = 0; i < steps.length; i++) {
+      const img = document.getElementById(`crack${steps[i]}`);
+      if (!img) continue;
+
+      if (damagePercent === steps[i]) {
+        img.style.opacity = 1;
+        // Hide all others
+        for (let j = 0; j < steps.length; j++) {
+          if (j !== i) {
+            const otherImg = document.getElementById(`crack${steps[j]}`);
+            if (otherImg) otherImg.style.opacity = 0;
+          }
+        }
+        break;
+      } else if (damagePercent > steps[i] && damagePercent < (steps[i + 1] || 100)) {
+        const nextStep = steps[i + 1] || 100;
+        const ratio = (damagePercent - steps[i]) / (nextStep - steps[i]);
+
+        img.style.opacity = 1 - ratio;
+        const nextImg = document.getElementById(`crack${nextStep}`);
+        if (nextImg) nextImg.style.opacity = ratio;
+
+        // Hide all others
+        for (let j = 0; j < steps.length; j++) {
+          if (j !== i && j !== i + 1) {
+            const otherImg = document.getElementById(`crack${steps[j]}`);
+            if (otherImg) otherImg.style.opacity = 0;
+          }
+        }
+        break;
+      } else if (damagePercent < steps[0]) {
+        // If damage less than first step, show only crack0
+        if (img.id === 'crack0') {
+          img.style.opacity = 1;
+        } else {
+          img.style.opacity = 0;
+        }
+      }
+    }
+  }
+
+  damageRange.addEventListener('input', () => {
+    const val = parseInt(damageRange.value, 10);
+    updateCrackOpacity(val);
+  });
+
+  // Initialize
+  updateCrackOpacity(0);
+</script>
+</body>
+</html>

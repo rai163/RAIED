@@ -1,0 +1,123 @@
+reactive: `<div class="guide-section"><h4>💥 Reactive Armor (Explosive Reactive Armor - ERA) — Complete Manufacturing Guide</h4>
+            <h5>1. DESIGN PRINCIPLE & PHYSICS</h5>
+            <div class="chemical-equation">
+                ERA Operation Mechanism:
+                ┌─────────────────────────────────────────────────────────────┐
+                │  Projectile impact → Explosive detonation → Flyer plate    │
+                │  moves outward (500-800 m/s) → Cuts projectile → Disrupts  │
+                │  jet formation (for shaped charges) → Reduces penetration  │
+                │  by 70-95%                                                 │
+                └─────────────────────────────────────────────────────────────┘
+                
+                Explosive parameters:
+                Detonation velocity (V_d): 7,000-8,000 m/s (PBX)
+                Detonation pressure (P_CJ): 25-35 GPa
+                Gurney energy (E): 2.0-2.5 MJ/kg
+                
+                Flyer plate velocity (Gurney equation):
+                V_f = √(2E) × (W/C) / (1 + 2(W/C)) where W/C = flyer mass / explosive mass
+                For W/C = 2mm/3mm ≈ 0.67, √(2E) ≈ 2,200 m/s → V_f ≈ 1,000 m/s
+                
+                Penetration reduction:
+                t_remaining = t_initial × (1 - (V_f / V_projectile) × sin(θ))
+                For V_f = 1,000 m/s, V_p = 1,500 m/s (shaped charge jet), θ = 30°:
+                → 60-90% reduction depending on orientation
+            </div>
+            
+            <h5>2. EXPLOSIVE COMPOSITION (PBX - Polymer Bonded Explosive)</h5>
+            <table class="refinery-table">
+                <tr><th>Component</th><th>Percentage</th><th>Function</th><th>Properties</th></tr>
+                <tr>:</th>RDX (Cyclotrimethylenetrinitramine)</th><td>94%</th><td>Main explosive filler</th><td>Density 1.82 g/cm³, V_d 8,750 m/s, P_CJ 34 GPa</th></tr>
+                <tr>:</th>HTPB (Hydroxyl-terminated polybutadiene)</th><td>4%</th><td>Binder</th><td>Elastomer, provides plasticity and processability</th></tr>
+                <tr>:</th>DOA (Dioctyl adipate)</th><td>1.5%</th><td>Plasticizer</th><td>Improves flexibility at low temperature (-40°C)</th></tr>
+                <tr>:</th>Carbon Black</th><td>0.5%</th><td>Antistatic agent</th><td>Prevents static discharge, improves conductivity</th></tr>
+            </table>
+            
+            <h5>3. MANUFACTURING PROCESS</h5>
+            <h5>Step 1: Explosive Layer Preparation (cast cure, 24 hours)</h5>
+            <p><strong>⚠️ HAZARD WARNING: Explosive handling requires specialized facilities, remote operations, and ATF/OSHA compliance.</strong></p>
+            <ul>
+                <li>Mix RDX with HTPB binder (100:4 ratio) in planetary mixer (vacuum, temperature-controlled)</li>
+                <li>Add curing agent (isophorone diisocyanate, 0.5% by weight)</li>
+                <li>Vacuum degas at -0.95 bar for 1 hour to remove entrapped air</li>
+                <li>Pour into mold with 3mm thickness, between two polyethylene films (0.1mm each)</li>
+                <li>Cure at 60°C for 24 hours under 1 bar pressure</li>
+                <li>Slit to 1.5m width, cut to 2.7m length</li>
+            </ul>
+            
+            <h5>Step 2: Metal Plate Fabrication</h5>
+            <ul>
+                <li>Flyer plate: 2mm RHA steel (Armox 500T), water-jet cut to 2.7m × 1.5m</li>
+                <li>Base plate: 6mm RHA steel (same source), water-jet cut to same dimensions</li>
+                <li>Surface preparation: Grit blast (SA 2.5), primer (epoxy, 50μm)</li>
+                <li>Drill mounting holes: M24 pattern at 400mm spacing, ±0.2mm tolerance</li>
+            </ul>
+            
+            <h5>Step 3: Sandwich Assembly (remote handling, 1 hour)</h5>
+            <ul>
+                <li>Place base plate on assembly table (remote operation from blast-proof control room)</li>
+                <li>Apply perimeter adhesive (epoxy, 50mm strip width, 0.5mm thickness)</li>
+                <li>Position explosive layer precisely on base plate (robotic placement ±2mm)</li>
+                <li>Position flyer plate on top of explosive layer</li>
+                <li>Apply 10mm aluminum edge frame (welded perimeter) for sealing</li>
+                <li>Vacuum degas interlayer (-0.9 bar) to eliminate air gaps</li>
+            </ul>
+            
+            <h5>Step 4: Cassette Integration (2 hours)</h5>
+            <ul>
+                <li>Stainless steel cassette (1.5mm wall) welded around assembly (TIG weld, 2mm fillet)</li>
+                <li>Weld inspection: Dye penetrant on all seams, helium leak check (<1×10⁻⁶ mbar·L/s)</li>
+                <li>Electrical initiation port: Installed on cassette edge for test firing (shorted during storage)</li>
+            </ul>
+            
+            <h5>Step 5: Safety Testing (1 per 500 units)</h5>
+            <ul>
+                <li>Gap test: 25mm gap between ERA and witness plate, no detonation propagation</li>
+                <li>Bullet impact: 7.62mm AP at 50m, no detonation (must be insensitive munition compliant)</li>
+                <li>Slow cook-off: 250°C for 24 hours, no detonation (deflagration only)</li>
+                <li>Fast cook-off: Fuel fire test (JP-8, 10 minutes), no detonation (venting only)</li>
+                <li>Drop test: 12m drop onto steel plate, no detonation</li>
+                <li>Electrostatic discharge: 25kV, 500pF, no detonation</li>
+            </ul>
+            
+            <h5>4. QUALITY CONTROL & INSPECTION</h5>
+            <table class="refinery-table">
+                <tr><th>Test</th><th>Method</th><th>Acceptance</th><th>Frequency</th></tr>
+                <tr>:</th>Explosive thickness uniformity</th><td>X-ray (4 measurements per panel)</th><td>3.0mm ±0.1mm</th><td>100%</th></tr>
+                <tr>:</th>Detonation velocity (sample)</th><td>Pin method (2 pins, 50mm spacing)</th><td>7,500-8,500 m/s</th><td>1 per batch</th></tr>
+                <tr>:</th>Flyer plate velocity (sample)</th><td>High-speed camera (1 Mfps)</th><td>800-1,200 m/s</th><td>1 per batch</th></tr>
+                <tr>:</th>Weld integrity</th><td>Dye penetrant (ASTM E165)</th><td>No cracks, full penetration</th><td>100%</th></tr>
+                <tr>:</th>Hermetic seal</th><td>Helium leak detector</th><td><1×10⁻⁶ mbar·L/s</th><td>100%</th></tr>
+                <tr>:</th>Accelerated aging</th><td>71°C for 28 days</th><td>No degradation, V_d within 5%</th><td>1 per 100 batches</th></tr>
+            </tr>
+            
+            <h5>5. COST BREAKDOWN (per m²)</h5>
+            <table class="refinery-table">
+                <tr><th>Cost Element</th><th>Value (USD)</th></tr>
+                <tr>:</th>RHA Steel (flyer + base, 8mm total)</th><td>$220</th></tr>
+                <tr>:</th>Explosive (PBX, 3mm)</th><td>$850</th></tr>
+                <tr>:</th>Aluminum Cassette</th><td>$180</th></tr>
+                <tr>:</th>Adhesive & Edge Sealing</th><td>$45</th></tr>
+                <tr>:</th>Assembly (remote handling, safety)</th><td>$350</th></tr>
+                <tr>:</th>Safety Testing (amortized)</th><td>$80</th></tr>
+                <tr>:</th>Quality Control</th><td>$75</th></tr>
+                <tr>:</th><strong>Total Manufacturing Cost</strong></th><td><strong>$1,800/m²</strong></th></tr>
+                <tr>:</th>10-Year Maintenance ($45/m²/year × 10)</th><td>$450/m²</th></tr>
+                <tr>:</th><strong>Total Lifecycle Cost (10 years)</strong></th><td><strong>$2,250/m²</strong></th></tr>
+            </table>
+            
+            <h5>6. REFINERY INTEGRATION — THE BEAUTIFUL SYMMETRY</h5>
+            <div class="beautiful-symmetry-box">
+                <strong>🏭 THE BEAUTIFUL SYMMETRY OF REACTIVE ARMOR</strong><br><br>
+                1. The REFINERY's FCC unit produces propylene and ethylene — feedstocks for HTPB binder<br>
+                2. The REFINERY's catalytic reformer produces benzene and toluene (via BTX extraction)<br>
+                3. The REFINERY's SRU (Sulfur Recovery Unit) produces elemental sulfur<br>
+                4. RDX manufacturing requires nitration using H₂SO₄ and HNO₃ from refinery byproducts<br>
+                5. The REFINERY's hydrogen plant provides the explosive stability through H₂ blanket<br>
+                6. The diesel hydrotreater's sulfur is recovered to produce H₂SO₄ for explosives<br><br>
+                <strong>The refinery's byproducts — hydrogen, sulfur, and propylene — become the explosive that protects it.</strong><br><br>
+                <em>Circular defense: refinery byproducts → explosive armor → refinery protection.</em>
+            </div>
+            
+            <div class="note-box">💥 <strong>Summary:</strong> 5.0× multiplier, 40 kg/m², explosive layer must be replaced every 20 years, insensitive munition compliant.</div>
+</div>`,

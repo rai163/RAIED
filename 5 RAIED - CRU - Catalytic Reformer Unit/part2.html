@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <link rel="icon" href="data:,">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>RAIED - CRU Shutter Timing Simulator</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; position: fixed; width: 100%; height: 100%; touch-action: manipulation; -webkit-overflow-scrolling: auto; font-family: 'Segoe UI', Arial, sans-serif; background: #0a0f1a; overflow: hidden; height: 100vh; width: 100vw; }
+        #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+
+        .hud-panel {
+            position: fixed; z-index: 3000; background: rgba(15,23,36,0.92); backdrop-filter: blur(8px);
+            border: 1px solid #2dd4bf; border-radius: 12px; padding: 10px 14px;
+            color: #cbd5e1; font-family: 'Courier New', monospace; font-size: 0.6rem; pointer-events: auto;
+        }
+        #statusPanel { top: 2px; left: 10px; width: 280px; }
+        .top-right { top: 10px; right: 10px; width: 300px; }
+        .hud-title { color: #2dd4bf; font-size: 0.7rem; font-weight: bold; text-align: center; border-bottom: 1px solid #2dd4bf; padding-bottom: 4px; margin-bottom: 6px; }
+        .hud-row { display: flex; justify-content: space-between; margin: 3px 0; }
+        .hud-label { color: #94a3b8; }
+        .hud-value { color: #f1f5f9; font-weight: bold; }
+        .hud-value.cyan { color: #22d3ee; }
+        .countdown-large {
+            font-size: 2.5rem; font-weight: bold; color: #facc15; text-shadow: 0 0 15px #f59e0b;
+            text-align: center; margin: 5px 0;
+        }
+        .countdown-large.danger { color: #ef4444; text-shadow: 0 0 20px #ef4444; animation: pulse 0.5s infinite; }
+        .countdown-large.safe { color: #34d399; text-shadow: 0 0 15px #34d399; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+        .verdict-banner {
+            font-size: 1.2rem; font-weight: bold; padding: 8px 16px; border-radius: 8px; text-align: center; margin-top: 6px;
+        }
+        .verdict-success { background: rgba(16,185,129,0.2); color: #34d399; border: 1px solid #34d399; }
+        .verdict-fail { background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid #f87171; animation: pulse 0.8s infinite; }
+
+        #controlsPanel {
+            position: fixed; z-index: 3000; bottom: 2px; left: 10px;
+            background: rgba(15,23,36,0.92); backdrop-filter: blur(8px);
+            border: 1px solid #475569; border-radius: 12px; padding: 8px 12px;
+            color: #cbd5e1; font-size: 0.5rem; width: 280px; pointer-events: auto;
+            overflow-y: auto;
+        }
+        #controlsPanel select, #controlsPanel input {
+            width: 100%; padding: 3px 5px; border-radius: 8px; border: 1px solid #475569;
+            background: #1e293b; color: #e2e8f0; font-size: 0.5rem; font-family: inherit; margin: 2px 0;
+        }
+        #controlsPanel label { display: block; font-size: 0.45rem; color: #94a3b8; margin-top: 4px; }
+        #controlsPanel button {
+            width: 100%; padding: 5px; border-radius: 16px; border: none; cursor: pointer;
+            font-weight: bold; font-size: 0.55rem; margin: 3px 0; transition: all 0.2s;
+        }
+        .btn-simulate { background: linear-gradient(135deg, #2dd4bf, #14b8a6); color: #0f1724; }
+        .btn-reset { background: #475569; color: #e2e8f0; }
+        .btn-params { background: #1f5fb8; color: white; }
+        .sound-toggle { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 0.5rem; cursor: pointer; }
+        .sound-toggle input { width: auto; margin: 0; }
+        .graph-panel {
+            position: fixed; z-index: 3000; bottom: 10px; right: 10px;
+            background: rgba(15,23,36,0.92); backdrop-filter: blur(8px);
+            border: 1px solid #475569; border-radius: 12px; padding: 8px;
+            width: 300px; height: 220px; pointer-events: auto;
+        }
+        .graph-panel canvas { width: 100%; height: 100%; }
+        .sound-indicator {
+            position: fixed; top: 5px; right: 50%; transform: translateX(50%);
+            z-index: 20; background: rgba(0,0,0,0.7); color: #2dd4bf;
+            padding: 2px 10px; border-radius: 10px; font-size: 0.45rem; pointer-events: none;
+        }
+        .target-selector { margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #334155; }
+        .target-selector select { width: 100%; padding: 4px; border-radius: 8px; background: #1e293b; color: #2dd4bf; font-weight: bold; }
+
+/* ===== MOBILE SCALING – SHRINK PANELS ON SMALL SCREENS ===== */
+@media (max-width: 500px) {
+
+    #statusPanel {
+        width: 220px !important;
+        font-size: 0.5rem !important;
+        padding: 6px 8px !important;
+        max-height: 130px !important;
+    }
+    #statusPanel .hud-title { font-size: 0.55rem !important; }
+    #statusPanel .hud-row { margin: 1px 0 !important; }
+
+    #countdownPanel {
+        width: 230px !important;
+        font-size: 0.5rem !important;
+        padding: 6px 8px !important;
+    }
+    #countdownPanel .countdown-large { font-size: 1.8rem !important; }
+    #countdownPanel .hud-row { margin: 1px 0 !important; }
+
+    #controlsPanel {
+        width: 220px !important;
+        font-size: 0.45rem !important;
+        padding: 4px 6px !important;
+        max-height: 55vh !important;
+    }
+    #controlsPanel button { font-size: 0.5rem !important; padding: 2px 4px !important; }
+    #controlsPanel select, #controlsPanel input { font-size: 0.45rem !important; padding: 2px 3px !important; }
+    #controlsPanel label { font-size: 0.4rem !important; }
+
+    #graphPanel {
+        width: 220px !important;
+        height: 150px !important;
+        right: 5px !important;
+        bottom: 5px !important;
+    }
+
+    #soundIndicator {
+        font-size: 0.4rem !important;
+        padding: 1px 6px !important;
+    }
+
+    /* camera panel already removed – safe to leave this if you like */
+    #cameraPanel { display: none !important; }
+}
+
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    <div class="sound-indicator" id="soundIndicator">🔊 SOUND: ON</div>
+
+    <div class="hud-panel" id="statusPanel">
+        <div class="hud-title">🎯 TIMING STATUS – CRU</div>
+        <div class="hud-row"><span class="hud-label">🏭 Target:</span><span class="hud-value cyan" id="hudTargetType">Catalytic Reformer</span></div>
+        <div class="hud-row"><span class="hud-label">🛡️ Shutter:</span><span class="hud-value cyan" id="hudShutterType">Composite</span></div>
+        <div class="hud-row"><span class="hud-label">⚖️ Total Mass:</span><span class="hud-value" id="hudTotalMass">-- kg</span></div>
+        <div class="hud-row"><span class="hud-label">🔌 Motor Power:</span><span class="hud-value" id="hudMotorPower">55 kW</span></div>
+        <div class="hud-row"><span class="hud-label">⚡ Closing Speed:</span><span class="hud-value" id="hudClosingSpeed">-- m/s</span></div>
+        <div class="hud-row"><span class="hud-label">⏱️ Closing Time:</span><span class="hud-value" id="hudClosingTime">-- s</span></div>
+        <div class="hud-row"><span class="hud-label">🚁 Drone Speed:</span><span class="hud-value" id="hudDroneSpeed">250 m/s</span></div>
+        <div class="hud-row"><span class="hud-label">📡 Detection:</span><span class="hud-value" id="hudDetection">20 km</span></div>
+        <div class="hud-row"><span class="hud-label">🛬 Arrival Time:</span><span class="hud-value" id="hudArrivalTime">-- s</span></div>
+    </div>
+
+    <div class="hud-panel top-right" id="countdownPanel">
+        <div class="hud-title">⏱️ REAL-TIME COUNTDOWN</div>
+        <div class="countdown-large" id="countdownDisplay">--.-s</div>
+        <div class="hud-row"><span class="hud-label">🚁 Drone Distance:</span><span class="hud-value" id="hudDroneDist">-- km</span></div>
+        <div class="hud-row"><span class="hud-label">🔒 Face Shutters:</span><span class="hud-value" id="hudSideProgress">0%</span></div>
+        <div class="hud-row"><span class="hud-label">🔒 Dome Shutters:</span><span class="hud-value" id="hudDomeProgress">0%</span></div>
+        <div class="verdict-banner verdict-success" id="verdictBanner" style="display:none;">✅ SHUTTERS CLOSED IN TIME</div>
+    </div>
+
+    <div id="controlsPanel">
+        <div class="hud-title">🎮 SIMULATION CONTROLS</div>
+        <div class="target-selector">
+            <label>🎯 TARGET STRUCTURE</label>
+            <select id="targetTypeSelect">
+                <option value="cru" selected>⚗️ Catalytic Reformer</option>
+                <option value="hhu">🔬 Hydrocracker</option>
+                <option value="tank">🛢️ Storage Tank</option>
+            </select>
+        </div>
+        <label>🛡️ Shutter Material</label>
+        <select id="shutterTypeSelect">
+            <option value="standard">📄 Standard SS304 (1.0x | 7930 kg/m³)</option>
+            <option value="sloped">📐 Sloped 30° (1.4x | 7930 kg/m³)</option>
+            <option value="corrugated">〰️ Corrugated Steel (1.8x | 7930 kg/m³)</option>
+            <option value="composite" selected>🛡️ Composite Armor (3.0x | 4500 kg/m³)</option>
+            <option value="reactive">💥 Reactive Armor (5.0x | 5000 kg/m³)</option>
+            <option value="uhpc">🪨 UHPC / Ductal® (2.2x | 2800 kg/m³)</option>
+            <option value="ceramic">🔷 Ceramic-Faced (4.0x | 3700 kg/m³)</option>
+            <option value="nanocomposite">⚡ CNT Nanocomposite (6.0x | 1600 kg/m³)</option>
+        </select>
+        <label>📏 Thickness (mm)</label>
+        <input type="number" id="thicknessInput" value="8" min="4" max="100" step="1">
+        <label>📄 Number of Shutters</label>
+        <input type="number" id="shutterCountInput" value="1" min="1" max="10" step="1">
+        <label>🧱 Number of Layers</label>
+        <input type="number" id="layerCountInput" value="0" min="0" max="5" step="1">
+        <label>🔌 Motor Power (kW)</label>
+        <select id="motorPowerSelect">
+            <option value="20">20 kW</option><option value="30">30 kW</option><option value="40">40 kW</option>
+            <option value="50">50 kW</option><option value="55" selected>55 kW</option>
+            <option value="75">75 kW</option><option value="100">100 kW</option><option value="150">150 kW</option>
+        </select>
+        <label>📡 Detection Range (km)</label>
+        <select id="detectionSelect">
+            <option value="5">5 km</option><option value="10">10 km</option><option value="15">15 km</option>
+            <option value="20" selected>20 km</option><option value="25">25 km</option><option value="30">30 km</option>
+        </select>
+        <label>🚁 Drone Speed (m/s)</label>
+        <input type="number" id="droneSpeedInput" value="250" min="50" max="1000" step="10">
+        <label>⏳ System Delay (s)</label>
+        <select id="delaySelect">
+            <option value="0.5">0.5 s</option><option value="1.0" selected>1.0 s</option>
+            <option value="1.5">1.5 s</option><option value="2.0">2.0 s</option><option value="3.0">3.0 s</option>
+        </select>
+        <label>⚙️ Mech. Efficiency</label>
+        <select id="efficiencySelect">
+            <option value="0.7">70%</option><option value="0.8" selected>80%</option>
+            <option value="0.85">85%</option><option value="0.9">90%</option>
+        </select>
+        <label class="sound-toggle"><input type="checkbox" id="soundToggle" checked> 🔊 Sound Effects</label>
+        <button class="btn-simulate" id="simulateBtn">▶ RUN SIMULATION</button>
+        <button class="btn-reset" id="resetBtn">⟳ RESET</button>
+        <button class="btn-params" id="pullParamsBtn">📥 PULL FROM PART3</button>
+    </div>
+
+    <div class="graph-panel" id="graphPanel"><canvas id="timingGraph"></canvas></div>
+
+    <script type="importmap">{ "imports": { "three": "https://unpkg.com/three@0.128.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/" } }</script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // ========== AUDIO ==========
+        const SOUND_FILES = { drone: "drone.mp3", motor: "Shutters are closing or openning.mp3", alarm: "alarm.mp3", explosion: "explosion.mp3" };
+        let audioEnabled = true, audioContext = null, audioContextStarted = false;
+        let currentDroneSound = null, currentMotorSound = null, allActiveAudio = new Set(), audioElements = {};
+        function initAudioElements() { for (const [k, p] of Object.entries(SOUND_FILES)) { if(p) try { const a = new Audio(p); a.preload='auto'; audioElements[k]=a; } catch(e){} } }
+        function startAudioContext() { if(audioContextStarted) return; audioContextStarted=true; try { audioContext=new (AudioContext||webkitAudioContext)(); if(audioContext.state==='suspended') audioContext.resume(); } catch(e){} }
+        function playSound(key, vol=0.4, loop=false) { if(!audioEnabled) return null; startAudioContext(); const snd=audioElements[key]; if(!snd) return null; try { if(loop){ snd.loop=true; snd.volume=vol; snd.currentTime=0; snd.play(); return snd; } else { const c=snd.cloneNode(); c.volume=vol; allActiveAudio.add(c); c.play(); c.onended=()=>allActiveAudio.delete(c); return c; } } catch(e){} return null; }
+        function stopSound(a) { if(a) try { a.pause(); a.currentTime=0; } catch(e){} }
+        function playBeep(f,d,v,t='sine') { if(!audioEnabled) return; try { if(!audioContext) audioContext=new (AudioContext||webkitAudioContext)(); const o=audioContext.createOscillator(), g=audioContext.createGain(); o.connect(g); g.connect(audioContext.destination); o.type=t; o.frequency.value=f; g.gain.setValueAtTime(v,audioContext.currentTime); g.gain.exponentialRampToValueAtTime(0.001,audioContext.currentTime+d); o.start(audioContext.currentTime); o.stop(audioContext.currentTime+d); if(audioContext.state==='suspended') audioContext.resume(); } catch(e){} }
+        function startDroneSound() { stopSound(currentDroneSound); currentDroneSound=playSound('drone',0.2,true); }
+        function stopDroneSound() { stopSound(currentDroneSound); currentDroneSound=null; }
+        function startMotorSound() { stopSound(currentMotorSound); currentMotorSound=playSound('motor',0.35,true); }
+        function stopMotorSound() { stopSound(currentMotorSound); currentMotorSound=null; }
+        function playAlarmSound() { playSound('alarm',0.3); playBeep(880,0.2,0.2); setTimeout(()=>playBeep(660,0.2,0.2),250); }
+        function playExplosionSound() { playSound('explosion',0.6); playBeep(60,0.8,0.4,'sawtooth'); playBeep(40,1.0,0.5,'sawtooth'); }
+        function nuclearSoundKiller() { allActiveAudio.forEach(a=>{ try { a.pause(); a.currentTime=0; } catch(e){} }); allActiveAudio.clear(); stopDroneSound(); stopMotorSound(); }
+
+        // ========== SCENE ==========
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0a1a2a); scene.fog = new THREE.FogExp2(0x0a1a2a, 0.003);
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.5, 200);
+        camera.position.set(7.45, 18.92, 37.10);
+        camera.lookAt(0, 3, 0);
+        const renderer = new THREE.WebGLRenderer({antialias: true}); renderer.setSize(window.innerWidth, window.innerHeight); renderer.shadowMap.enabled = true;
+        container.appendChild(renderer.domElement);
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true; controls.target.set(0, 2, 0); controls.maxPolarAngle = Math.PI/2 + 0.3; controls.minDistance = 8; controls.maxDistance = 50;
+
+        scene.add(new THREE.AmbientLight(0x708090, 0.75));
+        const sun = new THREE.DirectionalLight(0xfff5e0, 1.6); sun.position.set(8,18,6); sun.castShadow = true; scene.add(sun);
+        const fillLight = new THREE.PointLight(0xaaccff, 0.65); fillLight.position.set(0,5,0); scene.add(fillLight);
+
+        const ground = new THREE.Mesh(new THREE.PlaneGeometry(50,50), new THREE.MeshStandardMaterial({color:0x2a3038, roughness:0.85}));
+        ground.rotation.x = -Math.PI/2; ground.position.y = -1.5; ground.receiveShadow = true; scene.add(ground);
+        const grid = new THREE.GridHelper(50,35,0x88aacc,0x446688); grid.position.y = -1.45; grid.material.transparent = true; grid.material.opacity = 0.25; scene.add(grid);
+
+        // ========== FULL DOME (12m, H=10m) – from CRU part1 ==========
+        const SQUARE_SIZE = 12.0, HALF_SIZE = SQUARE_SIZE/2;
+        const GROUND_Y = -1.5, PILLAR_H = 10.0, TOP_Y = GROUND_Y + PILLAR_H;
+
+        const steelShutter = new THREE.MeshStandardMaterial({color:0xffffff,metalness:0.99,roughness:0.02,emissive:0x444444});
+        const steelBeam = new THREE.MeshStandardMaterial({color:0xfefefe,metalness:0.99,roughness:0.03});
+        const pillarMaterial = new THREE.MeshStandardMaterial({color:0xd0b080,metalness:0.88,roughness:0.22});
+        const hardwareMat = new THREE.MeshStandardMaterial({color:0xffffff,metalness:0.99,roughness:0.02,emissive:0x222222});
+
+        // Pillars
+        const pillarPositions = [{x:-HALF_SIZE,z:-HALF_SIZE},{x:HALF_SIZE,z:-HALF_SIZE},{x:HALF_SIZE,z:HALF_SIZE},{x:-HALF_SIZE,z:HALF_SIZE}];
+        pillarPositions.forEach(pos=>{ const pillar=new THREE.Mesh(new THREE.BoxGeometry(0.8,PILLAR_H,0.8),pillarMaterial); pillar.position.set(pos.x,GROUND_Y+PILLAR_H/2,pos.z); pillar.castShadow=true; scene.add(pillar); const bolt=new THREE.Mesh(new THREE.SphereGeometry(0.13,12,12),hardwareMat); bolt.position.set(pos.x,TOP_Y+0.1,pos.z); scene.add(bolt); });
+
+        // Top beams
+        const rsjMat = steelBeam; const BAR_HEIGHT = 0.6;
+        const southBar = new THREE.Mesh(new THREE.BoxGeometry(SQUARE_SIZE,BAR_HEIGHT,0.6),rsjMat); southBar.position.set(0,TOP_Y,-HALF_SIZE); scene.add(southBar);
+        const eastBar = new THREE.Mesh(new THREE.BoxGeometry(0.6,BAR_HEIGHT,SQUARE_SIZE),rsjMat); eastBar.position.set(HALF_SIZE,TOP_Y,0); scene.add(eastBar);
+        const northBar = new THREE.Mesh(new THREE.BoxGeometry(SQUARE_SIZE,BAR_HEIGHT,0.6),rsjMat); northBar.position.set(0,TOP_Y,HALF_SIZE); scene.add(northBar);
+        const westBar = new THREE.Mesh(new THREE.BoxGeometry(0.6,BAR_HEIGHT,SQUARE_SIZE),rsjMat); westBar.position.set(-HALF_SIZE,TOP_Y,0); scene.add(westBar);
+
+        // Corner connectors
+        const connectorMat = new THREE.MeshStandardMaterial({color:0xfcfcfc,metalness:0.99,roughness:0.03});
+        const cornerPositionsList = [{x:-HALF_SIZE,z:-HALF_SIZE},{x:HALF_SIZE,z:-HALF_SIZE},{x:HALF_SIZE,z:HALF_SIZE},{x:-HALF_SIZE,z:HALF_SIZE}];
+        cornerPositionsList.forEach(pos=>{ const connector=new THREE.Mesh(new THREE.BoxGeometry(0.75,BAR_HEIGHT+0.15,0.75),connectorMat); connector.position.set(pos.x,TOP_Y,pos.z); scene.add(connector); const screw=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.09,0.06,6),hardwareMat); screw.position.set(pos.x,TOP_Y+0.14,pos.z); scene.add(screw); });
+
+        // Beading bars
+        const beadingMat = new THREE.MeshStandardMaterial({color:0xf0f0f6,metalness:0.98,roughness:0.08});
+        [-4.0,-1.3,1.3,4.0].forEach(xPos=>{ const beadingBar=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.12,SQUARE_SIZE),beadingMat); beadingBar.position.set(xPos,TOP_Y+0.06,0); scene.add(beadingBar); });
+
+        // Mid brackets
+        const bracketMat = new THREE.MeshStandardMaterial({color:0xf0f0f4,metalness:0.98,roughness:0.08});
+        const midPoints = [{x:0,z:-HALF_SIZE},{x:HALF_SIZE,z:0},{x:0,z:HALF_SIZE},{x:-HALF_SIZE,z:0}];
+        midPoints.forEach(mp=>{ const bracket=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.14,0.4),bracketMat); bracket.position.set(mp.x,TOP_Y+0.1,mp.z); scene.add(bracket); const boltSmall=new THREE.Mesh(new THREE.SphereGeometry(0.07,8,8),hardwareMat); boltSmall.position.set(mp.x,TOP_Y+0.17,mp.z); scene.add(boltSmall); });
+
+        // Floor motors
+        const motorMat = new THREE.MeshStandardMaterial({color:0xcc8844,metalness:0.7,roughness:0.4});
+        const motorDetailMat = new THREE.MeshStandardMaterial({color:0xaa6644,metalness:0.5});
+        const floorMotorPositions = [{x:-HALF_SIZE-0.6,z:-HALF_SIZE-0.6,y:GROUND_Y+0.4},{x:HALF_SIZE+0.6,z:-HALF_SIZE-0.6,y:GROUND_Y+0.4},{x:HALF_SIZE+0.6,z:HALF_SIZE+0.6,y:GROUND_Y+0.4},{x:-HALF_SIZE-0.6,z:HALF_SIZE+0.6,y:GROUND_Y+0.4}];
+        floorMotorPositions.forEach(pos=>{ const motorBase=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.4,0.7),motorMat); motorBase.position.set(pos.x,pos.y,pos.z); motorBase.castShadow=true; scene.add(motorBase); const motorTop=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.4,0.2,8),motorDetailMat); motorTop.position.set(pos.x,pos.y+0.25,pos.z); motorTop.castShadow=true; scene.add(motorTop); const motorGlow=new THREE.Mesh(new THREE.SphereGeometry(0.12,6,6),new THREE.MeshStandardMaterial({color:0xffaa44,emissive:0xff4422})); motorGlow.position.set(pos.x+0.2,pos.y+0.15,pos.z+0.2); scene.add(motorGlow); });
+
+        // Top motors (south beam)
+        const southBeamZ = -HALF_SIZE; const bracketWidth=1.2,bracketDepth=0.8,bracketHeight=0.2,motorBaseY=TOP_Y+0.28;
+        const eastSouthBracket = new THREE.Mesh(new THREE.BoxGeometry(bracketWidth,bracketHeight,bracketDepth),new THREE.MeshStandardMaterial({color:0xccaa88,metalness:0.7})); eastSouthBracket.position.set(HALF_SIZE-0.8,TOP_Y+0.12,southBeamZ+0.2); eastSouthBracket.castShadow=true; scene.add(eastSouthBracket);
+        const eastSouthMotorBase = new THREE.Mesh(new THREE.BoxGeometry(0.7,0.35,0.7),motorMat); eastSouthMotorBase.position.set(HALF_SIZE-0.8,motorBaseY,southBeamZ+0.2); eastSouthMotorBase.castShadow=true; scene.add(eastSouthMotorBase);
+        const eastSouthMotorTop = new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.4,0.25,8),motorDetailMat); eastSouthMotorTop.position.set(HALF_SIZE-0.8,motorBaseY+0.2,southBeamZ+0.2); eastSouthMotorTop.castShadow=true; scene.add(eastSouthMotorTop);
+        const eastSouthMotorGlow = new THREE.Mesh(new THREE.SphereGeometry(0.12,6,6),new THREE.MeshStandardMaterial({color:0xffaa44,emissive:0xff4422})); eastSouthMotorGlow.position.set(HALF_SIZE-0.8+0.2,motorBaseY+0.1,southBeamZ+0.35); scene.add(eastSouthMotorGlow);
+        const westSouthBracket = new THREE.Mesh(new THREE.BoxGeometry(bracketWidth,bracketHeight,bracketDepth),new THREE.MeshStandardMaterial({color:0xccaa88,metalness:0.7})); westSouthBracket.position.set(-HALF_SIZE+0.8,TOP_Y+0.12,southBeamZ+0.2); westSouthBracket.castShadow=true; scene.add(westSouthBracket);
+        const westSouthMotorBase = new THREE.Mesh(new THREE.BoxGeometry(0.7,0.35,0.7),motorMat); westSouthMotorBase.position.set(-HALF_SIZE+0.8,motorBaseY,southBeamZ+0.2); westSouthMotorBase.castShadow=true; scene.add(westSouthMotorBase);
+        const westSouthMotorTop = new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.4,0.25,8),motorDetailMat); westSouthMotorTop.position.set(-HALF_SIZE+0.8,motorBaseY+0.2,southBeamZ+0.2); westSouthMotorTop.castShadow=true; scene.add(westSouthMotorTop);
+        const westSouthMotorGlow = new THREE.Mesh(new THREE.SphereGeometry(0.12,6,6),new THREE.MeshStandardMaterial({color:0xffaa44,emissive:0xff4422})); westSouthMotorGlow.position.set(-HALF_SIZE+0.8+0.2,motorBaseY+0.1,southBeamZ+0.35); scene.add(westSouthMotorGlow);
+
+        // Radar dish
+        const radarGroup = new THREE.Group(); radarGroup.position.set(-12,-1.5,-10);
+        const radarBase = new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.4,0.8,8), new THREE.MeshStandardMaterial({color:0x88aacc,metalness:0.7}));
+        radarBase.position.y = 0; radarBase.castShadow = true; radarGroup.add(radarBase);
+        const radarPole = new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.4,2.5,8), new THREE.MeshStandardMaterial({color:0xaaaaff,metalness:0.8}));
+        radarPole.position.y = 0.8; radarPole.castShadow = true; radarGroup.add(radarPole);
+        const radarDishGroupObj = new THREE.Group();
+        const dishBack = new THREE.Mesh(new THREE.SphereGeometry(0.9,32,32), new THREE.MeshStandardMaterial({color:0xccddff,metalness:0.9}));
+        dishBack.scale.set(1,1,0.25); dishBack.position.z = -0.3; radarDishGroupObj.add(dishBack);
+        const radarSensor = new THREE.Mesh(new THREE.SphereGeometry(0.15,16,16), new THREE.MeshStandardMaterial({color:0xff3300,emissive:0xff2200}));
+        radarSensor.position.z = 0.2; radarDishGroupObj.add(radarSensor);
+        radarDishGroupObj.position.y = 2.0; radarDishGroupObj.rotation.x = 0.7; radarGroup.add(radarDishGroupObj); scene.add(radarGroup);
+        function animateDish() { radarDishGroupObj.rotation.y += 0.012; requestAnimationFrame(animateDish); } animateDish();
+
+        // Laser turrets
+        const autoTurretGroup = new THREE.Group(); autoTurretGroup.position.set(12,-1.5,-9);
+        const autoBase = new THREE.Mesh(new THREE.CylinderGeometry(1.0,1.2,0.6,8), new THREE.MeshStandardMaterial({color:0x88aacc,metalness:0.7}));
+        autoBase.position.y = 0; autoBase.castShadow = true; autoTurretGroup.add(autoBase);
+        const autoPole = new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.35,2.2,8), new THREE.MeshStandardMaterial({color:0xaaaaff,metalness:0.8}));
+        autoPole.position.y = 0.7; autoPole.castShadow = true; autoTurretGroup.add(autoPole);
+        const autoHead = new THREE.Group(); autoHead.position.y = 1.9;
+        const autoRing = new THREE.Mesh(new THREE.TorusGeometry(0.55,0.08,16,32), new THREE.MeshStandardMaterial({color:0x44ffaa,metalness:0.9,emissive:0x22aa88}));
+        autoRing.rotation.x = Math.PI/2; autoHead.add(autoRing);
+        const autoBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.18,1.0,8), new THREE.MeshStandardMaterial({color:0xccddff,metalness:0.95}));
+        autoBarrel.position.z = 0.45; autoBarrel.rotation.x = Math.PI/2; autoHead.add(autoBarrel);
+        const autoGlow = new THREE.Mesh(new THREE.SphereGeometry(0.1,8,8), new THREE.MeshStandardMaterial({color:0x00ffcc,emissive:0x00ffaa,emissiveIntensity:0.5}));
+        autoGlow.position.z = 0.95; autoHead.add(autoGlow);
+        autoTurretGroup.add(autoHead); scene.add(autoTurretGroup);
+
+        const manualTurretGroup = new THREE.Group(); manualTurretGroup.position.set(12,-1.5,12);
+        const manBase = new THREE.Mesh(new THREE.CylinderGeometry(0.9,1.1,0.6,8), new THREE.MeshStandardMaterial({color:0xcc6644,metalness:0.8}));
+        manBase.position.y = 0; manBase.castShadow = true; manualTurretGroup.add(manBase);
+        const manPole = new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.35,2.2,8), new THREE.MeshStandardMaterial({color:0xdd8866,metalness:0.8}));
+        manPole.position.y = 0.7; manPole.castShadow = true; manualTurretGroup.add(manPole);
+        const manHead = new THREE.Group(); manHead.position.y = 1.9;
+        const manRing = new THREE.Mesh(new THREE.TorusGeometry(0.55,0.08,16,32), new THREE.MeshStandardMaterial({color:0xffaa66,metalness:0.9,emissive:0xff4422}));
+        manRing.rotation.x = Math.PI/2; manHead.add(manRing);
+        const manBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.18,1.0,8), new THREE.MeshStandardMaterial({color:0xff8866,metalness:0.95}));
+        manBarrel.position.z = 0.45; manBarrel.rotation.x = Math.PI/2; manHead.add(manBarrel);
+        const manGlow = new THREE.Mesh(new THREE.SphereGeometry(0.1,8,8), new THREE.MeshStandardMaterial({color:0xff6600,emissive:0xff2200,emissiveIntensity:0.5}));
+        manGlow.position.z = 0.95; manHead.add(manGlow);
+        manualTurretGroup.add(manHead); scene.add(manualTurretGroup);
+        function animateTurrets() { autoHead.rotation.y += 0.005; manHead.rotation.y -= 0.005; requestAnimationFrame(animateTurrets); }
+        animateTurrets();
+
+        // ========== TARGET MODELS ==========
+        const targetGroup = new THREE.Group(); scene.add(targetGroup);
+
+        function buildCRU() {
+            const group = new THREE.Group();
+            const groundY = GROUND_Y;
+            const baseGeo = new THREE.BoxGeometry(8, 0.5, 7);
+            const baseMat = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.9 });
+            const base = new THREE.Mesh(baseGeo, baseMat);
+            base.position.set(0, groundY + 0.25, 0);
+            base.receiveShadow = true; base.castShadow = true;
+            group.add(base);
+            const reactorMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.4, roughness: 0.3 });
+            const r1 = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.6, 5.0, 32), reactorMat);
+            r1.position.set(-1.8, groundY + 2.8, -0.5);
+            r1.castShadow = true; group.add(r1);
+            const dome1 = new THREE.Mesh(new THREE.SphereGeometry(1.45, 32, 16, 0, Math.PI*2, 0, Math.PI/2), reactorMat);
+            dome1.position.set(-1.8, groundY + 5.3, -0.5);
+            group.add(dome1);
+            const r2 = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.5, 4.5, 32), reactorMat);
+            r2.position.set(1.8, groundY + 2.5, -0.5);
+            r2.castShadow = true; group.add(r2);
+            const dome2 = new THREE.Mesh(new THREE.SphereGeometry(1.35, 32, 16, 0, Math.PI*2, 0, Math.PI/2), reactorMat);
+            dome2.position.set(1.8, groundY + 4.8, -0.5);
+            group.add(dome2);
+            const r3Mat = new THREE.MeshStandardMaterial({ color: 0xbbbbbb, metalness: 0.4, roughness: 0.3 });
+            const r3 = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.8, 5.5, 32), r3Mat);
+            r3.position.set(0, groundY + 3.0, 1.2);
+            r3.castShadow = true; group.add(r3);
+            const furnaceMat = new THREE.MeshStandardMaterial({ color: 0xaa5533, emissive: 0x552200, emissiveIntensity: 0.8 });
+            const furnace = new THREE.Mesh(new THREE.BoxGeometry(2.5, 3.5, 2.5), furnaceMat);
+            furnace.position.set(0, groundY + 1.8, -1.5);
+            furnace.castShadow = true; group.add(furnace);
+            const pipeMat = new THREE.MeshStandardMaterial({ color: 0x88aacc, metalness: 0.8 });
+            const pipe1 = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 3.5, 8), pipeMat);
+            pipe1.position.set(0, groundY + 4.2, -1.2);
+            group.add(pipe1);
+            const pipe2 = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 2.8, 8), pipeMat);
+            pipe2.position.set(-0.8, groundY + 3.0, 0.8);
+            pipe2.rotation.z = 0.5; group.add(pipe2);
+            const burnerMat = new THREE.MeshStandardMaterial({ color: 0xff8844, emissive: 0xff4422, emissiveIntensity: 1.2 });
+            const burner = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), burnerMat);
+            burner.position.set(0, groundY + 2.6, -1.8);
+            group.add(burner);
+            return group;
+        }
+
+        function buildHHU() {
+            const group = new THREE.Group();
+            const groundY = GROUND_Y;
+            const baseGeo = new THREE.BoxGeometry(7, 0.5, 5);
+            const baseMat = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.9 });
+            const base = new THREE.Mesh(baseGeo, baseMat);
+            base.position.set(0, groundY + 0.25, 0); base.castShadow = true; base.receiveShadow = true;
+            group.add(base);
+            const pedGeo = new THREE.CylinderGeometry(2.0, 2.1, 0.5, 32);
+            const ped = new THREE.Mesh(pedGeo, baseMat);
+            ped.position.set(0, groundY + 1.0, 0); ped.castShadow = true;
+            group.add(ped);
+            const reactorBottom = groundY + 1.5;
+            const reactorGeo = new THREE.CylinderGeometry(1.8, 1.8, 7.5, 64);
+            const reactorMat = new THREE.MeshStandardMaterial({ color: 0x445566, metalness: 0.8, roughness: 0.2 });
+            const reactor = new THREE.Mesh(reactorGeo, reactorMat);
+            reactor.position.set(0, reactorBottom + 7.5/2, 0);
+            reactor.castShadow = true; reactor.receiveShadow = true;
+            group.add(reactor);
+            const domeGeo = new THREE.SphereGeometry(1.8, 32, 16, 0, Math.PI*2, 0, Math.PI/2);
+            const dome = new THREE.Mesh(domeGeo, reactorMat);
+            dome.position.set(0, reactorBottom + 7.5, 0); dome.castShadow = true;
+            group.add(dome);
+            const compMat = new THREE.MeshStandardMaterial({ color: 0xaaaa88, metalness: 0.5 });
+            const compBox = new THREE.Mesh(new THREE.BoxGeometry(2.5, 2.2, 2.5), compMat);
+            compBox.position.set(3.0, groundY + 0.5 + 2.2/2, 0); compBox.castShadow = true;
+            group.add(compBox);
+            for (let i=0; i<3; i++) {
+                const cyl = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 1.5, 16), new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.6 }));
+                cyl.position.set(3.0 + (i-1)*0.8, groundY + 0.2, 1.2);
+                group.add(cyl);
+            }
+            const hexMat = new THREE.MeshStandardMaterial({ color: 0x996644, metalness: 0.4 });
+            for (let i=0; i<2; i++) {
+                const hex = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 4, 24), hexMat);
+                hex.position.set(-2.5 + i*2.5, groundY + 1.0 + 2, 0);
+                hex.castShadow = true;
+                group.add(hex);
+            }
+            const pipeMat = new THREE.MeshStandardMaterial({ color: 0x88aacc, metalness: 0.7 });
+            const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 2.5, 16), pipeMat);
+            pipe.position.set(0, reactorBottom + 7.5 + 2.0, 0);
+            group.add(pipe);
+            return group;
+        }
+
+        function buildStorageTank() {
+            const group = new THREE.Group();
+            const tankRadius = 2.9 * 1.25; const tankHeight = 5.8;
+            const tankCY = GROUND_Y + tankHeight / 2;
+            const cyl = new THREE.Mesh(
+                new THREE.CylinderGeometry(tankRadius, tankRadius, tankHeight, 64, 32),
+                new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.1, roughness: 0.6 })
+            );
+            cyl.castShadow = true; cyl.receiveShadow = true; cyl.position.y = tankCY; group.add(cyl);
+            return group;
+        }
+
+        let simState = {
+            running: false, startTime: 0,
+            shutterType: 'composite', thickness: 8, shutterCount: 1, layerCount: 0,
+            motorPower: 55, detectionRange: 20, droneSpeed: 250, systemDelay: 1.0, efficiency: 0.8,
+            closingTimeSide: 0, droneArrivalTime: 0, totalClosingTime: 0,
+            sideProgress: 0, domeProgress: 0, droneProgress: 0,
+            droneStartPos: new THREE.Vector3(0, 10, -30),
+            droneEndPos: new THREE.Vector3(0, GROUND_Y + 5.5, 0),
+            verdict: null, alarmPlayed: false, motorSoundStarted: false,
+            explosionTriggered: false, successTriggered: false
+        };
+
+        // ★ Visual explosion flash on impact
+        function createExplosionFlash(position) {
+            const flash = new THREE.Mesh(new THREE.SphereGeometry(1.0,16,16), new THREE.MeshStandardMaterial({color:0xff4400,emissive:0xff2200,emissiveIntensity:1.2}));
+            flash.position.copy(position);
+            scene.add(flash);
+            const particles = [];
+            for (let i=0;i<15;i++) {
+                const p = new THREE.Mesh(new THREE.SphereGeometry(0.08,4,4), new THREE.MeshStandardMaterial({color:0xff8844,emissive:0xff4422}));
+                p.position.copy(position);
+                p.userData = { velocity: new THREE.Vector3((Math.random()-0.5)*2, Math.random()*2+1, (Math.random()-0.5)*2), life: 0.8 };
+                scene.add(p);
+                particles.push(p);
+            }
+            const start = performance.now();
+            function animateFlash(now) {
+                const elapsed = (now - start)/1000;
+                flash.material.opacity = Math.max(0, 1 - elapsed/0.3);
+                flash.scale.setScalar(1 + elapsed*2);
+                if (elapsed > 0.3) scene.remove(flash);
+                for (let p of particles) {
+                    p.position.x += p.userData.velocity.x * 0.016;
+                    p.position.y += p.userData.velocity.y * 0.016;
+                    p.position.z += p.userData.velocity.z * 0.016;
+                    p.userData.life -= 0.016;
+                    if (p.userData.life <= 0) scene.remove(p);
+                }
+                if (elapsed < 0.5) requestAnimationFrame(animateFlash);
+            }
+            requestAnimationFrame(animateFlash);
+        }
+
+        function switchTarget(type) {
+            while (targetGroup.children.length > 0) targetGroup.remove(targetGroup.children[0]);
+            if (type === 'hhu') {
+                targetGroup.add(buildHHU());
+                document.getElementById('hudTargetType').innerHTML = 'Hydrocracker';
+                simState.droneEndPos.set(0, GROUND_Y + 5.5, 0);
+            } else if (type === 'cru') {
+                targetGroup.add(buildCRU());
+                document.getElementById('hudTargetType').innerHTML = 'Catalytic Reformer';
+                simState.droneEndPos.set(0, GROUND_Y + 5.5, 0);
+            } else {
+                targetGroup.add(buildStorageTank());
+                document.getElementById('hudTargetType').innerHTML = 'Storage Tank';
+                simState.droneEndPos.set(0, GROUND_Y + 2.9, 0);
+            }
+        }
+        switchTarget('cru');
+
+        // ========== FACE DOORS (two‑shutter‑per‑face) ==========
+        const DOOR_W = SQUARE_SIZE/4;   // 3.0 m
+        const DOOR_H = PILLAR_H - 0.5;
+        const DOOR_Y = GROUND_Y + DOOR_H/2;
+        const doorColors = [0xffffff,0xfefefe,0xfdfdfd,0xffffff];
+        function createFoldedDoor(w,h,x,z,rot,ci){
+            const g = new THREE.Group();
+            const panelMat = new THREE.MeshStandardMaterial({color:doorColors[ci%4],metalness:0.99,roughness:0.02,emissive:0x333333});
+            const panel = new THREE.Mesh(new THREE.BoxGeometry(w,h,0.08),panelMat);
+            panel.castShadow = true; g.add(panel);
+            g.position.set(x, DOOR_Y, z); g.rotation.y = rot; scene.add(g); return g;
+        }
+        const sideShutterData = [];
+        // South
+        sideShutterData.push({group:createFoldedDoor(DOOR_W,DOOR_H,-HALF_SIZE,-HALF_SIZE,0,0),axis:'x',openX:-HALF_SIZE,closedX:-HALF_SIZE+DOOR_W/2});
+        sideShutterData.push({group:createFoldedDoor(DOOR_W,DOOR_H,-HALF_SIZE+0.2,-HALF_SIZE,0,1),axis:'x',openX:-HALF_SIZE+0.2,closedX:-HALF_SIZE+DOOR_W*1.5});
+        sideShutterData.push({group:createFoldedDoor(DOOR_W,DOOR_H,HALF_SIZE-0.2,-HALF_SIZE,0,2),axis:'x',openX:HALF_SIZE-0.2,closedX:HALF_SIZE-DOOR_W*1.5});
+        sideShutterData.push({group:createFoldedDoor(DOOR_W,DOOR_H,HALF_SIZE,-HALF_SIZE,0,3),axis:'x',openX:HALF_SIZE,closedX:HALF_SIZE-DOOR_W/2});
+        // East
+        sideShutterData.push({group:createFoldedDoor(DOOR_W,DOOR_H,HALF_SIZE,-HALF_SIZE,Math.PI/2,0),axis:'z',openZ:-HALF_SIZE,closedZ:-HALF_SIZE+DOOR_W/2});
+        sideShutterData.push({group:createFoldedDoor(DOOR_W,DOOR_H,HALF_SIZE,-HALF_SIZE+0.2,Math.PI/2,1),axis:'z',openZ:-HALF_SIZE+0.2,closedZ:-HALF_SIZE+DOOR_W*1.5});
+        sideShutterData.push({group:createFoldedDoor(DOOR_W,DOOR_H,HALF_SIZE,HALF_SIZE-0.2,Math.PI/2,2),axis:'z',openZ:HALF_SIZE-0.2,closedZ:HALF_SIZE-DOOR_W*1.5});
+        sideShutterData.push({group:createFoldedDoor(DOOR_W,DOOR_H,HALF_SIZE,HALF_SIZE,Math.PI/2,3),axis:'z',openZ:HALF_SIZE,closedZ:HALF_SIZE-DOOR_W/2});
+        // North
+        sideShutterData.push({group:createFoldedDoor(DOOR_W,DOOR_H,HALF_SIZE,HALF_SIZE,Math.PI,0),axis:'x',openX:HALF_SIZE,closedX:HALF_SIZE-DOOR_W/2});
+        sideShutterData.push({group:createFoldedDoor(DOOR_W,DOOR_H,HALF_SIZE-0.2,HALF_SIZE,Math.PI,1),axis:'x',openX:HALF_SIZE-0.2,closedX:HALF_SIZE-DOOR_W*1.5});
+        sideShutterData.push({group:createFoldedDoor(DOOR_W,DOOR_H,-HALF_SIZE+0.2,HALF_SIZE,Math.PI,2),axis:'x',openX:-HALF_SIZE+0.2,closedX:-HALF_SIZE+DOOR_W*1.5});
+        sideShutterData.push({group:createFoldedDoor(DOOR_W,DOOR_H,-HALF_SIZE,HALF_SIZE,Math.PI,3),axis:'x',openX:-HALF_SIZE,closedX:-HALF_SIZE+DOOR_W/2});
+        // West
+        sideShutterData.push({group:createFoldedDoor(DOOR_W,DOOR_H,-HALF_SIZE,HALF_SIZE,-Math.PI/2,0),axis:'z',openZ:HALF_SIZE,closedZ:HALF_SIZE-DOOR_W/2});
+        sideShutterData.push({group:createFoldedDoor(DOOR_W,DOOR_H,-HALF_SIZE,HALF_SIZE-0.2,-Math.PI/2,1),axis:'z',openZ:HALF_SIZE-0.2,closedZ:HALF_SIZE-DOOR_W*1.5});
+        sideShutterData.push({group:createFoldedDoor(DOOR_W,DOOR_H,-HALF_SIZE,-HALF_SIZE+0.2,-Math.PI/2,2),axis:'z',openZ:-HALF_SIZE+0.2,closedZ:-HALF_SIZE+DOOR_W*1.5});
+        sideShutterData.push({group:createFoldedDoor(DOOR_W,DOOR_H,-HALF_SIZE,-HALF_SIZE,-Math.PI/2,3),axis:'z',openZ:-HALF_SIZE,closedZ:-HALF_SIZE+DOOR_W/2});
+
+        // ========== TOP SHUTTERS – FIXED retracted position to south edge ==========
+        const topShutters = [], topShutterData = [];
+        const NUM_TRACKS = 5, TRACK_WIDTH = SQUARE_SIZE/NUM_TRACKS, SEC_LEN = SQUARE_SIZE/4;
+        for (let t = 0; t < NUM_TRACKS; t++) {
+            const cx = -HALF_SIZE + TRACK_WIDTH/2 + t*TRACK_WIDTH;
+            for (let i = 0; i < 4; i++) {
+                const startZ = -HALF_SIZE + i*SEC_LEN;
+                const midZ = startZ + SEC_LEN/2;
+                const shutter = new THREE.Mesh(new THREE.BoxGeometry(TRACK_WIDTH,0.016,SEC_LEN), steelShutter);
+                // Initially place at retracted position (south edge)
+                shutter.position.set(cx, TOP_Y+0.1+i*0.018, -HALF_SIZE);
+                shutter.castShadow = true;
+                scene.add(shutter);
+                topShutters.push(shutter);
+                // Store the correct retracted position (all sections go to -HALF_SIZE)
+                topShutterData.push({mesh:shutter, retractedZ: -HALF_SIZE, extendedZ: midZ, yOff:i*0.018});
+            }
+        }
+
+        // ========== DRONE ==========
+        const droneGroup = new THREE.Group();
+        droneGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.6,0.2,0.6), new THREE.MeshStandardMaterial({color:0xff4444,metalness:0.5,emissive:0x330000})));
+        for(let i=0;i<4;i++){ const a=(i/4)*Math.PI*2; const arm=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.04,0.6),new THREE.MeshStandardMaterial({color:0xcc3333})); arm.position.set(Math.cos(a)*0.5,0,Math.sin(a)*0.5); droneGroup.add(arm); const rotor=new THREE.Mesh(new THREE.BoxGeometry(0.35,0.02,0.08),new THREE.MeshStandardMaterial({color:0xffaa66})); rotor.position.set(Math.cos(a)*0.75,0.12,Math.sin(a)*0.75); droneGroup.add(rotor); }
+        scene.add(droneGroup);
+
+        const ringGeom = new THREE.TorusGeometry(10,0.15,16,100);
+        const ringMat = new THREE.MeshStandardMaterial({color:0x2dd4bf,emissive:0x115544,transparent:true,opacity:0.6});
+        const detectionRing = new THREE.Mesh(ringGeom,ringMat); detectionRing.rotation.x=Math.PI/2; detectionRing.position.y=GROUND_Y+0.2; scene.add(detectionRing);
+
+        const shutterDataRef = {
+            standard: { multiplier:1.0, name:"Standard SS304", density:7930 },
+            sloped: { multiplier:1.4, name:"Sloped 30°", density:7930 },
+            corrugated: { multiplier:1.8, name:"Corrugated Steel", density:7930 },
+            composite: { multiplier:3.0, name:"Composite Armor", density:4500 },
+            reactive: { multiplier:5.0, name:"Reactive Armor", density:5000 },
+            uhpc: { multiplier:2.2, name:"UHPC / Ductal®", density:2800 },
+            ceramic: { multiplier:4.0, name:"Ceramic-Faced Armor", density:3700 },
+            nanocomposite: { multiplier:6.0, name:"CNT Nanocomposite", density:1600 }
+        };
+
+        function calculateTiming() {
+            const sd = shutterDataRef[simState.shutterType] || shutterDataRef.composite;
+            const thickM = simState.thickness/1000;
+            const perDoorMass = DOOR_W * DOOR_H * thickM * sd.density;
+            const totalMass = (simState.shutterCount + simState.layerCount*2) * perDoorMass;
+            const motorRPM = 1500, gearReduction = 50, driveGearRadius = 0.12;
+            const maxSpeed = ((motorRPM/gearReduction)/60) * (2*Math.PI*driveGearRadius);
+            const loadFactor = totalMass / simState.motorPower;
+            const actualSpeed = maxSpeed * (1/(1+loadFactor*0.08)) * simState.efficiency;
+            const sideTravel = DOOR_W / 2;   // correct travel distance
+            simState.closingTimeSide = actualSpeed > 0.01 ? sideTravel / actualSpeed : 60;
+            simState.mechanicalClosingTime = simState.closingTimeSide;
+            simState.totalClosingTime = simState.closingTimeSide + simState.systemDelay;
+            simState.droneArrivalTime = (simState.detectionRange * 1000) / simState.droneSpeed;
+            simState.sideClosingSpeed = actualSpeed;
+            simState.totalSideMass = totalMass;
+            simState.verdict = simState.totalClosingTime < simState.droneArrivalTime;
+            updateHUD();
+            drawInitialGraph();
+        }
+
+        function updateHUD() {
+            const sd = shutterDataRef[simState.shutterType];
+            document.getElementById('hudShutterType').textContent = sd.name;
+            document.getElementById('hudTotalMass').textContent = (simState.totalSideMass||0).toFixed(0)+' kg';
+            document.getElementById('hudMotorPower').textContent = simState.motorPower+' kW';
+            document.getElementById('hudClosingSpeed').textContent = (simState.sideClosingSpeed||0).toFixed(3)+' m/s';
+            document.getElementById('hudClosingTime').textContent = simState.totalClosingTime.toFixed(2)+' s';
+            document.getElementById('hudDroneSpeed').textContent = simState.droneSpeed+' m/s';
+            document.getElementById('hudDetection').textContent = simState.detectionRange+' km';
+            document.getElementById('hudArrivalTime').textContent = simState.droneArrivalTime.toFixed(2)+' s';
+        }
+
+        // ========== GRAPH (fully defined, draws immediately) ==========
+        const graphCanvas = document.getElementById('timingGraph');
+        const graphCtx = graphCanvas.getContext('2d');
+
+        function drawInitialGraph() {
+            if (!graphCanvas || !graphCanvas.parentElement) return;
+            const rect = graphCanvas.parentElement.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) { requestAnimationFrame(drawInitialGraph); return; }
+            graphCanvas.width = rect.width * 2; graphCanvas.height = rect.height * 2;
+            graphCtx.scale(2,2);
+            const w = rect.width, h = rect.height;
+            const margin = { top: 35, right: 15, bottom: 30, left: 35 };
+            const maxTime = 10;
+            graphCtx.clearRect(0,0,w,h); graphCtx.fillStyle='#0f1724'; graphCtx.fillRect(0,0,w,h);
+            for (let t=0; t<=maxTime; t+=2) {
+                const x = margin.left + (t/maxTime)*(w-margin.left-margin.right);
+                graphCtx.strokeStyle='#1e293b'; graphCtx.beginPath(); graphCtx.moveTo(x, margin.top); graphCtx.lineTo(x, h-margin.bottom); graphCtx.stroke();
+                graphCtx.fillStyle='#64748b'; graphCtx.font='8px monospace'; graphCtx.textAlign='center';
+                graphCtx.fillText(t.toFixed(0), x, h-margin.bottom+12);
+            }
+            graphCtx.strokeStyle='#334155'; graphCtx.lineWidth=1;
+            graphCtx.beginPath(); graphCtx.moveTo(margin.left, margin.top); graphCtx.lineTo(margin.left, h-margin.bottom); graphCtx.stroke();
+            graphCtx.beginPath(); graphCtx.moveTo(margin.left, h-margin.bottom); graphCtx.lineTo(w-margin.right, h-margin.bottom); graphCtx.stroke();
+            graphCtx.font = '10px monospace';
+            graphCtx.textAlign = 'left';
+            const captionsX = margin.left;
+            const captionsY = margin.top - 15;
+            graphCtx.fillStyle = '#2dd4bf';
+            graphCtx.fillText('Shutters Closing Timing', captionsX, captionsY);
+            const cyanWidth = graphCtx.measureText('Shutters Closing Timing').width;
+            graphCtx.fillStyle = '#f87171';
+            graphCtx.fillText('Drone Arrival Timing', captionsX + cyanWidth + 15, captionsY);
+        }
+
+        function updateLiveGraph(currentTime) {
+            if (!graphCanvas.parentElement) return;
+            const rect = graphCanvas.parentElement.getBoundingClientRect();
+            graphCanvas.width = rect.width * 2; graphCanvas.height = rect.height * 2;
+            graphCtx.scale(2,2);
+            const w = rect.width, h = rect.height;
+            const margin = { top: 35, right: 15, bottom: 30, left: 35 };
+            const maxTime = Math.max(simState.droneArrivalTime, simState.totalClosingTime, currentTime+1, 10) * 1.2;
+            graphCtx.clearRect(0,0,w,h); graphCtx.fillStyle='#0f1724'; graphCtx.fillRect(0,0,w,h);
+            for (let t=0; t<=maxTime; t+=maxTime/5) {
+                const x = margin.left + (t/maxTime)*(w-margin.left-margin.right);
+                graphCtx.strokeStyle='#1e293b'; graphCtx.beginPath(); graphCtx.moveTo(x, margin.top); graphCtx.lineTo(x, h-margin.bottom); graphCtx.stroke();
+            }
+            graphCtx.strokeStyle='#2dd4bf'; graphCtx.lineWidth=2.5; graphCtx.beginPath();
+            for (let t=0; t<=maxTime; t+=0.05) {
+                let progress = 0;
+                if (t>=simState.systemDelay && simState.mechanicalClosingTime>0) progress = Math.min(100, ((t-simState.systemDelay)/simState.mechanicalClosingTime)*100);
+                const x = margin.left + (t/maxTime)*(w-margin.left-margin.right);
+                const y = margin.top + ((100-progress)/100)*(h-margin.top-margin.bottom);
+                if (t===0) graphCtx.moveTo(x,y); else graphCtx.lineTo(x,y);
+            }
+            graphCtx.stroke();
+            graphCtx.strokeStyle='#f87171'; graphCtx.lineWidth=2.5; graphCtx.setLineDash([4,4]); graphCtx.beginPath();
+            for (let t=0; t<=maxTime; t+=0.05) {
+                const progress = Math.max(0, 100 - (t/simState.droneArrivalTime)*100);
+                const x = margin.left + (t/maxTime)*(w-margin.left-margin.right);
+                const y = margin.top + ((100-progress)/100)*(h-margin.top-margin.bottom);
+                if (t===0) graphCtx.moveTo(x,y); else graphCtx.lineTo(x,y);
+            }
+            graphCtx.stroke(); graphCtx.setLineDash([]);
+            const cx = margin.left + (currentTime/maxTime)*(w-margin.left-margin.right);
+            graphCtx.strokeStyle='#facc15'; graphCtx.lineWidth=2;
+            graphCtx.beginPath(); graphCtx.moveTo(cx, margin.top); graphCtx.lineTo(cx, h-margin.bottom); graphCtx.stroke();
+            graphCtx.font = '10px monospace';
+            graphCtx.textAlign = 'left';
+            const captionsX = margin.left;
+            const captionsY = margin.top - 15;
+            graphCtx.fillStyle = '#2dd4bf';
+            graphCtx.fillText('Shutters Closing Timing', captionsX, captionsY);
+            const cyanWidth = graphCtx.measureText('Shutters Closing Timing').width;
+            graphCtx.fillStyle = '#f87171';
+            graphCtx.fillText('Drone Arrival Timing', captionsX + cyanWidth + 15, captionsY);
+        }
+
+        function resetSimulation() {
+            simState.running = false; simState.sideProgress = 0; simState.domeProgress = 0; simState.droneProgress = 0;
+            simState.alarmPlayed = false; simState.motorSoundStarted = false;
+            simState.explosionTriggered = false; simState.successTriggered = false;
+            nuclearSoundKiller();
+            // Open all shutters
+            sideShutterData.forEach(d => { if (d.axis==='x') d.group.position.x = d.openX; else d.group.position.z = d.openZ; });
+            topShutterData.forEach(d => { d.mesh.position.z = d.retractedZ; d.mesh.position.y = TOP_Y + 0.1 + d.yOff; });
+            droneGroup.position.copy(simState.droneStartPos); droneGroup.lookAt(simState.droneEndPos);
+            document.getElementById('countdownDisplay').textContent = '--.-s';
+            document.getElementById('hudSideProgress').textContent = '0%';
+            document.getElementById('hudDomeProgress').textContent = '0%';
+            document.getElementById('hudDroneDist').textContent = '-- km';
+            document.getElementById('verdictBanner').style.display = 'none';
+            calculateTiming();
+        }
+
+        function startSimulation() {
+            calculateTiming();
+            resetSimulation();
+            simState.running = true; simState.startTime = performance.now();
+            startDroneSound(); playAlarmSound();
+        }
+
+        function updateSimulation(now) {
+            if (!simState.running) return;
+            const elapsed = (now - simState.startTime) / 1000;
+            simState.droneProgress = Math.min(1, elapsed / simState.droneArrivalTime);
+            droneGroup.position.lerpVectors(simState.droneStartPos, simState.droneEndPos, simState.droneProgress);
+            droneGroup.lookAt(simState.droneEndPos);
+            if (elapsed < simState.systemDelay) simState.sideProgress = 0;
+            else if (elapsed < simState.totalClosingTime) simState.sideProgress = Math.min(1, (elapsed - simState.systemDelay) / simState.mechanicalClosingTime);
+            else simState.sideProgress = 1;
+            simState.domeProgress = simState.sideProgress;
+            if (simState.sideProgress > 0 && simState.sideProgress < 1 && !simState.motorSoundStarted) { startMotorSound(); simState.motorSoundStarted = true; }
+            if (simState.sideProgress >= 1 && simState.motorSoundStarted) { stopMotorSound(); simState.motorSoundStarted = false; }
+            sideShutterData.forEach(d => { const prog = simState.sideProgress; if (d.axis === 'x') d.group.position.x = d.openX + (d.closedX - d.openX) * prog; else d.group.position.z = d.openZ + (d.closedZ - d.openZ) * prog; });
+            topShutterData.forEach(d => { d.mesh.position.z = d.retractedZ + (d.extendedZ - d.retractedZ) * simState.domeProgress; d.mesh.position.y = TOP_Y + 0.1 + d.yOff * (1 - simState.domeProgress); });
+            const timeRemaining = Math.max(0, simState.droneArrivalTime - elapsed);
+            document.getElementById('countdownDisplay').textContent = timeRemaining.toFixed(1) + 's';
+            document.getElementById('hudSideProgress').textContent = Math.floor(simState.sideProgress*100) + '%';
+            document.getElementById('hudDomeProgress').textContent = Math.floor(simState.domeProgress*100) + '%';
+            document.getElementById('hudDroneDist').textContent = (simState.detectionRange * (1 - simState.droneProgress)).toFixed(1) + ' km';
+            if (simState.sideProgress >= 1 && simState.droneProgress < 1) {
+                document.getElementById('verdictBanner').style.display = 'block';
+                document.getElementById('verdictBanner').className = 'verdict-banner verdict-success';
+                document.getElementById('verdictBanner').textContent = '✅ SHUTTERS CLOSED! ' + (simState.droneArrivalTime - simState.totalClosingTime).toFixed(1) + 's margin';
+                if (!simState.successTriggered) { stopDroneSound(); stopMotorSound(); simState.successTriggered = true; }
+            } else if (simState.droneProgress >= 1 && simState.sideProgress < 1 && !simState.explosionTriggered) {
+                document.getElementById('verdictBanner').style.display = 'block';
+                document.getElementById('verdictBanner').className = 'verdict-banner verdict-fail';
+                document.getElementById('verdictBanner').textContent = '❌ DRONE IMPACT! Shutters ' + Math.floor(simState.sideProgress*100) + '% closed';
+                stopDroneSound(); stopMotorSound(); playExplosionSound();
+                createExplosionFlash(droneGroup.position.clone());   // ← visual feedback
+                simState.explosionTriggered = true; simState.running = false;
+            }
+            updateLiveGraph(elapsed);
+        }
+
+        function adjustLayout() {
+            const statusPanel = document.getElementById('statusPanel');
+            const controlsPanel = document.getElementById('controlsPanel');
+            const gap = 4, topMargin = 2, bottomMargin = 2;
+            const controlRect = controlsPanel.getBoundingClientRect();
+            const availableHeight = window.innerHeight - topMargin - bottomMargin - controlRect.height - gap;
+            statusPanel.style.maxHeight = availableHeight + 'px';
+            statusPanel.style.overflowY = 'auto';
+        }
+        window.addEventListener('resize', adjustLayout);
+        setTimeout(adjustLayout, 100);
+
+        document.getElementById('simulateBtn').onclick = () => {
+            simState.shutterType = document.getElementById('shutterTypeSelect').value;
+            simState.thickness = parseInt(document.getElementById('thicknessInput').value);
+            simState.shutterCount = parseInt(document.getElementById('shutterCountInput').value);
+            simState.layerCount = parseInt(document.getElementById('layerCountInput').value);
+            simState.motorPower = parseInt(document.getElementById('motorPowerSelect').value);
+            simState.detectionRange = parseInt(document.getElementById('detectionSelect').value);
+            simState.droneSpeed = parseInt(document.getElementById('droneSpeedInput').value);
+            simState.systemDelay = parseFloat(document.getElementById('delaySelect').value);
+            simState.efficiency = parseFloat(document.getElementById('efficiencySelect').value);
+            startSimulation();
+        };
+        document.getElementById('resetBtn').onclick = resetSimulation;
+        document.getElementById('pullParamsBtn').onclick = () => {
+            try {
+                const parentDoc = window.parent.document;
+                const part3Iframe = parentDoc.querySelector('#tab3 iframe');
+                if (part3Iframe && part3Iframe.contentWindow) {
+                    part3Iframe.contentWindow.postMessage({ type: 'requestParams' }, '*');
+                } else {
+                    window.parent.postMessage({ type: 'requestParams' }, '*');
+                }
+            } catch (e) { window.parent.postMessage({ type: 'requestParams' }, '*'); }
+        };
+        document.getElementById('targetTypeSelect').onchange = (e) => { switchTarget(e.target.value); resetSimulation(); };
+        document.getElementById('soundToggle').onchange = (e) => {
+            audioEnabled = e.target.checked;
+            document.getElementById('soundIndicator').textContent = audioEnabled ? '🔊 SOUND: ON' : '🔇 SOUND: OFF';
+            document.getElementById('soundIndicator').style.color = audioEnabled ? '#2dd4bf' : '#f87171';
+            if (!audioEnabled) nuclearSoundKiller();
+        };
+
+        window.addEventListener('message', (event) => {
+            const data = event.data;
+            if (data && data.type === 'updateParams') {
+                if (data.shutterType) document.getElementById('shutterTypeSelect').value = data.shutterType;
+                if (data.shutterThickness) document.getElementById('thicknessInput').value = data.shutterThickness;
+                if (data.shutterCount !== undefined) document.getElementById('shutterCountInput').value = data.shutterCount;
+                if (data.numLayers !== undefined) document.getElementById('layerCountInput').value = data.numLayers;
+                if (data.velocity) document.getElementById('droneSpeedInput').value = data.velocity;
+                simState.shutterType = document.getElementById('shutterTypeSelect').value;
+                simState.thickness = parseInt(document.getElementById('thicknessInput').value);
+                simState.shutterCount = parseInt(document.getElementById('shutterCountInput').value);
+                simState.layerCount = parseInt(document.getElementById('layerCountInput').value);
+                simState.droneSpeed = parseInt(document.getElementById('droneSpeedInput').value);
+                resetSimulation();
+            }
+        });
+
+        function animate(timestamp) {
+            requestAnimationFrame(animate);
+            if (simState.running) updateSimulation(timestamp);
+            detectionRing.scale.setScalar(1 + Math.sin(timestamp*0.003)*0.1);
+            droneGroup.children.forEach(c => { if (c.geometry?.parameters?.width === 0.35) c.rotation.y += 0.3; });
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.onresize = () => {
+            camera.aspect = window.innerWidth/window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            adjustLayout();
+        };
+        document.body.addEventListener('click', () => startAudioContext(), {once: true});
+        initAudioElements();
+// ★ SELF-MONITORING: Check every 500ms if this tab is still visible ★
+setInterval(() => {
+    try {
+        const parentDoc = window.parent.document;
+        const tab2 = parentDoc.getElementById('tab2');
+        if (tab2 && !tab2.classList.contains('active')) {
+            if (simState.running || currentDroneSound || currentMotorSound) {
+                nuclearSoundKiller();
+                simState.running = false;
+            }
+        }
+    } catch(e) {
+        if (document.hidden && simState.running) {
+            nuclearSoundKiller();
+            simState.running = false;
+        }
+    }
+}, 500);
+        resetSimulation();        // opens everything & draws graph
+        requestAnimationFrame(animate);
+        console.log('✅ CRU Shutter Timing Simulator – roof shutters now properly retract to south edge');
+    </script>
+
+<!-- Floating eye button – guaranteed visible -->
+<div style="position:fixed; bottom:15px; right:15px; z-index:99999; pointer-events:none;">
+  <button id="toggleUIBtn" style="
+      background: rgba(15,23,36,0.9); backdrop-filter: blur(8px);
+      border: 2px solid #2dd4bf; color: #2dd4bf; border-radius: 50%;
+      width: 48px; height: 48px; font-size: 1.4rem; font-weight: bold;
+      cursor: pointer; pointer-events:auto; box-shadow: 0 0 12px rgba(0,0,0,0.6);
+      margin:0; padding:0; display:flex; align-items:center; justify-content:center;
+  ">👁️</button>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleBtn = document.getElementById('toggleUIBtn');
+    const panels = ['statusPanel','countdownPanel','controlsPanel','graphPanel','soundIndicator'];
+    let visible = true;
+    toggleBtn.addEventListener('click', () => {
+        visible = !visible;
+        panels.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = visible ? '' : 'none';
+        });
+        toggleBtn.textContent = visible ? '👁️' : '👁️‍🗨️';
+    });
+});
+</script>
+
+</body>
+</html>

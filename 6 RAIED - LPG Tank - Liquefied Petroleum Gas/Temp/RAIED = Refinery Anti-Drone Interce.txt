@@ -1,0 +1,2 @@
+RAIED = Refinery Anti-Drone Interception Environment Dome — a 3D simulation for defending a CDU tower (refinery tower) against drone threats.
+

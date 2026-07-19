@@ -1,0 +1,93 @@
+corrugated: `<div class="guide-section"><h4>〰️ Corrugated Steel Shutter — Complete Manufacturing Guide</h4>
+            <h5>1. DESIGN PRINCIPLE & PHYSICS</h5>
+            <div class="chemical-equation">
+                Corrugation profile: 60mm depth, 120mm pitch (trapezoidal)
+                Moment of inertia increase: I_corrugated = (b·h³)/12 + (s·t·d²)/2
+                For flat plate: I_flat = (L·t³)/12
+                Ratio: I_corrugated / I_flat ≈ 3.5 (for 60×120 profile)
+                
+                Section modulus: Z = I / y_max
+                Flexural strength increase: σ_max = M / Z (3.5× higher load capacity)
+                
+                Energy absorption under blast loading:
+                E_absorbed = (P²·L³) / (48·E·I) ∝ I → 3.5× higher blast resistance
+            </div>
+            
+            <h5>2. MATERIAL REQUIREMENTS</h5>
+            <ul>
+                <li>Coil material: Hot-dip galvanized S350GD (350 MPa yield, 510 MPa tensile)</li>
+                <li>Zinc coating: Z275 (275 g/m², 40μm thickness), ASTM A653</li>
+                <li>Coil dimensions: 2mm thickness × 1500mm width × 10 ton weight</li>
+                <li>Yield strength: 350 MPa min, 480 MPa typical</li>
+            </ul>
+            
+            <h5>3. MANUFACTURING PROCESS</h5>
+            <h5>Step 1: Coil Preparation (30 minutes)</h5>
+            <ul>
+                <li>Load coil on uncoiler (pay-off reel with 20 ton capacity, hydraulic expansion mandrel)</li>
+                <li>Flatten through 7-roll leveler (roller diameter 80mm, 0.1mm gap adjustment)</li>
+                <li>Edge trimming: Rotary shear, remove 10mm each side for edge defects</li>
+                <li>Loop pit: 50m capacity to decouple uncoiler from roll former</li>
+            </ul>
+            
+            <h5>Step 2: Roll Forming (30 meters per minute)</h5>
+            <p><strong>Equipment:</strong> 16-station roll former (150mm roll diameter, 75mm shaft, 100 HP drive)</p>
+            <div class="chemical-equation">
+                Station sequence (16 passes total):
+                Pass 1-4: Pre-forming (10° → 25° → 40° → 55°)
+                Pass 5-8: Main forming (55° → 65° → 70° → 72°)
+                Pass 9-12: Calibration (75° → 78° → 80° → 80°)
+                Pass 13-16: Sizing and final profile
+                
+                Forming force per station: F = (K·t·L·σ_yield) / (R·n)
+                Where K = 1.2, n = number of passes, R = roll radius
+            </div>
+            
+            <h5>Step 3: In-Line Punching & Cutting</h5>
+            <ul>
+                <li>Mounting hole punching: Hydraulic punch (200 ton force), M24 hole pattern at 400mm spacing</li>
+                <li>Flying shear: Servo-driven, cuts to length 2700mm ±0.5mm at full line speed</li>
+                <li>Burr removal: Wire brush station (rotating brushes, 1500 RPM)</li>
+            </ul>
+            
+            <h5>Step 4: Edge Protection & Touch-Up (30 minutes)</h5>
+            <ul>
+                <li>Deburring: Pneumatic chamfer tool, 2mm × 45° on all cut edges</li>
+                <li>Galvanizing touch-up: Cold galvanizing spray (95% Zn, 5% epoxy binder), 100μm DFT</li>
+                <li>Salt spray test (ASTM B117): 500h minimum on repaired edges</li>
+            </ul>
+            
+            <h5>4. ROLL FORMING PARAMETERS</h5>
+            <table class="refinery-table">
+                <tr><th>Parameter</th><th>Value</th><th>Why</th></tr>
+                <tr><td>Line Speed</td><td>10-30 m/min</td><td>Balance production rate with coating protection</td></tr>
+                <tr><td>Roll Gap Adjustment</td><td>±0.1mm</td><td>Ensure profile consistency</td></td>
+                <tr><td>Lubrication</td><td>Light oil (0.5 mL/m²)</td><td>Prevent galling, prolong roll life</td></tr>
+                <tr><td>Cooling</td><td>Air jets after stations 8 and 12</td><td>Prevent heat build-up from friction</td></tr>
+                <tr><td>Power Consumption</td><td>75 kWh per ton</td><td>~$7.50 per ton at $0.10/kWh</td></tr>
+            </table>
+            
+            <h5>5. QUALITY CONTROL</h5>
+            <table class="refinery-table">
+                <tr><th>Test</th><th>Method</th><th>Acceptance</th><th>Frequency</th></tr>
+                <tr><td>Profile dimensions</td><td>Laser profilometer (continuous)</td><td>Depth 60±1mm, Pitch 120±2mm</td><td>100% inline</td></tr>
+                <tr><td>Coating thickness</td><td>Eddy current gauge</td><td>Z275: 40μm min</td><td>1 per coil</td></tr>
+                <tr><td>Yield strength</td><td>Tensile test (ASTM E8)</td><td>≥350 MPa</td><td>1 per coil</td></tr>
+                <tr><td>Bend test (180°)</td><td>ASTM E290</td><td>No cracking</td><td>1 per 100 coils</td></tr>
+                <tr><td>Flatness</td><td>Dial gauge on surface plate</td><td>2mm/m max deviation</td><td>1 per hour</td></tr>
+            </table>
+            
+            <h5>6. COST BREAKDOWN (per m²)</h5>
+            <table class="refinery-table">
+                <tr><th>Cost Element</th><th>Value (USD)</th></tr>
+                <tr><td>Galvanized Coil (S350GD, Z275)</td><td>$320</td></tr>
+                <tr><td>Roll Forming</td><td>$25</td></tr>
+                <tr><td>Punching + Cutting</td><td>$12</td></tr>
+                <tr><td>Edge Protection (touch-up)</td><td>$8</td></tr>
+                <tr><td>Quality Control</td><td>$5</td></td>
+                <tr><td><strong>Total Manufacturing Cost</strong></td><td><strong>$370/m²</strong></td></tr>
+                <tr><td>10-Year Maintenance ($12/m²/year × 10)</td><td>$120/m²</td></td>
+                <tr><td><strong>Total Lifecycle Cost (10 years)</strong></td><td><strong>$490/m²</strong></td></tr>
+            </table>
+            <div class="note-box">〰️ <strong>Summary:</strong> 1.8× multiplier, 57 kg/m², 3.5× stiffness increase, best for blast resistance.</div>
+</div>`,

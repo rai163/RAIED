@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Shutter Timing & Dual-Sheet Damage Visualization Simulator with Objectives</title>
+<style>
+  body {
+    font-family: "Inter", sans-serif;
+    margin: 0; padding: 0 24px 40px 24px;
+    background: #efe8dc;
+    color: #1f2627;
+    min-width: 900px;
+    line-height: 1.4;
+  }
+  h1, h2, h3 {
+    font-family: "Space Grotesk", sans-serif;
+    color: #294a72;
+    margin-top: 0;
+    margin-bottom: 0.3em;
+  }
+  h1 {
+    font-size: clamp(1.8rem, 2.5vw, 3rem);
+  }
+  h2 {
+    font-size: 1.6rem;
+    margin-top: 32px;
+  }
+  p {
+    max-width: 800px;
+    font-size: 1rem;
+    margin-bottom: 24px;
+  }
+  ul {
+    max-width: 800px;
+    font-size: 1rem;
+    margin-left: 20px;
+    margin-bottom: 32px;
+  }
+  ul li {
+    margin-bottom: 10px;
+  }
+  .simulator-container {
+    display: flex;
+    gap: 24px;
+    max-width: 1200px;
+  }
+  .controls {
+    flex: 1 1 400px;
+    background: rgba(251,248,241,0.8);
+    border-radius: 24px;
+    padding: 20px 24px;
+    box-shadow: 0 20px 60px rgba(38,28,14,0.1);
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+  .right-panel {
+    flex: 2 1 700px;
+  }
+  label {
+    font-weight: 700;
+    font-size: 0.9rem;
+    display: block;
+    margin-bottom: 6px;
+  }
+  input[type=number], select {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid #bdb4a3;
+    font-size: 1rem;
+    font-family: inherit;
+    outline: none;
+    box-sizing: border-box;
+    margin-bottom: 16px;
+  }
+  .checkbox-control {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  #defenseLine {
+    margin-top: 20px;
+    min-height: 80px;
+    border-radius: 12px;
+    border: 2px solid #d7e0e8;
+    background: white;
+    padding: 10px;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+  }
+  .segment {
+    min-width: 48px !important;
+    font-size: 0.9rem !important;
+    line-height: 1.2;
+    padding: 6px 8px;
+    border-radius: 12px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    color: white;
+    font-weight: 700;
+    white-space: pre-line;
+    user-select: none;
+    cursor: grab;
+    transition: box-shadow 0.2s ease;
+  }
+  .segment.shutter {
+    background: linear-gradient(135deg, #1f5fb8, #164a8a);
+  }
+  .segment.gap {
+    background: linear-gradient(135deg, #94a3b8, #cbd5e1);
+    color: #334155;
+    font-weight: 600;
+    cursor: default;
+  }
+  .segment.dragging {
+    opacity: 0.7;
+    box-shadow: 0 0 15px 5px rgba(31, 95, 184, 0.5);
+    cursor: grabbing;
+    z-index: 1000;
+  }
+  button {
+    padding: 12px 20px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    background: #1f5fb8;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(31, 95, 184, 0.3);
+    transition: background-color 0.3s ease;
+    width: 100%;
+    max-width: 300px;
+    margin-top: 12px;
+  }
+  button:hover {
+    background: #164a8a;
+  }
+</style>
+</head>
+<body>
+
+<h1>Shutter Timing & Dual-Sheet Damage Visualization Simulator</h1>
+
+<p>This enhanced simulator shows shutter timing, impact energy flow, load & deflection curves, and a dual steel sheet damage visualization. Adjust parameters and press "Run Simulation" to update results.</p>
+
+<h2>Aim of the Simulator</h2>
+<p>The simulator aims to provide an interactive and comprehensive tool for modeling, analyzing, and visualizing the timing, energy absorption, mechanical response, and damage effects of protective shutters subjected to impact events such as drone strikes. It supports design optimization and safety assessment of multi-layer protective systems.</p>
+
+<h2>Key Objectives</h2>
+<ul>
+  <li><strong>Simulate Shutter Closure Timing:</strong> Model the timing of side and dome shutters closing relative to the arrival of an incoming threat, ensuring shutters close in time to provide effective protection.</li>
+  <li><strong>Visualize Impact Energy Flow:</strong> Show how kinetic energy from an impact is absorbed and reduced through multiple layers, including steel sheets and air gaps, to understand energy dissipation.</li>
+  <li><strong>Model Load and Deflection Curves:</strong> Represent the mechanical load and deflection response of protective layers during impact, aiding structural integrity evaluation.</li>
+  <li><strong>Visualize Damage Severity:</strong> Provide a dual steel sheet damage visualization indicating areas of no damage, denting, or cracking based on impact energy and absorption.</li>
+  <li><strong>Enable Interactive Parameter Adjustment:</strong> Allow users to modify key parameters such as shutter count, thickness, spacing, motor power, and detection range, and observe their effects on system performance in real-time.</li>
+  <li><strong>Support Design and Safety Decisions:</strong> Assist engineers and designers in optimizing protective shutter systems for enhanced safety, reliability, and impact resistance.</li>
+</ul>
+
+<div class="simulator-container">
+  <div class="controls">
+    <h2>Input Parameters</h2>
+
+    <label for="shutterCount">Number of Single SS Shutters (0-5)</label>
+    <select id="shutterCount" onchange="onLayoutInputChange()">
+      <option value="0">0</option>
+      <option value="1">1</option>
+      <option value="2" selected>2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+    </select>
+
+    <label for="shutterThickness">Default Shutter Thickness (mm, 4-30)</label>
+    <input type="number" id="shutterThickness" min="4" max="30" step="1" value="8" onchange="onLayoutInputChange()" />
+
+    <div class="checkbox-control">
+      <input type="checkbox" id="showShutterSpaces" checked onchange="onLayoutInputChange()" />
+      <label for="showShutterSpaces">Show spaces between shutters</label>
+    </div>
+
+    <label for="shutterGap">Space Between Shutters (mm, 50-2500)</label>
+    <input type="number" id="shutterGap" min="50" max="2500" step="50" value="500" onchange="onLayoutInputChange()" />
+
+    <button id="runButton" onclick="runSimulation()">Run Simulation</button>
+  </div>
+
+  <div class="right-panel">
+    <div id="defenseLine" aria-label="Defense system layout"></div>
+    <!-- Additional simulation output panels would go here -->
+  </div>
+</div>
+
+<script>
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function createSegment({id, type, label, size, tooltip, draggable, resizable}) {
+    const seg = document.createElement('div');
+    seg.className = `segment ${type}`;
+    if (draggable) seg.setAttribute('draggable', 'true');
+    if (id) seg.id = id;
+
+    let widthPx = 0;
+    if (type === 'gap' || type === 'layer') {
+      widthPx = size * 0.08;
+    } else if (type === 'shutter') {
+      widthPx = size * 4;
+    }
+    widthPx = Math.max(widthPx, 24);
+    seg.style.width = `${widthPx}px`;
+    seg.textContent = label;
+
+    const tip = document.createElement('div');
+    tip.className = 'tooltip';
+    tip.textContent = tooltip;
+    seg.appendChild(tip);
+
+    if (resizable) {
+      const handle = document.createElement('div');
+      handle.className = 'resize-handle';
+      seg.appendChild(handle);
+      handle.addEventListener('mousedown', e => initResize(e, seg));
+    }
+
+    return seg;
+  }
+
+  let dragged = null;
+  function onDragStart(e) {
+    dragged = e.currentTarget;
+    dragged.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', '');
+  }
+  function onDragEnd(e) {
+    if (dragged) {
+      dragged.classList.remove('dragging');
+      snapDragged(dragged);
+      dragged = null;
+    }
+  }
+  function snapDragged(element) {
+    const container = element.parentNode;
+    const segments = Array.from(container.children).filter(s => s.classList.contains('segment'));
+    const elemRect = element.getBoundingClientRect();
+    const elemCenterX = elemRect.left + elemRect.width / 2;
+    let closest = null;
+    let closestDist = Infinity;
+    for (const seg of segments) {
+      if (seg === element) continue;
+      const r = seg.getBoundingClientRect();
+      const centerX = r.left + r.width / 2;
+      const dist = Math.abs(centerX - elemCenterX);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closest = seg;
+      }
+    }
+    if (closest) {
+      const containerChildren = Array.from(container.children);
+      const draggedIndex = containerChildren.indexOf(element);
+      const closestIndex = containerChildren.indexOf(closest);
+      if (elemCenterX < closest.getBoundingClientRect().left + closest.offsetWidth / 2) {
+        if (draggedIndex > closestIndex) {
+          container.insertBefore(element, closest);
+        }
+      } else {
+        if (draggedIndex < closestIndex) {
+          container.insertBefore(element, closest.nextSibling);
+        }
+      }
+    }
+    element.style.position = '';
+    element.style.left = '';
+    element.style.zIndex = '';
+  }
+  function onDragOver(e) {
+    e.preventDefault();
+  }
+  let resizing = null;
+  let startX = 0;
+  let startWidth = 0;
+  function initResize(e, segment) {
+    e.preventDefault();
+    resizing = segment;
+    startX = e.clientX;
+    startWidth = resizing.offsetWidth;
+    document.addEventListener('mousemove', doResize);
+    document.addEventListener('mouseup', stopResize);
+  }
+  function doResize(e) {
+    if (!resizing) return;
+    const dx = e.clientX - startX;
+    let newWidth = startWidth + dx;
+    newWidth = Math.max(newWidth, 24);
+    const type = resizing.classList.contains('gap') ? 'gap' : resizing.classList.contains('layer') ? 'layer' : 'shutter';
+    if (type === 'gap' || type === 'layer') {
+      const minWidth = 50 * 0.08;
+      const maxWidth = 5000 * 0.08;
+      newWidth = Math.min(Math.max(newWidth, minWidth), maxWidth);
+      resizing.style.width = `${newWidth}px`;
+      resizing.dataset.size = newWidth / 0.08;
+      resizing.textContent = `${Math.round(resizing.dataset.size)} mm`;
+    } else if (type === 'shutter') {
+      const minWidth = 4 * 4;
+      const maxWidth = 30 * 4;
+      newWidth = Math.min(Math.max(newWidth, minWidth), maxWidth);
+      resizing.style.width = `${newWidth}px`;
+      resizing.dataset.size = newWidth / 4;
+      let thickness = clamp(resizing.dataset.size, 4, 30);
+      resizing.dataset.size = thickness;
+      resizing.textContent = `SS Shutter\n${thickness.toFixed(1)} mm`;
+    }
+    const tip = document.createElement('div');
+    tip.className = 'tooltip';
+    if (type === 'gap' || type === 'layer') {
+      tip.textContent = `Size: ${Math.round(resizing.dataset.size)} mm`;
+    } else {
+      tip.textContent = `Thickness: ${resizing.dataset.size.toFixed(1)} mm`;
+    }
+    resizing.appendChild(tip);
+  }
+  function stopResize(e) {
+    if (!resizing) return;
+    document.removeEventListener('mousemove', doResize);
+    document.removeEventListener('mouseup', stopResize);
+    resizing = null;
+  }
+
+  function buildDefenseLine() {
+    const line = document.getElementById('defenseLine');
+    line.innerHTML = '';
+    const shutterCount = clamp(parseInt(document.getElementById('shutterCount').value, 10) || 0, 0, 5);
+    const shutterThickness = clamp(parseFloat(document.getElementById('shutterThickness').value) || 8, 4, 30);
+    const shutterGapMm = clamp(parseFloat(document.getElementById('shutterGap').value) || 500, 50, 2500);
+    const showSpaces = document.getElementById('showShutterSpaces').checked;
+
+    for (let i = 0; i < shutterCount; i++) {
+      const shutterSeg = createSegment({
+        id: `shutter-${i}`,
+        type: 'shutter',
+        label: `SS Shutter\n${shutterThickness} mm`,
+        size: shutterThickness,
+        tooltip: `Single SS shutter\nThickness: ${shutterThickness.toFixed(1)} mm`,
+        draggable: true,
+        resizable: true
+      });
+      shutterSeg.dataset.size = shutterThickness;
+      shutterSeg.addEventListener('dragstart', onDragStart);
+      shutterSeg.addEventListener('dragend', onDragEnd);
+      line.appendChild(shutterSeg);
+
+      if (showSpaces && i < shutterCount - 1) {
+        const gapSeg = createSegment({
+          id: `shutter-gap-${i}`,
+          type: 'gap',
+          label: `${shutterGapMm} mm`,
+          size: shutterGapMm,
+          tooltip: `Space between shutters\n${shutterGapMm.toFixed(0)} mm`,
+          draggable: false,
+          resizable: true
+        });
+        gapSeg.dataset.size = shutterGapMm;
+        line.appendChild(gapSeg);
+      }
+    }
+    const shutters = line.querySelectorAll('.segment.shutter[draggable="true"]');
+    shutters.forEach(shutter => {
+      shutter.addEventListener('dragstart', onDragStart);
+      shutter.addEventListener('dragend', onDragEnd);
+    });
+    line.addEventListener('dragover', onDragOver);
+  }
+
+  function onLayoutInputChange() {
+    buildDefenseLine();
+  }
+
+  function runSimulation() {
+    alert('Simulation logic to be implemented here.');
+  }
+
+  window.addEventListener('load', () => {
+    buildDefenseLine();
+  });
+</script>
+
+</body>
+</html>

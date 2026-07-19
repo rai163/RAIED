@@ -1,0 +1,847 @@
+        // ========== SHUTTER / DOME MATERIALS ==========
+        const steelShutter = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.99, roughness: 0.02, emissive: 0x444444 });
+        const pillarMat2   = new THREE.MeshStandardMaterial({ color: 0xd0b080, metalness: 0.88, roughness: 0.22 });
+
+        let moduleGroups = {};
+        let globalDomeTarget = 0.0;
+        const SHUTTER_CLOSE_DURATION = 5000;
+
+        function updateModuleTopShutters(moduleName, factor) {
+            const data = moduleGroups[moduleName];
+            if (!data) return;
+            data.topExt = factor;
+            const topY = data.topY;
+            data.topShutters.forEach(s => {
+                const { retractedZ, extendedZ, offsetY } = s.userData;
+                s.position.z = retractedZ + (extendedZ - retractedZ) * factor;
+                s.position.y = topY + 0.1 + offsetY * (1 - factor);
+            });
+        }
+        function updateModuleDoors(moduleName, factor) {
+            const data = moduleGroups[moduleName];
+            if (!data) return;
+            data.doorExt = factor;
+            data.doors.forEach(d => {
+                if (d.axis === 'x') d.obj.position.x = d.open + (d.closed - d.open) * factor;
+                else d.obj.position.z = d.open + (d.closed - d.open) * factor;
+            });
+        }
+        function animateModuleShutters(moduleName, targetFactor, duration = SHUTTER_CLOSE_DURATION) {
+            const data = moduleGroups[moduleName];
+            if (!data) return;
+            const startFactor = data.topExt;
+            if (Math.abs(startFactor - targetFactor) < 0.01) return;
+            const startTime = performance.now();
+            function step(now) {
+                const elapsed = now - startTime;
+                const t = Math.min(1, elapsed / duration);
+                updateModuleTopShutters(moduleName, startFactor + (targetFactor - startFactor) * t);
+                updateModuleDoors(moduleName, startFactor + (targetFactor - startFactor) * t);
+                if (t < 1) requestAnimationFrame(step);
+            }
+            requestAnimationFrame(step);
+        }
+        function closeAllDomes() { for (let name in moduleGroups) animateModuleShutters(name, 1.0); globalDomeTarget = 1.0; }
+        function openAllDomes() { for (let name in moduleGroups) animateModuleShutters(name, 0.0); globalDomeTarget = 0.0; }
+        function playShutterSound() { try { const audio = new Audio('Shutters are closing or openning.mp3'); audio.volume = 0.3; audio.play(); } catch(e) {} }
+
+        // ★★★ CORRECTED DOOR CLOSING – GAP‑FREE FOR ALL MODULE SIZES ★★★
+        function rebuildModule(name) {
+            const cfg = moduleConfig[name];
+            if (!cfg) return;
+            const { x, z, color, domeW, domeD, domeH } = cfg;
+            if (moduleGroups[name]) { scene.remove(moduleGroups[name].group); if (moduleGroups[name].label) scene.remove(moduleGroups[name].label); }
+            const group = new THREE.Group();
+            const baseY = -0.5, topY = baseY + domeH;
+            const innerGroup = new THREE.Group();
+            // Add the appropriate detailed model
+            if      (name === 'FCCU')    innerGroup.add(buildFCCUModel());
+            else if (name === 'HHU')     innerGroup.add(buildHHUModel());
+            else if (name === 'CDU')     innerGroup.add(buildCDUModel());
+            else if (name === 'VDU')     innerGroup.add(buildVDUModel());
+            else if (name === 'CRU')     innerGroup.add(buildCRUModel());
+            else if (name === 'LPG')     innerGroup.add(buildLPGModel());
+            else if (name === 'STORAGE') innerGroup.add(buildSTORAGEModel());
+            else if (name === 'DCS')     innerGroup.add(buildDCSModel());
+            else if (name === 'SRU')     innerGroup.add(buildSRUModel());
+            else if (name === 'PPU')     innerGroup.add(buildPPUModel());
+            else if (name === 'RS')      innerGroup.add(buildRSModel());
+            innerGroup.position.set(0, baseY + 0.01, 0);
+            group.add(innerGroup);
+
+            const halfW = domeW / 2, halfD = domeD / 2, pillarHeight = domeH;
+            // Four pillars
+            [[-halfW,-halfD],[halfW,-halfD],[halfW,halfD],[-halfW,halfD]].forEach(([px,pz]) => {
+                const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.8, pillarHeight, 0.8), pillarMat2);
+                pillar.position.set(px, baseY + pillarHeight/2, pz); pillar.castShadow = true; group.add(pillar);
+            });
+
+            // Dome beams (unchanged)
+            const beamHeight = 1.0, beamDepth  = 0.8;
+            const beamColor = landConfig.domeBeamColor || 0xff8844;
+            const beamMat = new THREE.MeshStandardMaterial({ color: beamColor, metalness: 0.6, roughness: 0.2, emissive: beamColor, emissiveIntensity: 0.8 });
+            const beamInset = 0.0;
+            group.add(new THREE.Mesh(new THREE.BoxGeometry(domeW, beamHeight, beamDepth), beamMat)).position.set(0, topY, -halfD + beamInset);
+            group.add(new THREE.Mesh(new THREE.BoxGeometry(beamDepth, beamHeight, domeD), beamMat)).position.set(halfW - beamInset, topY, 0);
+            group.add(new THREE.Mesh(new THREE.BoxGeometry(domeW, beamHeight, beamDepth), beamMat)).position.set(0, topY, halfD - beamInset);
+            group.add(new THREE.Mesh(new THREE.BoxGeometry(beamDepth, beamHeight, domeD), beamMat)).position.set(-halfW + beamInset, topY, 0);
+
+            const GROUND_Y = baseY, TOP_Y = GROUND_Y + pillarHeight;
+            const crossBeamColor = landConfig.crossBeamColor || 0x444444;
+            const beadingMat = new THREE.MeshStandardMaterial({ color: crossBeamColor, metalness: 0.8, roughness: 0.3, emissive: crossBeamColor, emissiveIntensity: 0.6 });
+            [-4.0, -1.3, 1.3, 4.0].map(x => x * (domeW / 13.5)).forEach(xPos => {
+                const bar = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, domeD), beadingMat);
+                bar.position.set(xPos, TOP_Y + 0.2, 0); bar.castShadow = true; group.add(bar);
+            });
+
+            // Roof shutters (unchanged)
+            const numTracks = 5, trackWidth = domeW / numTracks, shutterThickness = 0.016, sectionCount = 4, sectionLength = domeD / sectionCount;
+            const shutterMat = new THREE.MeshStandardMaterial({ color:0xffffff, metalness:0.5, roughness:0.2 });
+            const topShutters = [];
+            for (let t=0; t<numTracks; t++) {
+                const cx = -halfW + (t+0.5)*trackWidth;
+                for (let i=0; i<sectionCount; i++) {
+                    const startZ = -halfD + i*sectionLength, centerZ = startZ + sectionLength/2;
+                    const shutter = new THREE.Mesh(new THREE.BoxGeometry(trackWidth, shutterThickness, sectionLength), shutterMat);
+                    shutter.position.set(cx, TOP_Y + 0.1 + i*0.018, -halfD);
+                    shutter.castShadow = true;
+                    shutter.userData = { retractedZ: -halfD, extendedZ: centerZ, offsetY: i*0.018 };
+                    group.add(shutter);
+                    topShutters.push(shutter);
+                }
+            }
+
+            // ---------- FACE DOORS (GAP‑FREE CLOSING) ----------
+            const doorHeight = pillarHeight - 0.5;
+            const doorY = GROUND_Y + doorHeight / 2;
+            const doorMat = new THREE.MeshStandardMaterial({ color:0xffffff, metalness:0.99, roughness:0.02, emissive:0x333333 });
+
+            // Door width = half the dome width (west/east) or half the dome depth (north/south)
+            const halfDoorWidthX = domeW / 2;
+            const halfDoorWidthZ = domeD / 2;
+
+            // Helper to create a door panel – the closed position is exactly ± halfDoorWidth, ensuring they meet at centre
+            function addHalfDoor(axis, closedPos, fixedCoord, rotY, doorWidth) {
+                // open position uses the original overlap from the editor (stored in landConfig)
+                const openOverlap = landConfig.openDoorOverlap || -2.5;
+                let openPos = closedPos;
+                if (axis === 'x') {
+                    // For west-moving doors open is more negative, east-moving more positive
+                    openPos = (closedPos < 0) ? closedPos - openOverlap : closedPos + openOverlap;
+                } else {
+                    openPos = (closedPos < 0) ? closedPos - openOverlap : closedPos + openOverlap;
+                }
+                const door = new THREE.Mesh(new THREE.BoxGeometry(doorWidth, doorHeight, 0.08), doorMat);
+                door.castShadow = true; door.rotation.y = rotY;
+                if (axis === 'x') door.position.set(openPos, doorY, fixedCoord);
+                else door.position.set(fixedCoord, doorY, openPos);
+                group.add(door);
+                return { obj: door, axis, open: openPos, closed: closedPos };
+            }
+
+            const doors = [];
+            // South face: two X‑moving doors, closed positions exactly at ±halfDoorWidthX
+            doors.push(addHalfDoor('x', -halfDoorWidthX, -halfD, 0, halfDoorWidthX));
+            doors.push(addHalfDoor('x',  halfDoorWidthX, -halfD, 0, halfDoorWidthX));
+            // East face
+            doors.push(addHalfDoor('z', -halfDoorWidthZ, halfW, Math.PI/2, halfDoorWidthZ));
+            doors.push(addHalfDoor('z',  halfDoorWidthZ, halfW, Math.PI/2, halfDoorWidthZ));
+            // North face
+            doors.push(addHalfDoor('x',  halfDoorWidthX, halfD, Math.PI, halfDoorWidthX));
+            doors.push(addHalfDoor('x', -halfDoorWidthX, halfD, Math.PI, halfDoorWidthX));
+            // West face
+            doors.push(addHalfDoor('z',  halfDoorWidthZ, -halfW, -Math.PI/2, halfDoorWidthZ));
+            doors.push(addHalfDoor('z', -halfDoorWidthZ, -halfW, -Math.PI/2, halfDoorWidthZ));
+
+            group.position.set(x, 0, z); scene.add(group);
+            const div = document.createElement('div'); div.textContent=name;
+            div.style.cssText = `color:#facc15; font-size:12px; background:rgba(0,0,0,0.6); padding:2px 6px; border-radius:16px; border-left:3px solid ${new THREE.Color(color).getStyle()}; font-family:monospace;`;
+            const label = new CSS2DObject(div); label.position.set(x, topY+0.7, z); scene.add(label);
+            moduleGroups[name] = { group, label, topShutters, doors, topExt:0, doorExt:0, topY:TOP_Y };
+            updateModuleTopShutters(name, globalDomeTarget);
+            updateModuleDoors(name, globalDomeTarget);
+        }
+
+        function rebuildAllModules() { for (let n in moduleConfig) rebuildModule(n); }
+        function removeModule3D(name) { if(moduleGroups[name]) { scene.remove(moduleGroups[name].group); if(moduleGroups[name].label) scene.remove(moduleGroups[name].label); delete moduleGroups[name]; } }
+
+        // ========== DYNAMIC LAND SIZING ==========
+        function getFenceBounds() {
+            let minX=Infinity, maxX=-Infinity, minZ=Infinity, maxZ=-Infinity;
+            fencesConfig.forEach(f=>{ const half=f.length/2, rad=(f.rotation||0)*Math.PI/180; if(Math.abs(Math.sin(rad))<0.01){ minX=Math.min(minX,f.x-half,f.x+half); maxX=Math.max(maxX,f.x-half,f.x+half); minZ=Math.min(minZ,f.z-0.1,f.z+0.1); maxZ=Math.max(maxZ,f.z-0.1,f.z+0.1); } else if(Math.abs(Math.cos(rad))<0.01){ minZ=Math.min(minZ,f.z-half,f.z+half); maxZ=Math.max(maxZ,f.z-half,f.z+half); minX=Math.min(minX,f.x-0.1,f.x+0.1); maxX=Math.max(maxX,f.x-0.1,f.x+0.1); } else { minX=Math.min(minX,f.x-half); maxX=Math.max(maxX,f.x+half); minZ=Math.min(minZ,f.z-half); maxZ=Math.max(maxZ,f.z+half); } });
+            return {minX,maxX,minZ,maxZ};
+        }
+        let groundPlane, externalPlane, gridHelper;
+        function rebuildLand() {
+            if(groundPlane) scene.remove(groundPlane); if(externalPlane) scene.remove(externalPlane); if(gridHelper) scene.remove(gridHelper);
+            const b=getFenceBounds(); const minX=b.minX-marginWest, maxX=b.maxX+marginEast, minZ=b.minZ-marginSouth, maxZ=b.maxZ+marginNorth;
+            const sizeX=maxX-minX, sizeZ=maxZ-minZ, cx=(minX+maxX)/2, cz=(minZ+maxZ)/2;
+            groundPlane = new THREE.Mesh(new THREE.PlaneGeometry(sizeX,sizeZ), new THREE.MeshStandardMaterial({color:landConfig.groundColor,roughness:0.7}));
+            groundPlane.rotation.x=-Math.PI/2; groundPlane.position.set(cx,-0.5,cz); groundPlane.receiveShadow=true; scene.add(groundPlane);
+            externalPlane = new THREE.Mesh(new THREE.PlaneGeometry(Math.max(sizeX,sizeZ)+200,Math.max(sizeX,sizeZ)+200), new THREE.MeshStandardMaterial({color:landConfig.externalColor,roughness:0.8}));
+            externalPlane.rotation.x=-Math.PI/2; externalPlane.position.set(cx,-0.55,cz); externalPlane.receiveShadow=true; externalPlane.visible=showExternalPlane; scene.add(externalPlane);
+            gridHelper = new THREE.GridHelper(sizeX, Math.floor(sizeX/10), landConfig.gridColor, 0x6688aa);
+            gridHelper.position.set(cx,-0.4,cz); gridHelper.material.transparent=true; gridHelper.material.opacity=landConfig.gridOpacity; scene.add(gridHelper);
+        }
+
+        // ========== REBUILD FUNCTIONS ==========
+        let gateObjects=[];
+        function rebuildGates() {
+            gateObjects.forEach(g=>scene.remove(g)); gateObjects=[];
+            function addGate(cfg){ const g=new THREE.Group(); const pMat=new THREE.MeshStandardMaterial({color:0x7f8c8d}); const l=new THREE.Mesh(new THREE.BoxGeometry(cfg.pillarWidth,cfg.height,1.5),pMat); l.position.set(-cfg.width/2,cfg.height/2,0); const r=new THREE.Mesh(new THREE.BoxGeometry(cfg.pillarWidth,cfg.height,1.5),pMat); r.position.set(cfg.width/2,cfg.height/2,0); const t=new THREE.Mesh(new THREE.BoxGeometry(cfg.width+0.4,0.5,1.2),new THREE.MeshStandardMaterial({color:cfg.topColor,metalness:0.8})); t.position.set(0,cfg.height-0.2,0); g.add(l,r,t); g.position.set(cfg.x,cfg.y||0,cfg.z); scene.add(g); gateObjects.push(g); }
+            addGate(gateConfig.south); addGate(gateConfig.west); addGate(gateConfig.east);
+        }
+
+        let staffParkingGroup = null;
+        function rebuildStaffParking() {
+            if (staffParkingGroup) scene.remove(staffParkingGroup);
+            staffParkingGroup = new THREE.Group();
+            const sp = parkingConfig.staffCarPark; if (!sp) return;
+            const landColor = sp.landColor !== undefined ? sp.landColor : 0xcccccc;
+            const lotMat = new THREE.MeshStandardMaterial({ color: landColor, roughness: 0.7 });
+            const lot = new THREE.Mesh(new THREE.BoxGeometry(sp.width, 0.2, sp.depth), lotMat); lot.position.y = -0.45; lot.receiveShadow = true; staffParkingGroup.add(lot);
+            const laneWidth = 6.0;
+            const dashMat = new THREE.MeshStandardMaterial({ color: 0x444444 });
+            for (let ix = -sp.width/2 + 2; ix < sp.width/2 - 2; ix += 2.5) { const dash = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.12, 0.15), dashMat); dash.position.set(ix, -0.38, 0); staffParkingGroup.add(dash); }
+            const rowSpacing = 5.5, colSpacing = 5.5;
+            const firstRowZ = laneWidth/2 + 2.5, firstColX = -sp.width/2 + 3.0;
+            function addCar(lx, lz, rotY, color = 0xfacc15) { const car = createCarModel(color); car.position.set(lx, -0.25, lz); car.rotation.y = rotY; staffParkingGroup.add(car); }
+            const skipSpots = [{ col:4, row:2, side:'north' }, { col:4, row:2, side:'south' }];
+            for (let row=0; row<3; row++) for (let col=0; col<5; col++) { if (!skipSpots.some(s=>s.side==='north' && s.row===row && s.col===col)) addCar(firstColX+col*colSpacing, firstRowZ+row*rowSpacing, 0); }
+            const firstRowZSouth = -laneWidth/2 - 2.5;
+            for (let row=0; row<3; row++) for (let col=0; col<5; col++) { if (!skipSpots.some(s=>s.side==='south' && s.row===row && s.col===col)) addCar(firstColX+col*colSpacing, firstRowZSouth-row*rowSpacing, Math.PI); }
+            if (parkingConfig.staffParkingFences) {
+                const postMatF = new THREE.MeshStandardMaterial({ color:0xaaaaaa }), railMatF = new THREE.MeshStandardMaterial({ color:0x999999 });
+                parkingConfig.staffParkingFences.forEach(f => {
+                    const fGroup = new THREE.Group();
+                    const len = f.length, h = f.height, w = f.width;
+                    const railGeo = new THREE.BoxGeometry(len, 0.08, 0.12);
+                    for (let yOff = 0.3; yOff <= 0.9; yOff += 0.3) {
+                        const rail = new THREE.Mesh(railGeo, railMatF);
+                        rail.position.set(0, -0.5 + h * yOff, 0); fGroup.add(rail);
+                    }
+                    const steps = Math.floor(len / 2) + 1;
+                    for (let i = 0; i <= steps; i++) {
+                        const t = i / steps; const postX = -len / 2 + t * len;
+                        const post = new THREE.Mesh(new THREE.BoxGeometry(w, h, w), postMatF);
+                        post.position.set(postX, -0.5 + h / 2, 0); fGroup.add(post);
+                    }
+                    fGroup.position.set(f.x, f.y || 0, f.z);
+                    fGroup.rotation.y = (f.rotation || 0) * Math.PI / 180;
+                    staffParkingGroup.add(fGroup);
+                });
+            }
+            staffParkingGroup.position.set(sp.x, 0, sp.z);
+            staffParkingGroup.rotation.y = (sp.rotation || 0) * Math.PI / 180;
+            scene.add(staffParkingGroup);
+        }
+
+        let visitorBaysGroup = null;
+        function rebuildVisitorParking() {
+            if (visitorBaysGroup) scene.remove(visitorBaysGroup);
+            visitorBaysGroup = new THREE.Group();
+            const bays = parkingConfig.visitorBays;
+            bays.forEach(bay => { const color = parseInt(bay.color.replace('#',''),16); const bayMat = new THREE.MeshStandardMaterial({ color, roughness:0.6 }); const bayMesh = new THREE.Mesh(new THREE.BoxGeometry(bay.length,0.01,bay.width), bayMat); bayMesh.position.set(0,bay.y||-0.48,0); bayMesh.receiveShadow = true; const bayGroup = new THREE.Group(); bayGroup.add(bayMesh); bayGroup.position.set(bay.x,0,bay.z); bayGroup.rotation.y = (bay.rotation||0)*Math.PI/180; visitorBaysGroup.add(bayGroup); });
+            scene.add(visitorBaysGroup);
+        }
+        let truckScaleObjects = [];
+        function rebuildTruckScale() {
+            truckScaleObjects.forEach(o => scene.remove(o)); truckScaleObjects = [];
+            const ts = parkingConfig.truckScale;
+            const scaleMat = new THREE.MeshStandardMaterial({ color: ts.color||0xcccccc, metalness:0.6 });
+            const platform = new THREE.Mesh(new THREE.BoxGeometry(ts.width, ts.platformHeight, ts.depth), scaleMat);
+            platform.position.set(ts.x, -0.35+ts.platformHeight/2, ts.z); platform.castShadow = true; scene.add(platform); truckScaleObjects.push(platform);
+            const signMat = new THREE.MeshStandardMaterial({ color: ts.signColor||0xf1c40f });
+            const sign = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.1, 2.5), signMat); sign.position.set(ts.x, 0.1, ts.z+6); scene.add(sign); truckScaleObjects.push(sign);
+        }
+        let rampObjects = [];
+        function rebuildRamps() {
+            rampObjects.forEach(g => scene.remove(g)); rampObjects = [];
+            const ramps = parkingConfig.ramps || [];
+            ramps.forEach(r => {
+                const group = new THREE.Group();
+                const heightStart = r.heightStart || 0, heightEnd = r.heightEnd || 0, length = r.length || 10, width = r.width || 20;
+                const vertices = new Float32Array([-width/2,heightStart,-length/2, width/2,heightStart,-length/2, width/2,heightEnd,length/2, -width/2,heightEnd,length/2]);
+                const indices = [0,1,2, 0,2,3, 0,2,1, 0,3,2];
+                const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.BufferAttribute(vertices,3)); geometry.setIndex(indices); geometry.computeVertexNormals();
+                const rampMat = new THREE.MeshStandardMaterial({ color:0x8B8B8B, roughness:0.7, side:THREE.DoubleSide });
+                const mesh = new THREE.Mesh(geometry, rampMat); mesh.castShadow = true; mesh.receiveShadow = true; group.add(mesh);
+                group.position.set(r.x||0, (r.yOffset||0), r.z||0); group.rotation.y = (r.rotation||0)*Math.PI/180; scene.add(group); rampObjects.push(group);
+            });
+        }
+        let roadMeshes = [];
+        function rebuildRoads() {
+            roadMeshes.forEach(m => scene.remove(m)); roadMeshes = [];
+            const r = roadConfig;
+            const mainMat = new THREE.MeshStandardMaterial({ color: r.main.color, roughness:0.6 });
+            const mainRoad = new THREE.Mesh(new THREE.BoxGeometry(r.main.width, 0.1, r.main.length), mainMat);
+            mainRoad.position.set(r.main.x, -0.45, r.main.z); mainRoad.rotation.y = r.main.rot*Math.PI/180; mainRoad.receiveShadow = true; scene.add(mainRoad); roadMeshes.push(mainRoad);
+            const mainLine = new THREE.Mesh(new THREE.BoxGeometry(0.2,0.12,r.main.length-0.5), new THREE.MeshStandardMaterial({ color:r.main.lineColor }));
+            mainLine.position.set(r.main.x, -0.38, r.main.z); mainLine.rotation.y = r.main.rot*Math.PI/180; scene.add(mainLine); roadMeshes.push(mainLine);
+            const crossMat = new THREE.MeshStandardMaterial({ color: r.cross.color, roughness:0.6 });
+            const crossRoad = new THREE.Mesh(new THREE.BoxGeometry(r.cross.width,0.1,r.cross.length), crossMat);
+            crossRoad.position.set(r.cross.x, -0.44, r.cross.z); crossRoad.rotation.y = r.cross.rot*Math.PI/180; crossRoad.receiveShadow = true; scene.add(crossRoad); roadMeshes.push(crossRoad);
+            const crossLine = new THREE.Mesh(new THREE.BoxGeometry(0.2,0.12,r.cross.length-0.5), new THREE.MeshStandardMaterial({ color:r.cross.lineColor }));
+            crossLine.position.set(r.cross.x, -0.37, r.cross.z); crossLine.rotation.y = r.cross.rot*Math.PI/180; scene.add(crossLine); roadMeshes.push(crossLine);
+            const leftMat = new THREE.MeshStandardMaterial({ color: r.left.color, roughness:0.6 });
+            const leftRoad = new THREE.Mesh(new THREE.BoxGeometry(r.left.width,0.1,r.left.length), leftMat);
+            leftRoad.position.set(r.left.x, -0.45, r.left.z); leftRoad.rotation.y = r.left.rot*Math.PI/180; leftRoad.receiveShadow = true; scene.add(leftRoad); roadMeshes.push(leftRoad);
+            const leftLine = new THREE.Mesh(new THREE.BoxGeometry(0.2,0.12,r.left.length-0.5), new THREE.MeshStandardMaterial({ color:r.left.lineColor }));
+            leftLine.position.set(r.left.x, -0.38, r.left.z); leftLine.rotation.y = r.left.rot*Math.PI/180; scene.add(leftLine); roadMeshes.push(leftLine);
+            const rightMat = new THREE.MeshStandardMaterial({ color: r.right.color, roughness:0.6 });
+            const rightRoad = new THREE.Mesh(new THREE.BoxGeometry(r.right.width,0.1,r.right.length), rightMat);
+            rightRoad.position.set(r.right.x, -0.45, r.right.z); rightRoad.rotation.y = r.right.rot*Math.PI/180; rightRoad.receiveShadow = true; scene.add(rightRoad); roadMeshes.push(rightRoad);
+            const rightLine = new THREE.Mesh(new THREE.BoxGeometry(0.2,0.12,r.right.length-0.5), new THREE.MeshStandardMaterial({ color:r.right.lineColor }));
+            rightLine.position.set(r.right.x, -0.38, r.right.z); rightLine.rotation.y = r.right.rot*Math.PI/180; scene.add(rightLine); roadMeshes.push(rightLine);
+            const ringMat = new THREE.MeshStandardMaterial({ color: r.ring.color, roughness:0.6 });
+            const ringRoad = new THREE.Mesh(new THREE.RingGeometry(r.ring.radiusInner, r.ring.radiusOuter, 64), ringMat);
+            ringRoad.rotation.x = -Math.PI/2; ringRoad.position.y = r.ring.y; ringRoad.receiveShadow = true; scene.add(ringRoad); roadMeshes.push(ringRoad);
+        }
+        let fenceGroups = [];
+        function rebuildFences() { fenceGroups.forEach(g => scene.remove(g)); fenceGroups = []; const postMat = new THREE.MeshStandardMaterial({ color:0xccccaa, metalness:0.6 }), railMat = new THREE.MeshStandardMaterial({ color:0xbbaa99, metalness:0.5 }); fencesConfig.forEach(seg => { const group = new THREE.Group(); const len = seg.length, h = seg.height, w = seg.width||0.2; const railGeo = new THREE.BoxGeometry(len,0.08,0.12); for (let yOff=0.3; yOff<=0.9; yOff+=0.3) { const rail = new THREE.Mesh(railGeo, railMat); rail.position.set(0, -0.5+h*yOff, 0); group.add(rail); } const steps = Math.floor(len/2)+1; for (let i=0; i<=steps; i++) { const t = i/steps; const postX = -len/2 + t*len; const post = new THREE.Mesh(new THREE.BoxGeometry(w,h,w), postMat); post.position.set(postX, -0.5+h/2, 0); group.add(post); } group.position.set(seg.x, (seg.y||0), seg.z); group.rotation.y = (seg.rotation||0)*Math.PI/180; scene.add(group); fenceGroups.push(group); }); }
+        let customRoadMeshes = [];
+        function rebuildCustomRoads() { customRoadMeshes.forEach(m => scene.remove(m)); customRoadMeshes = []; customRoadsConfig.forEach(r => { const color = parseInt(r.color?.replace('#','')||'111111',16); const roadMat = new THREE.MeshStandardMaterial({ color, roughness:0.8 }); const road = new THREE.Mesh(new THREE.BoxGeometry(r.width,0.12,r.length), roadMat); road.position.set(r.x, -0.44, r.z); road.rotation.y = (r.rot||0)*Math.PI/180; road.receiveShadow = true; scene.add(road); customRoadMeshes.push(road); const lineMat = new THREE.MeshStandardMaterial({ color:0xfacc15 }); const line = new THREE.Mesh(new THREE.BoxGeometry(0.2,0.13,r.length-0.5), lineMat); line.position.set(r.x, -0.37, r.z); line.rotation.y = (r.rot||0)*Math.PI/180; scene.add(line); customRoadMeshes.push(line); }); }
+        let treeObjects = [];
+        function rebuildTrees() {
+            treeObjects.forEach(t => scene.remove(t));
+            treeObjects = [];
+            treesConfig.forEach(cfg => {
+                if (!cfg.enabled) return;
+                const len = cfg.length, height = cfg.height, thickness = cfg.thickness || 0.3, spacing = cfg.spacing || 3;
+                const count = Math.floor(len / spacing) + 1;
+                const rot = (cfg.rotation || 0) * Math.PI / 180;
+                const dx = Math.cos(rot), dz = Math.sin(rot);
+                const startX = cfg.x - dx * len / 2, startZ = cfg.z - dz * len / 2;
+                for (let i = 0; i < count; i++) {
+                    const t = i * spacing, px = startX + dx * t, pz = startZ + dz * t;
+                    const tree = createTreeModel(height);
+                    tree.position.set(px, cfg.y - 0.5, pz); tree.castShadow = true;
+                    scene.add(tree); treeObjects.push(tree);
+                }
+            });
+        }
+        let fireEngineObjects = [];
+        function rebuildFireEngines() { fireEngineObjects.forEach(obj => scene.remove(obj)); fireEngineObjects = []; fireEnginesConfig.forEach(cfg => { const model = createFireEngineModel(cfg); model.position.set(cfg.x||0, cfg.y||0, cfg.z||0); model.scale.setScalar(cfg.scale||1); model.rotation.y = (cfg.rotation||0)*Math.PI/180; model.castShadow = true; model.receiveShadow = true; scene.add(model); fireEngineObjects.push(model); }); }
+
+        // ========== PATH DRAWING & MODULE PLACEMENT ==========
+        let drawMode = null, drawnPoints = []; let pathLines = {};
+        const raycaster = new THREE.Raycaster(), mouse = new THREE.Vector2();
+        const drawIndicator = document.getElementById('drawIndicator');
+        let placeMode = false, placeTemplateModule = null, placePreviewCube = null;
+        const coordTooltip = document.getElementById('coordTooltip'); let coordTooltipTimeout = null;
+
+        function startDraw(mode) { drawMode = mode; drawnPoints = []; drawIndicator.style.display = 'block'; controls.enabled = false; }
+        function finishDraw() {
+            if (!drawMode) return;
+            const currentMode = drawMode; drawMode = null; drawIndicator.style.display = 'none'; controls.enabled = true;
+            const pathStr = drawnPoints.map(p => `${p.x.toFixed(1)},${p.z.toFixed(1)}`).join('\n');
+            const mapping = { white:'whiteCarPath', truck:'smallTruckPath', carDriver:'carDriverWalkPath', truckDriver:'truckDriverWalkPath', whiteExit:'whiteCarExitPath', truckExit:'smallTruckExitPath', vip:'vipCarPath', vipWalk:'vipWalkPath', vipExit:'vipExitPath', mtArrival:'mtArrivalPath', mtDeparture:'mtDeparturePath', mtEngineerWalk:'mtEngineerWalkPath', tankerArrival:'tankerArrivalPath', tankerDeparture:'tankerDeparturePath' };
+            const key = mapping[currentMode];
+            if (key) { parkingConfig[key] = pathStr; const ta = document.getElementById(key+'Text'); if (ta) ta.value = pathStr; }
+            if (pathLines[currentMode]) { scene.remove(pathLines[currentMode]); pathLines[currentMode] = null; }
+        }
+        function addWaypoint(intersectPoint) {
+            drawnPoints.push({ x: intersectPoint.x, z: intersectPoint.z });
+            const points3D = drawnPoints.map(p => new THREE.Vector3(p.x, -0.4, p.z));
+            const geom = new THREE.BufferGeometry().setFromPoints(points3D);
+            const mat = new THREE.LineBasicMaterial({ color:0x00ff00 });
+            if (pathLines[drawMode]) scene.remove(pathLines[drawMode]);
+            const line = new THREE.Line(geom, mat); scene.add(line); pathLines[drawMode] = line;
+        }
+        function startPlaceModule(templateKey) {
+            if (placeMode) return; placeTemplateModule = templateKey; placeMode = true; controls.enabled = false;
+            if (placePreviewCube) scene.remove(placePreviewCube);
+            const cfg = defaultModules[templateKey]; const previewGeom = new THREE.BoxGeometry(cfg.w, cfg.h, cfg.d);
+            const previewMat = new THREE.MeshStandardMaterial({ color: cfg.color, transparent:true, opacity:0.5 });
+            placePreviewCube = new THREE.Mesh(previewGeom, previewMat); placePreviewCube.position.y = cfg.h/2 - 0.5;
+            scene.add(placePreviewCube); document.body.style.cursor = 'crosshair';
+        }
+        function cancelPlaceModule() {
+            placeMode = false; placeTemplateModule = null;
+            if (placePreviewCube) { scene.remove(placePreviewCube); placePreviewCube = null; }
+            controls.enabled = true; document.body.style.cursor = '';
+        }
+        function placeModuleAt(point) {
+            if (!placeTemplateModule) return;
+            const baseConfig = defaultModules[placeTemplateModule]; let idx = 1; const baseName = placeTemplateModule;
+            let newName = `${baseName}_${idx}`; while (moduleConfig[newName]) { idx++; newName = `${baseName}_${idx}`; }
+            const newModule = { ...baseConfig, x: point.x, z: point.z };
+            moduleConfig[newName] = newModule; rebuildModule(newName); buildEditorUI(); cancelPlaceModule();
+        }
+
+        // ========== TRAFFIC ==========
+        const VEHICLE_SPEED = 6;
+        let carEastbound = null, carWestbound = null;
+        let staffCarWhite = null, whiteWaypointIndex = 0, whitePathActive = false, whiteDelayTimer = 0, whiteCarArrived = false;
+        let whiteEngineer = null, whiteWalkingToDCS = false, whiteAtDCS = false, whiteWalkingBack = false, whiteWaitTimer = 0;
+        let staffTruckSmall = null, truckWaypointIndex = 0, truckPathActive = false, truckDelayTimer = 0, truckArrived = false;
+        let truckEngineer = null, truckWalkingToDCS = false, truckAtDCS = false, truckWalkingBack = false, truckWaitTimer = 0;
+        let vipCar = null, vipWaypointIndex = 0, vipPathActive = false, vipDelayTimer = 0, vipArrived = false;
+        let vipEngineer = null, vipWalking = false, vipAtDCS = false, vipWalkingBack = false, vipWaitTimer = 0;
+        let van = null, vanEngineer = null; const vanStartPos = { x: 97.6, z: -63.90 };
+        const MT_STATE = { IDLE:0, ARRIVING:1, WAITING_AT_STOP:2, ENGINEER_WALK_TO_PPU:3, ENGINEER_AT_PPU:4, ENGINEER_WALK_BACK:5, DEPARTING:6 };
+        let mtState = MT_STATE.IDLE, mtArrivalIdx = 0, mtDepartureIdx = 0, mtWaitTimer = 0;
+        let tanker = null; const TANKER_STATE = { IDLE:0, ARRIVING:1, AT_SCALE:2, DEPARTING:3 };
+        let tankerState = TANKER_STATE.IDLE, tankerArrivalIdx = 0, tankerDepartureIdx = 0, tankerWaitTimer = 0;
+        let shelterStaff = []; let alarmActive = false;
+        let alarmPartialClose = false, alarmVehiclesFrozen = false, allEmergencyStaff = [];
+
+        function resetMT() { mtState = MT_STATE.IDLE; mtArrivalIdx = 0; mtDepartureIdx = 0; mtWaitTimer = 0; if (vanEngineer) { scene.remove(vanEngineer); vanEngineer = null; } }
+        function resetTanker() { tankerState = TANKER_STATE.IDLE; tankerArrivalIdx = 0; tankerDepartureIdx = 0; tankerWaitTimer = 0; }
+        function createTrafficCars() {
+            if (carEastbound) scene.remove(carEastbound); if (carWestbound) scene.remove(carWestbound);
+            const road = roadConfig.cross; const halfLen = road.length/2, laneWidth = road.width/2 - 1.5;
+            carEastbound = createCarModel(0xffffff); carEastbound.position.set(road.x - halfLen, -0.25, road.z - laneWidth); carEastbound.rotation.y = Math.PI/2; scene.add(carEastbound);
+            carWestbound = createCarModel(0xffffff); carWestbound.position.set(road.x + halfLen, -0.25, road.z + laneWidth); carWestbound.rotation.y = -Math.PI/2; scene.add(carWestbound);
+            resetStaffVehicles(); resetVIP();
+            if (van) scene.remove(van); if (vanEngineer) scene.remove(vanEngineer);
+            van = createMaintenanceVanModel(); const start = mtArrivalPath.length > 0 ? mtArrivalPath[0] : vanStartPos; van.position.set(start.x, -0.25, start.z); van.rotation.y = 0; scene.add(van); resetMT();
+            if (tanker) scene.remove(tanker); tanker = createOilTankerModel(); tanker.scale.set(1.5,1.5,1.5); const tankerStart = tankerArrivalPath.length > 0 ? tankerArrivalPath[0] : { x:-100, z:0 }; tanker.position.set(tankerStart.x, getTankerSurfaceY(tankerStart.x, tankerStart.z)+0.15+tankerYOffset, tankerStart.z); tanker.rotation.y = 0; scene.add(tanker); resetTanker();
+            shelterStaff.forEach(s => scene.remove(s.model)); shelterStaff = [];
+        }
+        function walkAlongPath(eng, path, speed, delta) {
+            if (!eng || !path || path.length === 0) return false;
+            if (eng.userData.wpIdx === undefined) eng.userData.wpIdx = 0;
+            const idx = eng.userData.wpIdx;
+            if (idx >= path.length) { eng.userData.wpIdx = path.length - 1; return true; }
+            const target = path[idx];
+            const dx = target.x - eng.position.x, dz = target.z - eng.position.z;
+            const dist = Math.hypot(dx, dz);
+            if (dist < 0.3) { eng.position.set(target.x, 0, target.z); eng.userData.wpIdx = Math.min(idx + 1, path.length - 1); if (eng.userData.wpIdx === path.length - 1 && dist < 0.3) return true; return false; }
+            else { const step = Math.min(speed * delta, dist); eng.position.x += (dx / dist) * step; eng.position.z += (dz / dist) * step; return false; }
+        }
+        function walkBackAlongPath(eng, path, speed, delta) {
+            if (!eng || !path || path.length === 0) return false;
+            if (eng.userData.wpIdx === undefined) eng.userData.wpIdx = path.length - 1;
+            const idx = eng.userData.wpIdx;
+            if (idx < 0) return true;
+            const target = path[idx];
+            const dx = target.x - eng.position.x, dz = target.z - eng.position.z;
+            const dist = Math.hypot(dx, dz);
+            if (dist < 0.3) { eng.position.set(target.x, 0, target.z); eng.userData.wpIdx = Math.max(idx - 1, -1); if (eng.userData.wpIdx < 0) return true; return false; }
+            else { const step = Math.min(speed * delta, dist); eng.position.x += (dx / dist) * step; eng.position.z += (dz / dist) * step; return false; }
+        }
+        function resetStaffVehicles() { if (staffCarWhite) { scene.remove(staffCarWhite); staffCarWhite=null; } whiteWaypointIndex=0; whitePathActive=false; whiteDelayTimer=0; whiteCarArrived=false; if (whiteEngineer) { scene.remove(whiteEngineer); whiteEngineer=null; } whiteWalkingToDCS=false; whiteAtDCS=false; whiteWalkingBack=false; whiteWaitTimer=0; if (staffTruckSmall) { scene.remove(staffTruckSmall); staffTruckSmall=null; } truckWaypointIndex=0; truckPathActive=false; truckDelayTimer=0; truckArrived=false; if (truckEngineer) { scene.remove(truckEngineer); truckEngineer=null; } truckWalkingToDCS=false; truckAtDCS=false; truckWalkingBack=false; truckWaitTimer=0; }
+        function resetVIP() { if (vipCar) { scene.remove(vipCar); vipCar=null; } vipWaypointIndex=0; vipPathActive=false; vipDelayTimer=0; vipArrived=false; if (vipEngineer) { scene.remove(vipEngineer); vipEngineer=null; } vipWalking=false; vipAtDCS=false; vipWalkingBack=false; vipWaitTimer=0; }
+        function getTankerSurfaceY(x,z) { const scale=parkingConfig.truckScale; const halfScaleZ=scale.depth/2; const scaleZMin=scale.z-halfScaleZ, scaleZMax=scale.z+halfScaleZ; const scaleHalfW=scale.width/2; const xMin=scale.x-scaleHalfW, xMax=scale.x+scaleHalfW; const platformTop=scale.platformHeight; const scaleTopWorldY=(-0.35+platformTop/2)+platformTop/2; const roadY=-0.4; if (x>=xMin && x<=xMax && z>=scaleZMin && z<=scaleZMax) return scaleTopWorldY; const ramps=parkingConfig.ramps||[]; for (const ramp of ramps) { const hw=ramp.width/2, hl=ramp.length/2; const rotRad=(ramp.rotation||0)*Math.PI/180; const cosR=Math.cos(rotRad), sinR=Math.sin(rotRad); const dx=x-ramp.x, dz=z-ramp.z; const localX=dx*cosR+dz*sinR, localZ=-dx*sinR+dz*cosR; if (Math.abs(localX)<=hw && Math.abs(localZ)<=hl) { const t=(localZ+hl)/(2*hl); const hStart=ramp.heightStart||0, hEnd=ramp.heightEnd||0; return hStart+t*(hEnd-hStart); } } return roadY; }
+
+        function gatherAllPersonnelForEmergency() {
+            allEmergencyStaff = [];
+            shelterStaff.forEach(s => allEmergencyStaff.push(s));
+            if (whiteEngineer && whiteEngineer.parent) allEmergencyStaff.push({ model: whiteEngineer, target: { x: moduleConfig.RS.x, z: moduleConfig.RS.z }, sheltered: false });
+            if (truckEngineer && truckEngineer.parent) allEmergencyStaff.push({ model: truckEngineer, target: { x: moduleConfig.RS.x, z: moduleConfig.RS.z }, sheltered: false });
+            if (vipEngineer && vipEngineer.parent) allEmergencyStaff.push({ model: vipEngineer, target: { x: moduleConfig.RS.x, z: moduleConfig.RS.z }, sheltered: false });
+            if (vanEngineer && vanEngineer.parent) allEmergencyStaff.push({ model: vanEngineer, target: { x: moduleConfig.RS.x, z: moduleConfig.RS.z }, sheltered: false });
+            alarmVehiclesFrozen = true;
+        }
+        function emergencyUpdate(delta) {
+            for (const s of allEmergencyStaff) {
+                if (!s.sheltered) {
+                    const dx = s.target.x - s.model.position.x, dz = s.target.z - s.model.position.z;
+                    const dist = Math.hypot(dx, dz);
+                    if (dist < 2) { s.model.visible = false; s.sheltered = true; }
+                    else { const step = Math.min(2 * delta, dist); s.model.position.x += (dx / dist) * step; s.model.position.z += (dz / dist) * step; }
+                }
+            }
+            if (allEmergencyStaff.length > 0 && allEmergencyStaff.every(s => s.sheltered) && alarmPartialClose) {
+                closeAllDomes(); alarmPartialClose = false;
+            }
+        }
+
+        function updateTraffic(delta) {
+            if (!parkingConfig.animationLoop && !alarmVehiclesFrozen) return;
+            if (alarmVehiclesFrozen) { emergencyUpdate(delta); return; }
+            const road = roadConfig.cross; const minX = road.x - road.length/2, maxX = road.x + road.length/2;
+            if (carEastbound) { let xE = carEastbound.position.x + VEHICLE_SPEED*delta; if (xE > maxX) xE = minX; carEastbound.position.x = xE; }
+            if (carWestbound) { let xW = carWestbound.position.x - VEHICLE_SPEED*delta; if (xW < minX) xW = maxX; carWestbound.position.x = xW; }
+            if (!whitePathActive) { whiteDelayTimer += delta; if (whiteDelayTimer >= 3 && whiteCarPath.length > 1 && !whiteCarArrived) { whitePathActive = true; whiteWaypointIndex = 0; staffCarWhite = createCarModel(0xffffff); staffCarWhite.position.set(whiteCarPath[0].x, -0.25, whiteCarPath[0].z); staffCarWhite.rotation.y = 0; scene.add(staffCarWhite); whiteWaypointIndex = 1; } }
+            else if (staffCarWhite && whiteWaypointIndex < whiteCarPath.length && !whiteCarArrived) { const target = whiteCarPath[whiteWaypointIndex]; const dx = target.x - staffCarWhite.position.x, dz = target.z - staffCarWhite.position.z; const dist = Math.hypot(dx, dz); if (dist < 0.3) { staffCarWhite.position.set(target.x, -0.25, target.z); whiteWaypointIndex++; if (whiteWaypointIndex >= whiteCarPath.length) { whiteCarArrived = true; staffCarWhite.rotation.y = parkingConfig.staffCarPark.whiteCarRotation; whiteEngineer = createEngineerModel(); whiteEngineer.position.copy(staffCarWhite.position); whiteEngineer.position.y = 0; scene.add(whiteEngineer); whiteWalkingToDCS = true; if (whiteEngineer && carDriverWalkPath.length > 0) whiteEngineer.userData.wpIdx = 0; } } else { const step = Math.min(VEHICLE_SPEED*delta, dist); staffCarWhite.position.x += (dx/dist)*step; staffCarWhite.position.z += (dz/dist)*step; staffCarWhite.rotation.y = Math.atan2(dx, dz); } }
+            if (whiteWalkingToDCS && !whiteAtDCS && whiteEngineer) { if (walkAlongPath(whiteEngineer, carDriverWalkPath, 1.5, delta)) { whiteAtDCS = true; whiteWalkingToDCS = false; whiteWaitTimer = 0; } }
+            if (whiteAtDCS && !whiteWalkingBack) { whiteWaitTimer += delta; if (whiteWaitTimer >= parkingConfig.staffDCSWaitTime) { whiteWalkingBack = true; whiteAtDCS = false; if (whiteEngineer && carDriverWalkPath.length > 0) whiteEngineer.userData.wpIdx = carDriverWalkPath.length - 1; } }
+            if (whiteWalkingBack && whiteEngineer) { if (walkBackAlongPath(whiteEngineer, carDriverWalkPath, 1.5, delta)) { scene.remove(whiteEngineer); whiteEngineer = null; if (staffCarWhite && whiteCarExitPath.length > 0) { staffCarWhite.userData.exitPath = [...whiteCarExitPath]; staffCarWhite.userData.exitIndex = 0; } } }
+            if (staffCarWhite && staffCarWhite.userData.exitPath) { const path = staffCarWhite.userData.exitPath; const idx = staffCarWhite.userData.exitIndex; if (idx < path.length) { const target = path[idx]; const dx = target.x - staffCarWhite.position.x, dz = target.z - staffCarWhite.position.z; const dist = Math.hypot(dx, dz); if (dist < 0.3) { staffCarWhite.position.set(target.x, -0.25, target.z); staffCarWhite.userData.exitIndex++; if (staffCarWhite.userData.exitIndex >= path.length) { scene.remove(staffCarWhite); staffCarWhite = null; whiteCarArrived = false; whitePathActive = false; whiteDelayTimer = 0; if (whiteEngineer) { scene.remove(whiteEngineer); whiteEngineer = null; } whiteWalkingToDCS = false; whiteAtDCS = false; whiteWalkingBack = false; whiteWaitTimer = 0; } } else { const step = Math.min(VEHICLE_SPEED*delta, dist); staffCarWhite.position.x += (dx/dist)*step; staffCarWhite.position.z += (dz/dist)*step; staffCarWhite.rotation.y = Math.atan2(dx, dz); } } }
+            if (!truckPathActive) { truckDelayTimer += delta; if (truckDelayTimer >= 8 && smallTruckPath.length > 1 && !truckArrived) { truckPathActive = true; truckWaypointIndex = 0; staffTruckSmall = createSmallTruckModel(0xcccccc); staffTruckSmall.position.set(smallTruckPath[0].x, -0.25, smallTruckPath[0].z); staffTruckSmall.rotation.y = 0; scene.add(staffTruckSmall); truckWaypointIndex = 1; } }
+            else if (staffTruckSmall && truckWaypointIndex < smallTruckPath.length && !truckArrived) { const target = smallTruckPath[truckWaypointIndex]; const dx = target.x - staffTruckSmall.position.x, dz = target.z - staffTruckSmall.position.z; const dist = Math.hypot(dx, dz); if (dist < 0.3) { staffTruckSmall.position.set(target.x, -0.25, target.z); truckWaypointIndex++; if (truckWaypointIndex >= smallTruckPath.length) { truckArrived = true; staffTruckSmall.rotation.y = parkingConfig.staffCarPark.smallTruckRotation; truckEngineer = createEngineerModel(); truckEngineer.position.copy(staffTruckSmall.position); truckEngineer.position.y = 0; scene.add(truckEngineer); truckWalkingToDCS = true; if (truckEngineer && truckDriverWalkPath.length > 0) truckEngineer.userData.wpIdx = 0; } } else { const step = Math.min(VEHICLE_SPEED*delta, dist); staffTruckSmall.position.x += (dx/dist)*step; staffTruckSmall.position.z += (dz/dist)*step; staffTruckSmall.rotation.y = Math.atan2(dx, dz); } }
+            if (truckWalkingToDCS && !truckAtDCS && truckEngineer) { if (walkAlongPath(truckEngineer, truckDriverWalkPath, 1.5, delta)) { truckAtDCS = true; truckWalkingToDCS = false; truckWaitTimer = 0; } }
+            if (truckAtDCS && !truckWalkingBack) { truckWaitTimer += delta; if (truckWaitTimer >= parkingConfig.staffDCSWaitTime) { truckWalkingBack = true; truckAtDCS = false; if (truckEngineer && truckDriverWalkPath.length > 0) truckEngineer.userData.wpIdx = truckDriverWalkPath.length - 1; } }
+            if (truckWalkingBack && truckEngineer) { if (walkBackAlongPath(truckEngineer, truckDriverWalkPath, 1.5, delta)) { scene.remove(truckEngineer); truckEngineer = null; if (staffTruckSmall && smallTruckExitPath.length > 0) { staffTruckSmall.userData.exitPath = [...smallTruckExitPath]; staffTruckSmall.userData.exitIndex = 0; } } }
+            if (staffTruckSmall && staffTruckSmall.userData.exitPath) { const path = staffTruckSmall.userData.exitPath; const idx = staffTruckSmall.userData.exitIndex; if (idx < path.length) { const target = path[idx]; const dx = target.x - staffTruckSmall.position.x, dz = target.z - staffTruckSmall.position.z; const dist = Math.hypot(dx, dz); if (dist < 0.3) { staffTruckSmall.position.set(target.x, -0.25, target.z); staffTruckSmall.userData.exitIndex++; if (staffTruckSmall.userData.exitIndex >= path.length) { scene.remove(staffTruckSmall); staffTruckSmall = null; truckArrived = false; truckPathActive = false; truckDelayTimer = 0; if (truckEngineer) { scene.remove(truckEngineer); truckEngineer = null; } truckWalkingToDCS = false; truckAtDCS = false; truckWalkingBack = false; truckWaitTimer = 0; } } else { const step = Math.min(VEHICLE_SPEED*delta, dist); staffTruckSmall.position.x += (dx/dist)*step; staffTruckSmall.position.z += (dz/dist)*step; staffTruckSmall.rotation.y = Math.atan2(dx, dz); } } }
+            if (!vipPathActive) { vipDelayTimer += delta; if (vipDelayTimer >= parkingConfig.vipLoopDelay && vipCarPath.length > 1 && !vipArrived) { vipPathActive = true; vipWaypointIndex = 0; vipCar = createCarModel(0xffd700); vipCar.position.set(vipCarPath[0].x, -0.25, vipCarPath[0].z); vipCar.rotation.y = 0; scene.add(vipCar); vipWaypointIndex = 1; } }
+            else if (vipCar && vipWaypointIndex < vipCarPath.length && !vipArrived) { const target = vipCarPath[vipWaypointIndex]; const dx = target.x - vipCar.position.x, dz = target.z - vipCar.position.z; const dist = Math.hypot(dx, dz); if (dist < 0.3) { vipCar.position.set(target.x, -0.25, target.z); vipWaypointIndex++; if (vipWaypointIndex >= vipCarPath.length) { vipArrived = true; vipCar.rotation.y = parkingConfig.vipParkingRotation; vipEngineer = createEngineerModel(); vipEngineer.position.copy(vipCar.position); vipEngineer.position.y = 0; scene.add(vipEngineer); vipWalking = true; if (vipEngineer && vipWalkPath.length > 0) vipEngineer.userData.wpIdx = 0; } } else { const step = Math.min(VEHICLE_SPEED*delta, dist); vipCar.position.x += (dx/dist)*step; vipCar.position.z += (dz/dist)*step; vipCar.rotation.y = Math.atan2(dx, dz); } }
+            if (vipWalking && !vipAtDCS && vipEngineer) { if (walkAlongPath(vipEngineer, vipWalkPath, 1.5, delta)) { vipAtDCS = true; vipWalking = false; vipWaitTimer = 0; } }
+            if (vipAtDCS && !vipWalkingBack) { vipWaitTimer += delta; if (vipWaitTimer >= parkingConfig.vipDCSWaitTime) { vipWalkingBack = true; vipAtDCS = false; if (vipEngineer && vipWalkPath.length > 0) vipEngineer.userData.wpIdx = vipWalkPath.length - 1; } }
+            if (vipWalkingBack && vipEngineer) { if (walkBackAlongPath(vipEngineer, vipWalkPath, 1.5, delta)) { scene.remove(vipEngineer); vipEngineer = null; if (vipCar && vipExitPath.length > 0) { vipCar.userData.exitPath = [...vipExitPath]; vipCar.userData.exitIndex = 0; } } }
+            if (vipCar && vipCar.userData.exitPath) { const path = vipCar.userData.exitPath; const idx = vipCar.userData.exitIndex; if (idx < path.length) { const target = path[idx]; const dx = target.x - vipCar.position.x, dz = target.z - vipCar.position.z; const dist = Math.hypot(dx, dz); if (dist < 0.3) { vipCar.position.set(target.x, -0.25, target.z); vipCar.userData.exitIndex++; if (vipCar.userData.exitIndex >= path.length) { scene.remove(vipCar); vipCar = null; vipArrived = false; vipPathActive = false; vipDelayTimer = 0; if (vipEngineer) { scene.remove(vipEngineer); vipEngineer = null; } vipWalking = false; vipAtDCS = false; vipWalkingBack = false; vipWaitTimer = 0; } } else { const step = Math.min(VEHICLE_SPEED*delta, dist); vipCar.position.x += (dx/dist)*step; vipCar.position.z += (dz/dist)*step; vipCar.rotation.y = Math.atan2(dx, dz); } } }
+            if (van) {
+                switch (mtState) {
+                    case MT_STATE.IDLE: if (mtArrivalPath.length > 1) { mtArrivalIdx = 1; mtState = MT_STATE.ARRIVING; } break;
+                    case MT_STATE.ARRIVING:
+                        if (mtArrivalIdx < mtArrivalPath.length) {
+                            const target = mtArrivalPath[mtArrivalIdx];
+                            const dx = target.x - van.position.x, dz = target.z - van.position.z; const dist = Math.hypot(dx, dz);
+                            if (dist < 0.3) { van.position.set(target.x, -0.25, target.z); mtArrivalIdx++; if (mtArrivalIdx >= mtArrivalPath.length) { if (vanEngineer) scene.remove(vanEngineer); vanEngineer = createEngineerModel(); vanEngineer.position.copy(van.position); if (mtEngineerWalkPath.length > 0) { vanEngineer.position.y = mtEngineerWalkPath[0].y || 0; } else { vanEngineer.position.y = 0; } scene.add(vanEngineer); if (mtEngineerWalkPath.length > 0) vanEngineer.userData.wpIdx = 0; mtState = MT_STATE.ENGINEER_WALK_TO_PPU; } }
+                            else { const step = Math.min(VEHICLE_SPEED * delta, dist); van.position.x += (dx / dist) * step; van.position.z += (dz / dist) * step; van.rotation.y = Math.atan2(dx, dz); }
+                        }
+                        break;
+                    case MT_STATE.ENGINEER_WALK_TO_PPU:
+                        if (vanEngineer) { if (mtEngineerWalkPath.length === 0) { vanEngineer.position.y = 0.3; mtState = MT_STATE.ENGINEER_AT_PPU; mtWaitTimer = 0; vanEngineer.visible = false; } else if (walkAlongPath(vanEngineer, mtEngineerWalkPath, 1.5, delta)) { vanEngineer.position.y = 0.3; mtState = MT_STATE.ENGINEER_AT_PPU; mtWaitTimer = 0; vanEngineer.visible = false; } }
+                        break;
+                    case MT_STATE.ENGINEER_AT_PPU:
+                        mtWaitTimer += delta; if (mtWaitTimer >= parkingConfig.engineerPPUWaitTime) { mtState = MT_STATE.ENGINEER_WALK_BACK; if (vanEngineer) { if (mtEngineerWalkPath.length > 0) { const lastPt = mtEngineerWalkPath[mtEngineerWalkPath.length - 1]; vanEngineer.position.set(lastPt.x, 0.3, lastPt.z); vanEngineer.userData.wpIdx = mtEngineerWalkPath.length - 1; } vanEngineer.visible = true; } }
+                        break;
+                    case MT_STATE.ENGINEER_WALK_BACK:
+                        if (vanEngineer) { if (mtEngineerWalkPath.length === 0) { vanEngineer.position.copy(van.position); vanEngineer.position.y = 0; scene.remove(vanEngineer); vanEngineer = null; mtDepartureIdx = 0; mtState = MT_STATE.DEPARTING; } else if (walkBackAlongPath(vanEngineer, mtEngineerWalkPath, 1.5, delta)) { vanEngineer.position.copy(van.position); vanEngineer.position.y = 0; scene.remove(vanEngineer); vanEngineer = null; mtDepartureIdx = 0; mtState = MT_STATE.DEPARTING; } }
+                        break;
+                    case MT_STATE.DEPARTING:
+                        if (mtDepartureIdx < mtDeparturePath.length) { const target = mtDeparturePath[mtDepartureIdx]; const dx = target.x - van.position.x, dz = target.z - van.position.z; const dist = Math.hypot(dx, dz); if (dist < 0.3) { van.position.set(target.x, -0.25, target.z); mtDepartureIdx++; if (mtDepartureIdx >= mtDeparturePath.length) { mtState = MT_STATE.IDLE; const depot = mtArrivalPath.length > 0 ? mtArrivalPath[0] : vanStartPos; van.position.set(depot.x, -0.25, depot.z); van.rotation.y = 0; } } else { const step = Math.min(VEHICLE_SPEED * delta, dist); van.position.x += (dx / dist) * step; van.position.z += (dz / dist) * step; van.rotation.y = Math.atan2(dx, dz); } }
+                        break;
+                }
+            }
+            if (tanker) {
+                const groupY = getTankerSurfaceY(tanker.position.x, tanker.position.z) + 0.15 + tankerYOffset;
+                switch (tankerState) {
+                    case TANKER_STATE.IDLE: if (tankerArrivalPath.length > 1) { tankerArrivalIdx = 1; tankerState = TANKER_STATE.ARRIVING; } break;
+                    case TANKER_STATE.ARRIVING:
+                        if (tankerArrivalIdx < tankerArrivalPath.length) { const target = tankerArrivalPath[tankerArrivalIdx]; const dx = target.x - tanker.position.x, dz = target.z - tanker.position.z; const dist = Math.hypot(dx, dz); if (dist < 0.3) { tanker.position.set(target.x, groupY, target.z); tankerArrivalIdx++; if (tankerArrivalIdx >= tankerArrivalPath.length) { tankerState = TANKER_STATE.AT_SCALE; tankerWaitTimer = 0; } } else { const step = Math.min(VEHICLE_SPEED * delta, dist); tanker.position.x += (dx / dist) * step; tanker.position.z += (dz / dist) * step; tanker.rotation.y = Math.atan2(dx, dz); tanker.position.y = getTankerSurfaceY(tanker.position.x, tanker.position.z) + 0.15 + tankerYOffset; } }
+                        break;
+                    case TANKER_STATE.AT_SCALE: tankerWaitTimer += delta; if (tankerWaitTimer >= 30) { tankerState = TANKER_STATE.DEPARTING; tankerDepartureIdx = 0; } break;
+                    case TANKER_STATE.DEPARTING:
+                        if (tankerDepartureIdx < tankerDeparturePath.length) { const target = tankerDeparturePath[tankerDepartureIdx]; const dx = target.x - tanker.position.x, dz = target.z - tanker.position.z; const dist = Math.hypot(dx, dz); if (dist < 0.3) { tanker.position.set(target.x, groupY, target.z); tankerDepartureIdx++; if (tankerDepartureIdx >= tankerDeparturePath.length) { tankerState = TANKER_STATE.IDLE; const start = tankerArrivalPath.length > 0 ? tankerArrivalPath[0] : { x: -100, z: 0 }; tanker.position.set(start.x, getTankerSurfaceY(start.x, start.z) + 0.15 + tankerYOffset, start.z); tanker.rotation.y = 0; } } else { const step = Math.min(VEHICLE_SPEED * delta, dist); tanker.position.x += (dx / dist) * step; tanker.position.z += (dz / dist) * step; tanker.rotation.y = Math.atan2(dx, dz); tanker.position.y = getTankerSurfaceY(tanker.position.x, tanker.position.z) + 0.15 + tankerYOffset; } }
+                        break;
+                }
+            }
+            if (alarmActive) {
+                shelterStaff.forEach(s => { if (!s.sheltered) { const dx = s.target.x - s.model.position.x, dz = s.target.z - s.model.position.z; const dist = Math.hypot(dx, dz); if (dist < 2) { s.model.visible = false; s.sheltered = true; } else { const step = Math.min(2 * delta, dist); s.model.position.x += (dx / dist) * step; s.model.position.z += (dz / dist) * step; } } });
+            }
+        }
+
+        // ========== SIREN BUTTONS ==========
+        document.getElementById('alarmBtn').addEventListener('click', () => {
+            if (alarmActive) return;
+            alarmActive = true; alarmPartialClose = true;
+            for (let name in moduleGroups) animateModuleShutters(name, 0.5, 3000);
+            globalDomeTarget = 0.5;
+            document.getElementById('alarmBtn').disabled = true; document.getElementById('allClearBtn').disabled = false;
+            const rsPos = moduleConfig.RS ? { x: moduleConfig.RS.x, z: moduleConfig.RS.z } : { x: -54, z: -50 };
+            Object.keys(moduleConfig).filter(k => k !== 'RS').forEach(modName => {
+                const cfg = moduleConfig[modName];
+                for (let i = 0; i < 2; i++) { const staff = createEngineerModel(); staff.position.set(cfg.x, 0, cfg.z); scene.add(staff); shelterStaff.push({ model: staff, module: modName, target: rsPos, sheltered: false, returned: false }); }
+            });
+            gatherAllPersonnelForEmergency();
+        });
+        document.getElementById('allClearBtn').addEventListener('click', () => {
+            if (!alarmActive) return;
+            alarmActive = false; alarmPartialClose = false; alarmVehiclesFrozen = false;
+            openAllDomes();
+            document.getElementById('allClearBtn').disabled = true; document.getElementById('alarmBtn').disabled = false;
+            shelterStaff.forEach(s => { s.model.visible = true; const cfg = moduleConfig[s.module]; if (cfg) s.target = { x: cfg.x, z: cfg.z }; s.sheltered = false; });
+            allEmergencyStaff = [];
+            const checkReturn = () => {
+                let allHome = true;
+                shelterStaff.forEach(s => { if (!s.returned) { const dx = s.target.x - s.model.position.x, dz = s.target.z - s.model.position.z; if (Math.hypot(dx, dz) < 1) { scene.remove(s.model); s.returned = true; } else { allHome = false; const step = Math.min(2 * 0.016, Math.hypot(dx, dz)); s.model.position.x += (dx / Math.hypot(dx, dz)) * step; s.model.position.z += (dz / Math.hypot(dx, dz)) * step; } } });
+                if (allHome) shelterStaff = []; else requestAnimationFrame(checkReturn);
+            };
+            checkReturn();
+        });
+
+        // ========== SAVE / RESET / TOGGLE / PANEL DRAG ==========
+        document.getElementById('saveAllBtn').addEventListener('click', () => {
+            parkingConfig.whiteCarPath = document.getElementById('whiteCarPathText')?.value || parkingConfig.whiteCarPath;
+            parkingConfig.smallTruckPath = document.getElementById('smallTruckPathText')?.value || parkingConfig.smallTruckPath;
+            parkingConfig.carDriverWalkPath = document.getElementById('carDriverWalkPathText')?.value || parkingConfig.carDriverWalkPath;
+            parkingConfig.truckDriverWalkPath = document.getElementById('truckDriverWalkPathText')?.value || parkingConfig.truckDriverWalkPath;
+            parkingConfig.whiteCarExitPath = document.getElementById('whiteCarExitPathText')?.value || parkingConfig.whiteCarExitPath;
+            parkingConfig.smallTruckExitPath = document.getElementById('smallTruckExitPathText')?.value || parkingConfig.smallTruckExitPath;
+            parkingConfig.vipCarPath = document.getElementById('vipCarPathText')?.value || parkingConfig.vipCarPath;
+            parkingConfig.vipWalkPath = document.getElementById('vipWalkPathText')?.value || parkingConfig.vipWalkPath;
+            parkingConfig.vipExitPath = document.getElementById('vipExitPathText')?.value || parkingConfig.vipExitPath;
+            parkingConfig.mtArrivalPath = document.getElementById('mtArrivalPathText')?.value || parkingConfig.mtArrivalPath;
+            parkingConfig.mtDeparturePath = document.getElementById('mtDeparturePathText')?.value || parkingConfig.mtDeparturePath;
+            parkingConfig.mtEngineerWalkPath = document.getElementById('mtEngineerWalkPathText')?.value || parkingConfig.mtEngineerWalkPath;
+            parkingConfig.tankerArrivalPath = document.getElementById('tankerArrivalPathText')?.value || parkingConfig.tankerArrivalPath;
+            parkingConfig.tankerDeparturePath = document.getElementById('tankerDeparturePathText')?.value || parkingConfig.tankerDeparturePath;
+            localStorage.setItem('refinery_modules', JSON.stringify(moduleConfig));
+            localStorage.setItem('refinery_roads', JSON.stringify(roadConfig));
+            localStorage.setItem('refinery_parking', JSON.stringify(parkingConfig));
+            localStorage.setItem('refinery_gates', JSON.stringify(gateConfig));
+            localStorage.setItem('refinery_land', JSON.stringify(landConfig));
+            localStorage.setItem('refinery_fences', JSON.stringify(fencesConfig));
+            localStorage.setItem('refinery_custom_roads', JSON.stringify(customRoadsConfig));
+            localStorage.setItem('refinery_trees', JSON.stringify(treesConfig));
+            localStorage.setItem('refinery_fireEngines', JSON.stringify(fireEnginesConfig));
+            localStorage.setItem('refinery_sign', JSON.stringify(signConfig));
+            localStorage.setItem('refinery_signLoading', JSON.stringify(signLoadingConfig));
+            localStorage.setItem('refinery_signStaff', JSON.stringify(signStaffConfig));
+            localStorage.setItem('refinery_camera', JSON.stringify(cameraConfig));
+            localStorage.setItem('refinery_target', JSON.stringify(targetConfig));
+            localStorage.setItem('refinery_tankerYOffset', tankerYOffset);
+            localStorage.setItem('refinery_tankerDecal', JSON.stringify(tankerDecalConfig));
+            localStorage.setItem('refinery_marginNorth', marginNorth);
+            localStorage.setItem('refinery_marginSouth', marginSouth);
+            localStorage.setItem('refinery_marginEast', marginEast);
+            localStorage.setItem('refinery_marginWest', marginWest);
+            localStorage.setItem('refinery_showExternalPlane', showExternalPlane);
+            alert('All settings saved!');
+        });
+        document.getElementById('resetAllBtn').addEventListener('click', () => {
+            moduleConfig = { ...defaultModules }; roadConfig = { ...defaultRoads };
+            parkingConfig = JSON.parse(JSON.stringify(defaultParking)); gateConfig = { ...defaultGates };
+            landConfig = { ...defaultLand }; fencesConfig = [...defaultFences];
+            customRoadsConfig = defaultCustomRoads.map(r => ({...r}));
+            treesConfig = JSON.parse(JSON.stringify(defaultTrees));
+            signConfig = { ...defaultSignPos }; signLoadingConfig = { ...defaultSignLoadingPos };
+            signStaffConfig = { ...defaultSignStaffPos }; cameraConfig = { ...defaultCamera };
+            targetConfig = { ...defaultTarget }; tankerYOffset = defaultTankerYOffset;
+            tankerDecalConfig = { ...defaultTankerDecal };
+            fireEnginesConfig = defaultFireEngines.map(eng => ({...eng}));
+            marginNorth = 30; marginSouth = 30; marginEast = 30; marginWest = 30; showExternalPlane = false;
+            whiteCarPath = parsePath(parkingConfig.whiteCarPath); smallTruckPath = parsePath(parkingConfig.smallTruckPath);
+            carDriverWalkPath = parsePath(parkingConfig.carDriverWalkPath); truckDriverWalkPath = parsePath(parkingConfig.truckDriverWalkPath);
+            whiteCarExitPath = parsePath(parkingConfig.whiteCarExitPath); smallTruckExitPath = parsePath(parkingConfig.smallTruckExitPath);
+            vipCarPath = parsePath(parkingConfig.vipCarPath); vipWalkPath = parsePath(parkingConfig.vipWalkPath);
+            vipExitPath = parsePath(parkingConfig.vipExitPath); mtArrivalPath = parsePath(parkingConfig.mtArrivalPath);
+            mtDeparturePath = parsePath(parkingConfig.mtDeparturePath); mtEngineerWalkPath = parsePath(parkingConfig.mtEngineerWalkPath);
+            tankerArrivalPath = parsePath(parkingConfig.tankerArrivalPath); tankerDeparturePath = parsePath(parkingConfig.tankerDeparturePath);
+            camera.position.set(cameraConfig.x, cameraConfig.y, cameraConfig.z);
+            controls.target.set(targetConfig.x, targetConfig.y, targetConfig.z); controls.update();
+            rebuildSigns(); rebuildLand(); rebuildGates(); rebuildRoads(); rebuildCustomRoads();
+            rebuildAllModules(); rebuildStaffParking(); rebuildVisitorParking(); rebuildTruckScale();
+            rebuildRamps(); rebuildFences(); rebuildTrees(); rebuildFireEngines(); createTrafficCars();
+            buildEditorUI(); alarmActive = false;
+            document.getElementById('alarmBtn').disabled = false; document.getElementById('allClearBtn').disabled = true;
+            shelterStaff.forEach(s => scene.remove(s.model)); shelterStaff = [];
+            alert('Reset to default values');
+        });
+        let fencesVisible = true;
+        document.getElementById('toggleFenceBtn').addEventListener('click', () => {
+            fencesVisible = !fencesVisible;
+            fenceGroups.forEach(g => g.visible = fencesVisible);
+            document.getElementById('toggleFenceBtn').textContent = fencesVisible ? '🔲 HIDE FENCES' : '🔲 SHOW FENCES';
+        });
+
+        const panel = document.getElementById('mainEditor'), dragHandle = document.getElementById('editorDragHandle');
+        let isDragging = false, dragOffsetX, dragOffsetY;
+        dragHandle.addEventListener('mousedown', e => { if (e.target.tagName === 'BUTTON') return; isDragging = true; const rect = panel.getBoundingClientRect(); dragOffsetX = e.clientX - rect.left; dragOffsetY = e.clientY - rect.top; panel.style.cursor = 'grabbing'; });
+        window.addEventListener('mousemove', e => { if (!isDragging) return; let left = e.clientX - dragOffsetX, top = e.clientY - dragOffsetY; left = Math.max(5, Math.min(window.innerWidth - panel.offsetWidth - 5, left)); top = Math.max(5, Math.min(window.innerHeight - panel.offsetHeight - 5, top)); panel.style.left = left + 'px'; panel.style.top = top + 'px'; panel.style.right = 'auto'; });
+        window.addEventListener('mouseup', () => { if (isDragging) { const rect = panel.getBoundingClientRect(); localStorage.setItem('editorPanelPos', JSON.stringify({ left: rect.left, top: rect.top })); } isDragging = false; panel.style.cursor = ''; });
+        (function () { const saved = localStorage.getItem('editorPanelPos'); if (saved) { try { const pos = JSON.parse(saved); panel.style.left = pos.left + 'px'; panel.style.top = pos.top + 'px'; panel.style.right = 'auto'; panel.style.bottom = 'auto'; } catch(e) {} } })();
+        let panelCollapsed = localStorage.getItem('editorPanelCollapsed') === 'true';
+        if (panelCollapsed) { document.getElementById('editorScrollArea').classList.add('collapsed'); document.getElementById('collapsePanelBtn').textContent = '+'; }
+        else { document.getElementById('editorScrollArea').classList.remove('collapsed'); document.getElementById('collapsePanelBtn').textContent = '−'; }
+        document.getElementById('collapsePanelBtn').addEventListener('click', () => { panelCollapsed = !panelCollapsed; document.getElementById('editorScrollArea').classList.toggle('collapsed', panelCollapsed); document.getElementById('collapsePanelBtn').textContent = panelCollapsed ? '+' : '−'; localStorage.setItem('editorPanelCollapsed', panelCollapsed); });
+
+        // ========== COORDINATE TOOLTIP ==========
+        window.addEventListener('click', e => {
+            if (e.target.closest('.editor-panel') || e.target.closest('button')) return;
+            if (drawMode || placeMode) return;
+            mouse.x = (e.clientX / renderer.domElement.clientWidth) * 2 - 1; mouse.y = -(e.clientY / renderer.domElement.clientHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera); const intersects = raycaster.intersectObject(groundPlane);
+            if (intersects.length > 0) { const point = intersects[0].point; const x = point.x.toFixed(2), z = point.z.toFixed(2); coordTooltip.innerHTML = `X: ${x} Z: ${z} <button class="coord-copy-btn" id="coordCopyBtn">Copy</button>`; coordTooltip.style.display = 'block'; coordTooltip.style.left = (e.clientX + 10) + 'px'; coordTooltip.style.top = (e.clientY - 10) + 'px'; if (coordTooltipTimeout) clearTimeout(coordTooltipTimeout); coordTooltipTimeout = setTimeout(() => coordTooltip.style.display = 'none', 3000); }
+        });
+
+        // ========== BUILD EDITOR UI ==========
+        function buildEditorUI() {
+            const container = document.getElementById('editorAccordion'); container.innerHTML = '';
+            function addSection(title, contentFn) { const sec = document.createElement('div'); sec.className = 'editor-section'; const header = document.createElement('div'); header.className = 'editor-header'; header.innerHTML = `<h4>${title}</h4><span>▼</span>`; const body = document.createElement('div'); body.className = 'editor-content'; contentFn(body); sec.appendChild(header); sec.appendChild(body); container.appendChild(sec); header.addEventListener('click', () => { const vis = body.style.display === 'block'; body.style.display = vis ? 'none' : 'block'; header.querySelector('span').textContent = vis ? '▼' : '▲'; }); }
+            function pathSection(label, key, drawModeName, showApplyButton = false) { const div = document.createElement('div'); div.innerHTML = `<strong style="color:#facc15">${label}</strong>`; const ta = document.createElement('textarea'); ta.id = key + 'Text'; ta.rows = 4; ta.value = parkingConfig[key]; div.appendChild(ta); const drawBtn = document.createElement('button'); drawBtn.textContent = 'Draw ' + label; drawBtn.style.marginRight = '4px'; drawBtn.addEventListener('click', () => startDraw(drawModeName)); div.appendChild(drawBtn); if (showApplyButton) { const applyBtn = document.createElement('button'); applyBtn.textContent = 'Apply Path'; applyBtn.style.marginLeft = '4px'; applyBtn.addEventListener('click', () => { parkingConfig[key] = ta.value; createTrafficCars(); }); div.appendChild(applyBtn); } return div; }
+
+            // Modules
+            addSection('📦 MODULES', (body) => { const row = document.createElement('div'); row.className = 'param-row'; const sel = document.createElement('select'); sel.style.width = '100%'; Object.keys(defaultModules).forEach(k => { const opt = document.createElement('option'); opt.value = k; opt.textContent = k; sel.appendChild(opt); }); const addBtn = document.createElement('button'); addBtn.className = 'btn-add-module'; addBtn.textContent = '➕ Place Module'; addBtn.addEventListener('click', () => { const templateKey = sel.value; const newName = prompt('Enter module name:', templateKey); if (newName) { const baseConfig = defaultModules[templateKey]; const newModule = { ...baseConfig }; moduleConfig[newName] = newModule; rebuildModule(newName); buildEditorUI(); } }); body.appendChild(sel); body.appendChild(addBtn); const listDiv = document.createElement('div'); listDiv.id = 'moduleEditorList'; body.appendChild(listDiv); function refreshModuleList() { listDiv.innerHTML = ''; Object.keys(moduleConfig).forEach(name => { const cfg = moduleConfig[name]; const div = document.createElement('div'); div.className = 'param-row'; div.innerHTML = `<strong>${name}</strong> <button class="delete-module-btn" data-modname="${name}">🗑️</button>`; ['x','z','w','h','d'].forEach(prop => { const lbl = document.createElement('label'); lbl.textContent = prop; const inp = document.createElement('input'); inp.type = 'number'; inp.value = cfg[prop]; inp.step = 0.1; inp.addEventListener('change', () => { moduleConfig[name][prop] = parseFloat(inp.value); rebuildModule(name); }); lbl.appendChild(inp); div.appendChild(lbl); }); listDiv.appendChild(div); }); } refreshModuleList(); });
+
+            // Roads with color
+            addSection('🛣️ ROADS', (body) => { ['main','cross','left','right'].forEach(r => { const div = document.createElement('div'); div.style.borderBottom='1px solid #334155'; div.innerHTML = `<strong>${r} road</strong>`; const row = document.createElement('div'); row.className='param-row'; ['x','z','width','length','rot'].forEach(k => { const lbl = document.createElement('label'); lbl.textContent = k; const inp = document.createElement('input'); inp.type='number'; inp.value = roadConfig[r][k]; inp.step = 0.1; inp.addEventListener('change', () => { roadConfig[r][k] = parseFloat(inp.value); rebuildRoads(); }); lbl.appendChild(inp); row.appendChild(lbl); }); const clbl = document.createElement('label'); clbl.textContent = 'Road Color'; const cinp = document.createElement('input'); cinp.type='color'; cinp.value = '#' + roadConfig[r].color.toString(16).padStart(6,'0'); cinp.addEventListener('input', () => { roadConfig[r].color = parseInt(cinp.value.replace('#',''),16); rebuildRoads(); }); clbl.appendChild(cinp); row.appendChild(clbl); const llbl = document.createElement('label'); llbl.textContent = 'Line Color'; const linp = document.createElement('input'); linp.type='color'; linp.value = '#' + roadConfig[r].lineColor.toString(16).padStart(6,'0'); linp.addEventListener('input', () => { roadConfig[r].lineColor = parseInt(linp.value.replace('#',''),16); rebuildRoads(); }); llbl.appendChild(linp); row.appendChild(llbl); div.appendChild(row); body.appendChild(div); }); });
+
+            // Staff Car Park – with land color
+            addSection('🚗 STAFF CAR PARK', (body) => {
+                const sp = parkingConfig.staffCarPark;
+                ['x','z','width','depth'].forEach(k => {
+                    const lbl = document.createElement('label'); lbl.textContent = k;
+                    const inp = document.createElement('input'); inp.type = 'number'; inp.value = sp[k]; inp.step = 0.1;
+                    inp.addEventListener('change', () => { sp[k] = parseFloat(inp.value); rebuildStaffParking(); });
+                    lbl.appendChild(inp); body.appendChild(lbl);
+                });
+                const rotLbl = document.createElement('label'); rotLbl.textContent = 'Rotation (deg)';
+                const rotInp = document.createElement('input'); rotInp.type = 'number'; rotInp.value = sp.rotation || 0; rotInp.step = 1;
+                rotInp.addEventListener('change', () => { sp.rotation = parseFloat(rotInp.value); rebuildStaffParking(); });
+                rotLbl.appendChild(rotInp); body.appendChild(rotLbl);
+                const landColorLbl = document.createElement('label'); landColorLbl.textContent = 'Land Color';
+                const landColorInp = document.createElement('input'); landColorInp.type = 'color';
+                landColorInp.value = '#' + (sp.landColor !== undefined ? sp.landColor : 0xcccccc).toString(16).padStart(6,'0');
+                landColorInp.addEventListener('input', () => { sp.landColor = parseInt(landColorInp.value.replace('#',''),16); rebuildStaffParking(); });
+                landColorLbl.appendChild(landColorInp); body.appendChild(landColorLbl);
+            });
+
+            // Staff Car Park Fence – fully editable list
+            addSection('🚗 STAFF CAR PARK FENCE', (body) => {
+                const addBtn = document.createElement('button'); addBtn.textContent = '➕ Add Fence to SCP'; addBtn.style.cssText = 'background:#10b981; color:white; padding:3px 8px; border-radius:16px; margin-bottom:6px; font-size:11px;';
+                addBtn.addEventListener('click', () => {
+                    const name = prompt('Enter fence name:', 'SCP Fence');
+                    if (name) {
+                        if (!parkingConfig.staffParkingFences) parkingConfig.staffParkingFences = [];
+                        parkingConfig.staffParkingFences.push({ name, x:0, z:0, y:0, length:10, height:1.8, width:0.2, rotation:0 });
+                        rebuildStaffParking(); buildEditorUI();
+                    }
+                });
+                body.appendChild(addBtn);
+                if (!parkingConfig.staffParkingFences) parkingConfig.staffParkingFences = [];
+                parkingConfig.staffParkingFences.forEach((f, idx) => {
+                    const div = document.createElement('div'); div.style.borderBottom='1px solid #334155'; div.style.padding='4px 0';
+                    div.innerHTML = `<strong>${f.name || 'Fence '+(idx+1)}</strong>`;
+                    const row = document.createElement('div'); row.className = 'param-row';
+                    ['x','z','y','length','height','width','rotation'].forEach(k => {
+                        const lbl = document.createElement('label'); lbl.textContent = k; lbl.style.fontSize = '0.5rem';
+                        const inp = document.createElement('input'); inp.type = 'number'; inp.value = f[k] || 0; inp.step = 0.1;
+                        inp.addEventListener('change', () => { f[k] = parseFloat(inp.value); rebuildStaffParking(); });
+                        lbl.appendChild(inp); row.appendChild(lbl);
+                    });
+                    const delBtn = document.createElement('button'); delBtn.textContent = '🗑️'; delBtn.style.background = '#ef4444'; delBtn.style.color='white'; delBtn.style.border='none'; delBtn.style.padding='2px 6px'; delBtn.style.borderRadius='16px'; delBtn.style.marginLeft='8px';
+                    delBtn.addEventListener('click', () => { parkingConfig.staffParkingFences.splice(idx,1); rebuildStaffParking(); buildEditorUI(); });
+                    row.appendChild(delBtn);
+                    div.appendChild(row); body.appendChild(div);
+                });
+            });
+
+            // Custom Roads with naming prompt and color
+            addSection('🛣️ CUSTOM ROADS', (body) => { const addBtn = document.createElement('button'); addBtn.textContent = '➕ ADD ROAD'; addBtn.style.cssText = 'background:#10b981; color:white; padding:3px 8px; border-radius:16px; margin-bottom:6px; font-size:11px;'; addBtn.addEventListener('click', () => { const name = prompt('Enter road name:', 'New Road'); if (name) { customRoadsConfig.push({ name, x:0, z:0, width:5, length:10, rot:0, color:'#111111' }); rebuildCustomRoads(); buildEditorUI(); } }); body.appendChild(addBtn); customRoadsConfig.forEach((r, idx) => { const div = document.createElement('div'); div.style.borderBottom='1px solid #334155'; const headerRow = document.createElement('div'); headerRow.style.display='flex'; headerRow.style.gap='6px'; const nameInput = document.createElement('input'); nameInput.type='text'; nameInput.value=r.name; nameInput.style.flex='1'; nameInput.addEventListener('input', () => { r.name = nameInput.value; }); headerRow.appendChild(nameInput); const delBtn = document.createElement('button'); delBtn.textContent='🗑️'; delBtn.style.background='#ef4444'; delBtn.addEventListener('click', () => { customRoadsConfig.splice(idx,1); rebuildCustomRoads(); buildEditorUI(); }); headerRow.appendChild(delBtn); div.appendChild(headerRow); const fieldsRow = document.createElement('div'); fieldsRow.className='param-row'; ['x','z','width','length','rot'].forEach(k => { const lbl = document.createElement('label'); lbl.textContent = k; const inp = document.createElement('input'); inp.type = 'number'; inp.value = r[k]||0; inp.step = 0.1; inp.addEventListener('change', () => { r[k] = parseFloat(inp.value); rebuildCustomRoads(); }); lbl.appendChild(inp); fieldsRow.appendChild(lbl); }); const clbl = document.createElement('label'); clbl.textContent = 'Color'; const cinp = document.createElement('input'); cinp.type='color'; cinp.value = r.color || '#111111'; cinp.addEventListener('input', () => { r.color = cinp.value; rebuildCustomRoads(); }); clbl.appendChild(cinp); fieldsRow.appendChild(clbl); div.appendChild(fieldsRow); body.appendChild(div); }); });
+
+            // Fences with naming prompt
+            addSection('🔲 FENCES', (body) => { const addBtn = document.createElement('button'); addBtn.textContent = '➕ ADD FENCE'; addBtn.style.cssText = 'background:#10b981; color:white; padding:3px 8px; border-radius:16px; margin-bottom:6px; font-size:11px;'; addBtn.addEventListener('click', () => { const name = prompt('Enter fence name:', 'Fence ' + (fencesConfig.length+1)); if (name) { fencesConfig.push({ name, x:0, z:0, y:0, length:50, height:3, width:0.2, rotation:0 }); rebuildFences(); buildEditorUI(); } }); body.appendChild(addBtn); fencesConfig.forEach((f, idx) => { const div = document.createElement('div'); div.style.borderBottom='1px solid #334155'; div.innerHTML = `<strong>${f.name}</strong>`; const row = document.createElement('div'); row.className = 'param-row'; ['x','z','y','length','height','width','rotation'].forEach(k => { const lbl = document.createElement('label'); lbl.textContent = k; const inp = document.createElement('input'); inp.type = 'number'; inp.value = f[k] ?? 0; inp.step = 0.1; inp.addEventListener('change', () => { f[k] = parseFloat(inp.value); rebuildFences(); }); lbl.appendChild(inp); row.appendChild(lbl); }); const delBtn = document.createElement('button'); delBtn.textContent = '🗑️'; delBtn.style.background = '#ef4444'; delBtn.addEventListener('click', () => { fencesConfig.splice(idx,1); rebuildFences(); buildEditorUI(); }); row.appendChild(delBtn); div.appendChild(row); body.appendChild(div); }); });
+
+            // Trees with naming prompt
+            addSection('🌳 TREES', (body) => { const addBtn = document.createElement('button'); addBtn.textContent = '🌳 ADD TREE LINE'; addBtn.style.cssText = 'background:#10b981; color:white; padding:3px 8px; border-radius:16px; margin-bottom:6px; font-size:11px;'; addBtn.addEventListener('click', () => { const name = prompt('Enter tree line name:', 'Tree Line ' + (treesConfig.length+1)); if (name) { treesConfig.push({ side: name, enabled: true, x:0, z:0, y:0, length:50, height:10, thickness:0.3, spacing:3, rotation:0 }); rebuildTrees(); buildEditorUI(); } }); body.appendChild(addBtn); const listDiv = document.createElement('div'); listDiv.style.maxHeight = '250px'; listDiv.style.overflowY = 'auto'; body.appendChild(listDiv); function renderTreeList() { listDiv.innerHTML = ''; treesConfig.forEach((tree, idx) => { const div = document.createElement('div'); div.style.borderBottom = '1px solid #334155'; div.style.paddingBottom = '4px'; div.style.marginBottom = '4px'; const header = document.createElement('div'); header.style.display = 'flex'; header.style.justifyContent = 'space-between'; const nameSpan = document.createElement('span'); nameSpan.textContent = tree.side || `Tree ${idx+1}`; nameSpan.style.fontWeight = 'bold'; const delBtn = document.createElement('button'); delBtn.textContent = '🗑️'; delBtn.style.background = '#ef4444'; delBtn.style.border = 'none'; delBtn.style.color = 'white'; delBtn.style.borderRadius = '50%'; delBtn.style.cursor = 'pointer'; delBtn.addEventListener('click', () => { treesConfig.splice(idx, 1); rebuildTrees(); buildEditorUI(); }); header.appendChild(nameSpan); header.appendChild(delBtn); div.appendChild(header); const enLbl = document.createElement('label'); enLbl.style.display = 'flex'; enLbl.style.alignItems = 'center'; enLbl.style.gap = '4px'; enLbl.style.fontSize = '0.55rem'; const enCb = document.createElement('input'); enCb.type = 'checkbox'; enCb.checked = tree.enabled; enCb.addEventListener('change', () => { tree.enabled = enCb.checked; rebuildTrees(); }); enLbl.appendChild(enCb); enLbl.append(' Enabled'); div.appendChild(enLbl); const grid = document.createElement('div'); grid.style.display = 'grid'; grid.style.gridTemplateColumns = '1fr 1fr'; grid.style.gap = '4px'; grid.style.marginTop = '4px'; function addField(label, prop, step = 1, min, max) { const lbl = document.createElement('label'); lbl.textContent = label; lbl.style.fontSize = '0.45rem'; const inp = document.createElement('input'); inp.type = 'number'; inp.value = tree[prop] ?? 0; inp.step = step; if (min !== undefined) inp.min = min; if (max !== undefined) inp.max = max; inp.style.width = '100%'; inp.addEventListener('change', () => { tree[prop] = parseFloat(inp.value) || 0; rebuildTrees(); }); lbl.appendChild(inp); grid.appendChild(lbl); } addField('X (m)', 'x', 1); addField('Z (m)', 'z', 1); addField('Y (m)', 'y', 0.1); addField('Length (m)', 'length', 1); addField('Height (m)', 'height', 0.1, 0.5, 50); addField('Thickness', 'thickness', 0.1); addField('Spacing (m)', 'spacing', 0.5, 0.5, 20); addField('Rotation (°)', 'rotation', 1); div.appendChild(grid); listDiv.appendChild(div); }); } renderTreeList(); });
+
+            // Gates and signs with leg height and font size
+            addSection('🚪 GATES', (body) => { ['south','west','east'].forEach(g => { const cfg = gateConfig[g]; const div = document.createElement('div'); div.style.borderBottom = '1px solid #334155'; div.style.marginBottom = '6px'; div.innerHTML = `<strong>${g.toUpperCase()} GATE</strong>`; const row = document.createElement('div'); row.className = 'param-row'; ['x','z','y','height','width','pillarWidth'].forEach(k => { const lbl = document.createElement('label'); lbl.textContent = k; lbl.style.fontSize = '0.5rem'; const inp = document.createElement('input'); inp.type = 'number'; inp.value = cfg[k] ?? (k === 'y' ? 0 : cfg[k]); inp.step = 0.1; inp.addEventListener('change', () => { cfg[k] = parseFloat(inp.value); rebuildGates(); }); lbl.appendChild(inp); row.appendChild(lbl); }); div.appendChild(row); body.appendChild(div); }); const signLabels = ['Main Gate Sign', 'Loading Gate Sign', 'Staff Gate Sign']; const signConfigs = [signConfig, signLoadingConfig, signStaffConfig]; signLabels.forEach((label, idx) => { const cfg = signConfigs[idx]; const div = document.createElement('div'); div.style.border = '1px solid #facc15'; div.style.borderRadius = '8px'; div.style.padding = '4px'; div.style.marginBottom = '6px'; div.innerHTML = `<strong style="color:#facc15;">🏷️ ${label}</strong>`; const row1 = document.createElement('div'); row1.className = 'param-row'; ['x','y','z','width','height'].forEach(k => { const lbl = document.createElement('label'); lbl.textContent = k; lbl.style.fontSize = '0.5rem'; const inp = document.createElement('input'); inp.type = 'number'; inp.value = cfg[k] || 0; inp.step = 0.1; inp.addEventListener('change', () => { cfg[k] = parseFloat(inp.value); rebuildSigns(); }); lbl.appendChild(inp); row1.appendChild(lbl); }); div.appendChild(row1); const postHLbl = document.createElement('label'); postHLbl.textContent = 'Leg Height (m)'; postHLbl.style.fontSize = '0.5rem'; const postHInp = document.createElement('input'); postHInp.type = 'number'; postHInp.value = cfg.postHeight || 2.0; postHInp.step = 0.1; postHInp.addEventListener('change', () => { cfg.postHeight = parseFloat(postHInp.value); rebuildSigns(); }); postHLbl.appendChild(postHInp); div.appendChild(postHLbl); const fontLbl = document.createElement('label'); fontLbl.textContent = 'Font Size'; fontLbl.style.fontSize = '0.5rem'; const fontInp = document.createElement('input'); fontInp.type = 'number'; fontInp.value = cfg.fontSize || 0.5; fontInp.step = 0.05; fontInp.addEventListener('change', () => { cfg.fontSize = parseFloat(fontInp.value); rebuildSigns(); }); fontLbl.appendChild(fontInp); div.appendChild(fontLbl); const textLbl = document.createElement('label'); textLbl.textContent = 'Text'; textLbl.style.fontSize = '0.5rem'; const textInp = document.createElement('input'); textInp.type = 'text'; textInp.value = cfg.text || ''; textInp.style.width = '100%'; textInp.addEventListener('input', () => { cfg.text = textInp.value; rebuildSigns(); }); textLbl.appendChild(textInp); div.appendChild(textLbl); body.appendChild(div); }); });
+
+            // Land (with Dome Beam Color, Cross Beam Color, and Door Width Offset)
+            addSection('🌍 LAND', (body) => {
+                ['groundColor','externalColor','gridColor'].forEach(k => {
+                    const lbl = document.createElement('label'); lbl.textContent = k;
+                    const inp = document.createElement('input'); inp.type = 'color';
+                    inp.value = '#' + landConfig[k].toString(16).padStart(6,'0');
+                    inp.addEventListener('input', () => {
+                        landConfig[k] = parseInt(inp.value.replace('#',''),16);
+                        rebuildLand();
+                    });
+                    lbl.appendChild(inp); body.appendChild(lbl);
+                });
+                const opLbl = document.createElement('label'); opLbl.textContent = 'Grid Opacity';
+                const opInp = document.createElement('input'); opInp.type = 'number';
+                opInp.value = landConfig.gridOpacity; opInp.step = 0.05; opInp.min = 0; opInp.max = 1;
+                opInp.addEventListener('change', () => {
+                    landConfig.gridOpacity = parseFloat(opInp.value); rebuildLand();
+                });
+                opLbl.appendChild(opInp); body.appendChild(opLbl);
+                const bgLbl = document.createElement('label'); bgLbl.textContent = 'Background Color';
+                const bgInp = document.createElement('input'); bgInp.type = 'color';
+                bgInp.value = '#' + landConfig.backgroundColor.toString(16).padStart(6, '0');
+                bgInp.addEventListener('input', () => {
+                    landConfig.backgroundColor = parseInt(bgInp.value.replace('#', ''), 16);
+                    scene.background = new THREE.Color(landConfig.backgroundColor);
+                });
+                bgLbl.appendChild(bgInp); body.appendChild(bgLbl);
+                const fogLbl = document.createElement('label'); fogLbl.textContent = 'Fog Color';
+                const fogInp = document.createElement('input'); fogInp.type = 'color';
+                fogInp.value = '#' + scene.fog.color.getHexString();
+                fogInp.addEventListener('input', () => { scene.fog.color.set(fogInp.value); });
+                fogLbl.appendChild(fogInp); body.appendChild(fogLbl);
+
+                // ★ Dome Beam Color
+                const beamColorLbl = document.createElement('label');
+                beamColorLbl.textContent = 'Dome Beam Color';
+                const beamColorInp = document.createElement('input');
+                beamColorInp.type = 'color';
+                const currentBeamColor = landConfig.domeBeamColor || 0xff8844;
+                beamColorInp.value = '#' + currentBeamColor.toString(16).padStart(6,'0');
+                beamColorInp.addEventListener('input', () => {
+                    landConfig.domeBeamColor = parseInt(beamColorInp.value.replace('#',''),16);
+                    rebuildAllModules();
+                });
+                beamColorLbl.appendChild(beamColorInp);
+                body.appendChild(beamColorLbl);
+
+                // ★ Cross Beam Color (shutter rails)
+                const crossColorLbl = document.createElement('label');
+                crossColorLbl.textContent = 'Cross Beam Color';
+                const crossColorInp = document.createElement('input');
+                crossColorInp.type = 'color';
+                const currentCrossColor = landConfig.crossBeamColor || 0x444444;
+                crossColorInp.value = '#' + currentCrossColor.toString(16).padStart(6,'0');
+                crossColorInp.addEventListener('input', () => {
+                    landConfig.crossBeamColor = parseInt(crossColorInp.value.replace('#',''),16);
+                    rebuildAllModules();
+                });
+                crossColorLbl.appendChild(crossColorInp);
+                body.appendChild(crossColorLbl);
+
+                // ★ Open Door Overlap (all clear)
+                const openOverlapLbl = document.createElement('label');
+                openOverlapLbl.textContent = 'Open Door Overlap (m)';
+                const openOverlapInp = document.createElement('input');
+                openOverlapInp.type = 'number';
+                openOverlapInp.value = (landConfig.openDoorOverlap || 0).toFixed(1);
+                openOverlapInp.step = 0.1;
+                openOverlapInp.min = 0;
+                openOverlapInp.max = 5.0;
+                openOverlapInp.style.width = '70px';
+                openOverlapInp.addEventListener('input', () => {
+                    landConfig.openDoorOverlap = parseFloat(openOverlapInp.value) || 0;
+                    rebuildAllModules();
+                });
+                openOverlapLbl.appendChild(openOverlapInp);
+                body.appendChild(openOverlapLbl);
+
+                // ★ Closed Door Overlap (emergency)
+                const closedOverlapLbl = document.createElement('label');
+                closedOverlapLbl.textContent = 'Closed Door Overlap (m)';
+                const closedOverlapInp = document.createElement('input');
+                closedOverlapInp.type = 'number';
+                closedOverlapInp.value = (landConfig.closedDoorOverlap || 0).toFixed(1);
+                closedOverlapInp.step = 0.1;
+                closedOverlapInp.min = 0;
+                closedOverlapInp.max = 5.0;
+                closedOverlapInp.style.width = '70px';
+                closedOverlapInp.addEventListener('input', () => {
+                    landConfig.closedDoorOverlap = parseFloat(closedOverlapInp.value) || 0;
+                    rebuildAllModules();
+                });
+                closedOverlapLbl.appendChild(closedOverlapInp);
+                body.appendChild(closedOverlapLbl);
+            });
+
+            // Fire Engines – with naming prompt and width/height
+            addSection('🚒 FIRE ENGINES', (body) => { const addBtn = document.createElement('button'); addBtn.textContent = '➕ ADD FIRE ENGINE'; addBtn.style.cssText = 'background:#b91c1c; color:white; padding:4px 8px; border-radius:16px; margin-bottom:6px; font-size:11px;'; addBtn.addEventListener('click', () => { const name = prompt('Enter fire engine label:', 'Engine ' + (fireEnginesConfig.length+1)); if (name) { fireEnginesConfig.push({ name, x:0, y:0, z:0, scale:1, rotation:0, color:'#ff0000', width:2.0, depth:4.5 }); rebuildFireEngines(); buildEditorUI(); } }); body.appendChild(addBtn); const listDiv = document.createElement('div'); listDiv.style.maxHeight='250px'; listDiv.style.overflowY='auto'; body.appendChild(listDiv); fireEnginesConfig.forEach((eng, idx) => { const div = document.createElement('div'); div.className = 'param-row'; div.style.borderBottom='1px solid #334155'; div.style.flexDirection='column'; const headerRow = document.createElement('div'); headerRow.style.display='flex'; headerRow.style.justifyContent='space-between'; headerRow.style.width='100%'; const nameSpan = document.createElement('span'); nameSpan.textContent = eng.name || `🚒 Engine ${idx+1}`; nameSpan.style.fontWeight='bold'; nameSpan.style.fontSize='0.65rem'; const delBtn = document.createElement('button'); delBtn.textContent='🗑️'; delBtn.style.background='#ef4444'; delBtn.style.border='none'; delBtn.style.padding='1px 5px'; delBtn.style.cursor='pointer'; delBtn.style.color='white'; delBtn.addEventListener('click', () => { fireEnginesConfig.splice(idx,1); rebuildFireEngines(); buildEditorUI(); }); headerRow.appendChild(nameSpan); headerRow.appendChild(delBtn); div.appendChild(headerRow); const fieldsRow = document.createElement('div'); fieldsRow.style.display='flex'; fieldsRow.style.flexWrap='wrap'; fieldsRow.style.gap='4px'; fieldsRow.style.marginTop='4px'; ['x','y','z','scale','rotation','width','depth'].forEach(prop => { const lbl = document.createElement('label'); lbl.textContent = prop; lbl.style.fontSize='0.5rem'; lbl.style.minWidth='50px'; const inp = document.createElement('input'); inp.type = 'number'; inp.value = eng[prop] !== undefined ? eng[prop] : (prop==='scale'?1:prop==='width'?2.0:prop==='depth'?4.5:0); inp.step = prop==='rotation'?1:0.1; inp.style.width='100%'; inp.addEventListener('change', () => { eng[prop] = parseFloat(inp.value); rebuildFireEngines(); }); lbl.appendChild(inp); fieldsRow.appendChild(lbl); }); const colorLbl = document.createElement('label'); colorLbl.textContent = 'Color'; colorLbl.style.fontSize='0.5rem'; const colorInp = document.createElement('input'); colorInp.type = 'color'; colorInp.value = eng.color || '#ff0000'; colorInp.style.width='40px'; colorInp.style.height='20px'; colorInp.addEventListener('input', () => { eng.color = colorInp.value; rebuildFireEngines(); }); colorLbl.appendChild(colorInp); fieldsRow.appendChild(colorLbl); div.appendChild(fieldsRow); listDiv.appendChild(div); }); });
+
+            // Path sections
+            addSection('🚗 CAR & TRUCK PATHS', (body) => { body.appendChild(pathSection('White Car Path', 'whiteCarPath', 'white')); body.appendChild(pathSection('Small Truck Path', 'smallTruckPath', 'truck')); });
+            addSection('🚶 CAR DRIVER WALK PATH', (body) => body.appendChild(pathSection('Car Driver Walk Path', 'carDriverWalkPath', 'carDriver')));
+            addSection('🚶 TRUCK DRIVER WALK PATH', (body) => body.appendChild(pathSection('Truck Driver Walk Path', 'truckDriverWalkPath', 'truckDriver')));
+            addSection('🚗 WHITE CAR EXIT PATH', (body) => body.appendChild(pathSection('White Car Exit Path', 'whiteCarExitPath', 'whiteExit')));
+            addSection('🚛 SMALL TRUCK EXIT PATH', (body) => body.appendChild(pathSection('Small Truck Exit Path', 'smallTruckExitPath', 'truckExit')));
+            addSection('🚗 VIP VISITOR CAR', (body) => { body.appendChild(pathSection('VIP Car Path', 'vipCarPath', 'vip')); body.appendChild(pathSection('VIP Walk Path', 'vipWalkPath', 'vipWalk')); body.appendChild(pathSection('VIP Exit Path', 'vipExitPath', 'vipExit')); });
+            addSection('🚛 MT ARRIVAL PATH', (body) => body.appendChild(pathSection('Maintenance Arrival', 'mtArrivalPath', 'mtArrival', true)));
+            addSection('🚛 MT DEPARTURE PATH', (body) => body.appendChild(pathSection('Maintenance Departure', 'mtDeparturePath', 'mtDeparture', true)));
+            addSection('🚶 MAINTENANCE ENGINEER WALK PATH', (body) => body.appendChild(pathSection('Engineer Walk Path', 'mtEngineerWalkPath', 'mtEngineerWalk', true)));
+            addSection('🛢️ TANKER ARRIVAL PATH', (body) => body.appendChild(pathSection('Tanker Arrival', 'tankerArrivalPath', 'tankerArrival', true)));
+            addSection('🛢️ TANKER DEPARTURE PATH', (body) => body.appendChild(pathSection('Tanker Departure', 'tankerDeparturePath', 'tankerDeparture', true)));
+        }
+
+        // ========== INITIAL BUILD ==========
+        rebuildLand(); rebuildGates(); rebuildRoads(); rebuildCustomRoads(); rebuildAllModules();
+        rebuildStaffParking(); rebuildVisitorParking(); rebuildTruckScale(); rebuildRamps();
+        rebuildFences(); rebuildTrees(); rebuildFireEngines(); createTrafficCars(); buildEditorUI();
+
+        let lastTime = performance.now();
+        function animate() {
+            requestAnimationFrame(animate);
+            const now = performance.now(), delta = Math.min(0.1, (now - lastTime) / 1000);
+            lastTime = now;
+            if (!drawMode && !placeMode) updateTraffic(delta);
+            flareLight.intensity = 0.6 + Math.sin(now * 0.008) * 0.3;
+            if (placeMode && placePreviewCube) { raycaster.setFromCamera(mouse, camera); const intersects = raycaster.intersectObject(groundPlane); if (intersects.length > 0) { const p = intersects[0].point; placePreviewCube.position.x = p.x; placePreviewCube.position.z = p.z; placePreviewCube.position.y = defaultModules[placeTemplateModule].h/2 - 0.5; } }
+            controls.update(); renderer.render(scene, camera); labelRenderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>

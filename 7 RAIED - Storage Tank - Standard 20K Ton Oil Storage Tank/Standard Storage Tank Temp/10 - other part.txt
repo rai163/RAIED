@@ -1,0 +1,289 @@
+ // Draw load and deflection curves as half-sine pulses on canvases
+    function drawHalfSine(canvas, amplitude, color, label) {
+      const ctx = canvas.getContext('2d');
+      const width = canvas.width;
+      const height = canvas.height;
+      ctx.clearRect(0, 0, width, height);
+
+      // Draw axes
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(40, height-30);
+      ctx.lineTo(width-10, height-30);
+      ctx.moveTo(40, height-30);
+      ctx.lineTo(40, 20);
+      ctx.stroke();
+
+      // Labels
+      ctx.fillStyle = '#000';
+      ctx.font = '14px Inter';
+      ctx.fillText(label, 10, 20);
+      ctx.fillText('Time (ms)', width-60, height-10);
+
+      // Draw half-sine wave
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      const period = 5; // ms
+      const samples = 200;
+      for(let i=0; i<=samples; i++){
+        const t = (i/samples)*period;
+        const x = 40 + (t/period)*(width-60);
+        const y = height-30 - Math.sin(Math.PI*t/period)*amplitude*(height-60)/amplitude;
+        if(i===0) ctx.moveTo(x,y);
+        else ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+    }
+
+    // Dual steel sheet damage visualization
+    const sheetCanvas = $('sheetCanvas');
+    const sheetCtx = sheetCanvas.getContext('2d');
+    const sheetLengthMM = 1000;
+    const sheetHeightPx = 45; // reduced from 60
+    const sheetWidthPx = sheetCanvas.width - 40;
+    const firstSheetY = 10;
+    const secondSheetY = firstSheetY + sheetHeightPx + 10; // 10px gap
+
+    // Map severity to color
+    function severityToColor(sev) {
+      if (sev <= 20) return '#4ade80'; // green no damage
+      if (sev <= 60) return '#facc15'; // yellow dented
+      return '#ef4444'; // red cracked
+    }
+
+    // Draw two horizontal steel sheets stacked vertically with damage zones
+    function drawDualSheetDamage(firstSheetZones, secondSheetZones) {
+      sheetCtx.clearRect(0, 0, sheetCanvas.width, sheetCanvas.height);
+
+      // Draw first steel sheet base
+      sheetCtx.fillStyle = '#9ca3af';
+      sheetCtx.fillRect(20, firstSheetY, sheetWidthPx, sheetHeightPx);
+      sheetCtx.strokeStyle = '#6b7280';
+      sheetCtx.lineWidth = 2;
+      sheetCtx.strokeRect(20, firstSheetY, sheetWidthPx, sheetHeightPx);
+
+      // Draw second steel sheet base (below first)
+      sheetCtx.fillStyle = '#9ca3af';
+      sheetCtx.fillRect(20, secondSheetY, sheetWidthPx, sheetHeightPx);
+      sheetCtx.strokeStyle = '#6b7280';
+      sheetCtx.lineWidth = 2;
+      sheetCtx.strokeRect(20, secondSheetY, sheetWidthPx, sheetHeightPx);
+
+      // Draw damage zones on first sheet
+      firstSheetZones.forEach(zone => {
+        const startPx = 20 + (zone.start / sheetLengthMM) * sheetWidthPx;
+        const endPx = 20 + (zone.end / sheetLengthMM) * sheetWidthPx;
+        const widthPx = endPx - startPx;
+        sheetCtx.fillStyle = severityToColor(zone.severity);
+        sheetCtx.fillRect(startPx, firstSheetY, widthPx, sheetHeightPx);
+      });
+
+      // Draw damage zones on second sheet
+      secondSheetZones.forEach(zone => {
+        const startPx = 20 + (zone.start / sheetLengthMM) * sheetWidthPx;
+        const endPx = 20 + (zone.end / sheetLengthMM) * sheetWidthPx;
+        const widthPx = endPx - startPx;
+        sheetCtx.fillStyle = severityToColor(zone.severity);
+        sheetCtx.fillRect(startPx, secondSheetY, widthPx, sheetHeightPx);
+      });
+
+      // Draw labels on first sheet
+      sheetCtx.fillStyle = '#1f2627';
+      sheetCtx.font = '14px Inter';
+      sheetCtx.textAlign = 'center';
+      firstSheetZones.forEach(zone => {
+        const midPx = 20 + ((zone.start + (zone.end - zone.start)/2) / sheetLengthMM) * sheetWidthPx;
+        let label = '';
+        if (zone.severity <= 20) label = 'No Damage';
+        else if (zone.severity <= 60) label = 'Dented';
+        else label = 'Cracked';
+        sheetCtx.fillText(label, midPx, firstSheetY + sheetHeightPx / 2 + 5);
+      });
+
+      // Draw labels on second sheet
+      secondSheetZones.forEach(zone => {
+        const midPx = 20 + ((zone.start + (zone.end - zone.start)/2) / sheetLengthMM) * sheetWidthPx;
+        let label = '';
+        if (zone.severity <= 20) label = 'No Damage';
+        else if (zone.severity <= 60) label = 'Dented';
+        else label = 'Cracked';
+        sheetCtx.fillText(label, midPx, secondSheetY + sheetHeightPx / 2 + 5);
+      });
+
+      // Draw sheet titles
+      sheetCtx.font = 'bold 16px Inter';
+      sheetCtx.fillText('First Steel Sheet', 20 + sheetWidthPx / 2, firstSheetY - 5);
+      sheetCtx.fillText('Second Steel Sheet', 20 + sheetWidthPx / 2, secondSheetY - 5);
+    }
+
+    // Attach event listener after DOM loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('runButton').addEventListener('click', simulate);
+    });
+
+    function simulate(){
+      const steelDensity = 7850;
+      const motorEfficiency = 0.90;
+      const ratedSpeedRPM = 1450;
+      const startTorqueFactor = 2.5;
+      const leverArm = 0.35;
+
+      const tankType = inputs.tankType.value;
+      const motorPowerKW = parseFloat(inputs.motorPower.value);
+      const detectionRangeKM = parseFloat(inputs.detectionRange.value);
+      const droneSpeed = selectedDroneSpeed();
+      const droneMass = parseFloat(inputs.droneMass.value);
+
+      const faceWidth = parseFloat(inputs.faceWidth.value);
+      const faceHeight = parseFloat(inputs.faceHeight.value);
+      const sheetThicknessMM = parseFloat(inputs.sheetThickness.value);
+      const numLayers = parseInt(inputs.numLayers.value, 10);
+      const layerGapMM = parseFloat(inputs.layerGap.value);
+
+      const numDoors = parseInt(inputs.numDoors.value, 10);
+      const openingMode = parseFloat(inputs.openingMode.value);
+      const delayTime = parseFloat(inputs.delayTime.value);
+      const mechEff = parseFloat(inputs.efficiency.value);
+
+      const domeDiameter = parseFloat(inputs.domeDiameter.value);
+      const numDomeDoors = parseInt(inputs.numDomeDoors.value, 10);
+      const domeGapM = parseFloat(inputs.domeGap.value);
+
+      const oneLayerDepthMM = (2 * sheetThicknessMM) + layerGapMM;
+      const totalBuildUpMM = numLayers * oneLayerDepthMM;
+      const totalSteelSheets = numLayers * 2;
+
+      const thicknessM = sheetThicknessMM / 1000;
+      const doorWidth = faceWidth / numDoors;
+      const doorArea = doorWidth * faceHeight;
+      const doorMass = doorArea * thicknessM * steelDensity;
+
+      const fullTravelSide = doorWidth / 2;
+      const requiredTravelSide = fullTravelSide * openingMode;
+
+      const effectivePowerW = motorPowerKW * 1000 * motorEfficiency * mechEff;
+      const omega = 2 * Math.PI * ratedSpeedRPM / 60;
+      const ratedTorque = effectivePowerW / omega;
+      const startingTorque = ratedTorque * startTorqueFactor;
+      const driveForce = startingTorque / leverArm;
+
+      const accSide = driveForce / Math.max(doorMass, 1);
+      const sideMotion = Math.sqrt((2 * requiredTravelSide) / Math.max(accSide, 0.0001));
+      const totalClosingTimeSide = sideMotion + delayTime;
+
+      const arcLengthDome = (Math.PI * domeDiameter) / numDomeDoors;
+      const shutterHeightDome = domeGapM + 0.5;
+      const domeDoorArea = arcLengthDome * shutterHeightDome;
+      const domeDoorMass = domeDoorArea * thicknessM * steelDensity;
+      const accDome = driveForce / Math.max(domeDoorMass, 1);
+      const domeMotion = Math.sqrt((2 * shutterHeightDome) / Math.max(accDome, 0.0001));
+      const totalClosingTimeDome = domeMotion + delayTime;
+
+      const droneArrival = (detectionRangeKM * 1000) / droneSpeed;
+      const marginSide = droneArrival - totalClosingTimeSide;
+      const marginDome = droneArrival - totalClosingTimeDome;
+      const feasible = marginSide >= 0 && marginDome >= 0;
+
+      const kineticEnergyJ = 0.5 * droneMass * droneSpeed * droneSpeed;
+      const kineticEnergyMJ = kineticEnergyJ / 1e6;
+
+      // Energy flow calculations for visualization
+      const absorptionFactor = 0.6; // 60% absorbed by first sheet
+      const energyAbsorbed1 = kineticEnergyMJ * absorptionFactor;
+
+      const gapReductionFactor = Math.min(1, layerGapMM / 2000); // normalized 0 to 1
+      const energyReducedGap = (kineticEnergyMJ - energyAbsorbed1) * gapReductionFactor * 0.7; // 70% of remaining energy reduced
+
+      const energyResidual2 = kineticEnergyMJ - energyAbsorbed1 - energyReducedGap;
+
+      // Levy-Goldsmith inspired load and deflection model
+      const plateThicknessM = thicknessM * totalSteelSheets;
+      const peakLoadKN = Math.min(100, kineticEnergyMJ * 1000 / plateThicknessM);
+      const maxDeflectionMM = Math.min(50, peakLoadKN * plateThicknessM * 10);
+      const penetrationRisk = (peakLoadKN > 80 || maxDeflectionMM > 30) ? 'High' : (peakLoadKN > 40 || maxDeflectionMM > 15) ? 'Moderate' : 'Low';
+
+      // Update UI
+      $('droneArrival').textContent = sec(droneArrival);
+      $('sideClosingTime').textContent = sec(totalClosingTimeSide);
+      $('domeClosingTime').textContent = sec(totalClosingTimeDome);
+      $('impactEnergy').textContent = mj(kineticEnergyMJ);
+      $('totalBuildUp').textContent = mm(totalBuildUpMM);
+
+      $('axisDrone').textContent = sec(droneArrival);
+      $('axisSideClosing').textContent = sec(totalClosingTimeSide);
+      $('axisDomeClosing').textContent = sec(totalClosingTimeDome);
+
+      const badge = $('statusBadge');
+      const timelineSummary = $('timelineSummary');
+
+      if(feasible){
+        badge.textContent = 'Feasible';
+        badge.className = 'badge ok';
+        timelineSummary.textContent = `All shutters close before arrival. Timing margins: side faces ${marginSide.toFixed(1)} s, dome top ${marginDome.toFixed(1)} s.`;
+      } else {
+        badge.textContent = 'Not Feasible';
+        badge.className = 'badge warn';
+        timelineSummary.textContent = `One or more shutter groups do not fully close in time. Timing margins: side faces ${marginSide.toFixed(1)} s, dome top ${marginDome.toFixed(1)} s.`;
+      }
+
+      const stage = $('stage');
+      const stageWidth = Math.max(stage.clientWidth - 150, 300);
+      const maxTime = Math.max(droneArrival, totalClosingTimeSide, totalClosingTimeDome) * 1.15;
+      buildTicks(maxTime);
+
+      const droneWidth = (droneArrival / maxTime) * stageWidth;
+      const sideWidth = (totalClosingTimeSide / maxTime) * stageWidth;
+      const domeWidth = (totalClosingTimeDome / maxTime) * stageWidth;
+
+      $('barDrone').style.width = `${droneWidth}px`;
+      $('barSide').style.width = `${sideWidth}px`;
+      $('barDome').style.width = `${domeWidth}px`;
+
+      $('lineDrone').style.left = `${120 + droneWidth}px`;
+      $('lineSide').style.left = `${120 + sideWidth}px`;
+      $('lineDome').style.left = `${120 + domeWidth}px`;
+
+      $('tagDrone').style.left = `${120 + droneWidth}px`;
+      $('tagSide').style.left = `${120 + sideWidth}px`;
+      $('tagDome').style.left = `${120 + domeWidth}px`;
+
+      $('barSide').style.background = marginSide >= 0
+        ? 'linear-gradient(90deg, #1b57af, #7ca8e5)'
+        : 'linear-gradient(90deg, #c03a34, #ef7f74)';
+
+      $('barDome').style.background = marginDome >= 0
+        ? 'linear-gradient(90deg, #1f8b5d, #7dd99c)'
+        : 'linear-gradient(90deg, #c03a34, #ef7f74)';
+
+      // Update energy flow panel
+      $('energyInitial').textContent = kineticEnergyMJ.toFixed(2) + ' MJ';
+      $('energyAbsorbed1').textContent = energyAbsorbed1.toFixed(2) + ' MJ';
+      $('energyReducedGap').textContent = energyReducedGap.toFixed(2) + ' MJ';
+      $('energyResidual2').textContent = energyResidual2.toFixed(2) + ' MJ';
+
+      // Update load and deflection curves
+      drawHalfSine($('loadCanvas'), peakLoadKN, '#1b57af', 'Load (kN)');
+      drawHalfSine($('deflectionCanvas'), maxDeflectionMM, '#1f8b5d', 'Deflection (mm)');
+
+      // Update peak load, deflection, penetration risk
+      $('peakLoad').textContent = peakLoadKN.toFixed(1);
+      $('maxDeflection').textContent = maxDeflectionMM.toFixed(1);
+      $('penetrationRisk').textContent = penetrationRisk;
+
+      // Dual steel sheet damage visualization
+      // Damage severity for first sheet based on energy absorbed by first sheet
+      // Damage severity for second sheet based on residual energy after air gap
+      const firstSheetSeverity = Math.min(100, energyAbsorbed1 * 150);
+      const secondSheetSeverity = Math.min(100, energyResidual2 * 200);
+
+      // Damage zones cover full length (0-1000 mm) for simplicity
+      const firstSheetZones = [{start: 0, end: 1000, severity: firstSheetSeverity}];
+      const secondSheetZones = [{start: 0, end: 1000, severity: secondSheetSeverity}];
+
+      drawDualSheetDamage(firstSheetZones, secondSheetZones);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,109 @@
+ceramic: `<div class="guide-section"><h4>🔷 Ceramic-Faced Armor — Complete Manufacturing Guide</h4>
+            <h5>1. MATERIAL COMPOSITION</h5>
+            <table class="refinery-table">
+                <tr><th>Component</th><th>Material</th><th>Thickness</th><th>Property</th></tr>
+                <tr>:</th>Ceramic Strike Face</th><td>Al₂O₃ (99.5%) or SiC (98%)</th><td>6mm</th><td>Hardness >1400 HV (Al₂O₃) or >2400 HV (SiC)</th></tr>
+                <tr>:</th>Bonding Adhesive</th><td>Two-part epoxy (LOCTITE EA 9394)</th><td>0.5-1.0mm</th><td>Shear strength >5 MPa, Tg >80°C</th></tr>
+                <tr>:</th>Backing Plate</th><td>6061-T6 Aluminum</th><td>5mm</th><td>Yield strength 275 MPa, density 2.70 g/cm³</th></tr>
+                <tr>:</th>Edge Sealant</th><td>Polyurethane</th><td>2mm</th><td>Moisture barrier, impact resistance</th></tr>
+                <tr>:</th>Spall Liner</th><td>Polyurea</th><td>1mm</th><td>Debris containment, multi-hit</th></tr>
+            </table>
+            
+            <h5>2. PHYSICS OF CERAMIC ARMOR</h5>
+            <div class="chemical-equation">
+                Projectile/target interaction (conoid formation):
+                When ceramic is impacted, a conical fracture zone (conoid) forms beneath the impact point
+                Conoid angle: 60-70° for Al₂O₃, 50-60° for SiC (more efficient)
+                
+                Fracture mechanics:
+                K_IC (ceramic) = 4-5 MPa·m¹⁄₂ (Al₂O₃)
+                Crack velocity: V_c ≈ 0.5 × V_s (shear wave speed) ≈ 3,000-4,000 m/s
+                
+                Ballistic mass efficiency (E_m):
+                E_m = (ρ_ceramic / ρ_steel) × (t_steel / t_ceramic) for equivalent protection
+                For Al₂O₃: ρ = 3.90, steel ρ = 7.85 → mass efficiency ≈ 3.5-4.5
+                Meaning: 1 kg ceramic replaces 3.5-4.5 kg steel
+            </div>
+            
+            <h5>3. MANUFACTURING PROCESS</h5>
+            <h5>Step 1: Ceramic Tile Production (same as composite armor guide)</h5>
+            <ul>
+                <li>Al₂O₃: 50×50×6mm tiles, 1400 HV min, density 3.90 g/cm³</li>
+                <li>SiC: 50×50×6mm tiles, 2400 HV min, density 3.15 g/cm³ (higher performance, +50% cost)</li>
+                <li>Quality: Flatness ±0.05mm, edge squareness ±0.1mm</li>
+            </ul>
+            
+            <h5>Step 2: Backing Plate Preparation</h5>
+            <ul>
+                <li>Cut 6061-T6 aluminum plate to 2.7m × 1.5m × 5mm (water-jet or saw)</li>
+                <li>Surface preparation:
+                    <ul><li>Grit blast: 80 mesh Al₂O₃, 6 bar pressure, nozzle distance 200mm, coverage 200%</li>
+                    <li>Result: Surface profile Ra 3-5μm</li>
+                    <li>Solvent wipe: Acetone followed by isopropyl alcohol</li>
+                    <li>Silane coupling agent: 1% solution (γ-glycidoxypropyltrimethoxysilane), 30 minute dwell</li></ul>
+                </li>
+            </ul>
+            
+            <h5>Step 3: Adhesive Bonding (2 hours)</h5>
+            <ul>
+                <li>Mix epoxy at 100:17 ratio (resin:hardener) to ±1% accuracy</li>
+                <li>Apply adhesive to backing plate using notched trowel (3mm notches, 60° angle)</li>
+                <li>Place ceramic tiles manually or with pick-and-place robot (cycle time 2 seconds per tile)</li>
+                <li>Tile layout: Offset pattern (brick layering), gaps 0.5mm ±0.2mm</li>
+                <li>Apply 50kg/m² weight over entire assembly for 24 hours at 23°C</li>
+            </ul>
+            
+            <h5>Step 4: Vacuum Bagging & Curing</h5>
+            <ul>
+                <li>Place assembly in vacuum bag, apply -0.95 bar for 1 hour to remove air bubbles</li>
+                <li>Oven cure: 80°C for 4 hours (2°C/min ramp, 1°C/min cool)</li>
+                <li>Alternative: Room temperature cure for 48 hours</li>
+            </ul>
+            
+            <h5>Step 5: Edge Sealing & Spall Liner</h5>
+            <ul>
+                <li>Remove excess adhesive from edges (routing or grinding)</li>
+                <li>Apply polyurethane edge sealant (1-2mm thickness), cure 24 hours</li>
+                <li>Spray polyurea on back face: 2mm thickness, extends 50mm onto edges</li>
+                <li>Inspect for voids or delamination (tap test or ultrasonic)</li>
+            </ul>
+            
+            <h5>4. QUALITY CONTROL</h5>
+            <table class="refinery-table">
+                <tr><th>Test</th><th>Method</th><th>Acceptance</th><th>Frequency</th></tr>
+                <tr>:</th>Tile hardness</th><td>Vickers (HV 1kg)</th><td>Al₂O₃ >1400, SiC >2400</th><td>1 per 100 tiles</th></tr>
+                <tr>:</th>Bond strength</th><td>ASTM D4541 (pull-off)</th><td>>5 MPa</th><td>1 per panel</th></tr>
+                <tr>:</th>Void detection</th><td>Ultrasonic C-scan (5 MHz)</th><td><2% void area, no delamination >10cm²</th><td>100%</th></td>
+                <tr>:</th>Multi-hit capability</th><td>5 hits in 100mm circle at 650 m/s</th><td>No perforation, BFD <35mm</th><td>1 per 50 panels</th></tr>
+                <tr>:</th>Environmental cycling</th><td>-40°C to +70°C, 10 cycles</th><td>No cracks, no bond failure</th><td>1 per 100 panels</th></tr>
+            </table>
+            
+            <h5>5. COST BREAKDOWN (per m²)</h5>
+            <table class="refinery-table">
+                <tr><th>Cost Element</th><th>Al₂O₃ (USD)</th><th>SiC (USD)</th></tr>
+                <tr>:</th>Ceramic Tiles (6mm)</th><td>$220</th><td>$450</th></tr>
+                <tr>:</th>6061-T6 Aluminum Backing (5mm)</th><td>$90</th><td>$90</th></tr>
+                <tr>:</th>Epoxy Adhesive</th><td>$25</th><td>$25</th></tr>
+                <tr>:</th>Labor (tiling, bonding, curing)</th><td>$120</th><td>$120</th></tr>
+                <tr>:</th>Edge Sealing + Spall Liner</th><td>$30</th><td>$30</th></tr>
+                <tr>:</th>Quality Control</th><td>$35</th><td>$35</th></tr>
+                <tr>:</th><strong>Total Manufacturing Cost</strong></th><td><strong>$520/m²</strong></th><td><strong>$750/m²</strong></th></tr>
+                <tr>:</th>10-Year Maintenance ($15/m²/year × 10)</th><td>$150/m²</th><td>$150/m²</th></tr>
+                <tr>:</th><strong>Total Lifecycle Cost</strong></th><td><strong>$670/m²</strong></th><td><strong>$900/m²</strong></th></tr>
+            </table>
+            
+            <h5>6. REFINERY INTEGRATION — THE BEAUTIFUL SYMMETRY</h5>
+            <div class="beautiful-symmetry-box">
+                <strong>🏭 THE BEAUTIFUL SYMMETRY OF CERAMIC-FACED ARMOR</strong><br><br>
+                1. The REFINERY's FCC unit produces propylene, a feedstock for epoxy resin<br>
+                2. The REFINERY's catalytic reformer produces benzene and toluene for BPA (epoxy backbone)<br>
+                3. The REFINERY's steam methane reformer produces hydrogen for ceramic sintering atmosphere<br>
+                4. The REFINERY's cooling water system provides temperature control for adhesive curing<br>
+                5. The REFINERY's compressed air system powers the grit blasting equipment<br>
+                6. The aluminum backing plate can be produced using refinery-generated electricity<br><br>
+                <strong>The refinery's petrochemical streams become the polymer matrix that bonds ceramic tiles to aluminum.</strong><br><br>
+                <em>From refinery feedstocks to ceramic armor: a complete material supply chain.</em>
+            </div>
+            
+            <div class="note-box">🔷 <strong>Summary:</strong> 4.0× multiplier, 32 kg/m² (Al₂O₃) / 29 kg/m² (SiC), V50 >750 m/s (Al₂O₃) or >850 m/s (SiC).</div>
+</div>`,

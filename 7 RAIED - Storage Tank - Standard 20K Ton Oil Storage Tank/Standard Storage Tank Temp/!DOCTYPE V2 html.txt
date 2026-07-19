@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><title>Static Cube Test</title></head>
+<body>
+<canvas id="cubeCanvas" width="160" height="160" style="border:1px solid black; display:block; margin:20px auto;"></canvas>
+<script>
+  const canvas = document.getElementById('cubeCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // Cube parameters
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2 + 10;
+  const size = 80;
+
+  // Draw cube base
+  function drawCubeBase() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Front face
+    ctx.fillStyle = '#ef4444'; // red for cracked
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+    ctx.moveTo(cx - size/2, cy - size/2);
+    ctx.lineTo(cx + size/2, cy - size/2);
+    ctx.lineTo(cx + size/2, cy + size/2);
+    ctx.lineTo(cx - size/2, cy + size/2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Top face (lighter)
+    ctx.fillStyle = 'rgb(239, 102, 102)';
+    ctx.beginPath();
+    ctx.moveTo(cx - size/2, cy - size/2);
+    ctx.lineTo(cx, cy - size);
+    ctx.lineTo(cx + size, cy - size);
+    ctx.lineTo(cx + size/2, cy - size/2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Side face (darker)
+    ctx.fillStyle = 'rgb(191, 66, 66)';
+    ctx.beginPath();
+    ctx.moveTo(cx + size/2, cy - size/2);
+    ctx.lineTo(cx + size, cy - size);
+    ctx.lineTo(cx + size, cy);
+    ctx.lineTo(cx + size/2, cy + size/2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  // Draw jagged crack polygon (static)
+  function drawJaggedCrack() {
+    ctx.fillStyle = 'white';
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+
+    const crackPoints = [
+      {x: 0, y: 0},
+      {x: 0.15, y: 0.1},
+      {x: 0.05, y: 0.2},
+      {x: 0.2, y: 0.3},
+      {x: 0.1, y: 0.4},
+      {x: 0.25, y: 0.5},
+      {x: 0.15, y: 0.6},
+      {x: 0.3, y: 0.7},
+      {x: 0.2, y: 0.8},
+      {x: 0.35, y: 0.9},
+      {x: 0.25, y: 1},
+      {x: 0, y: 1}
+    ];
+
+    ctx.beginPath();
+    ctx.moveTo(cx - size/2 + crackPoints[0].x * size, cy - size/2 + crackPoints[0].y * size);
+    for(let i=1; i<crackPoints.length; i++){
+      ctx.lineTo(cx - size/2 + crackPoints[i].x * size, cy - size/2 + crackPoints[i].y * size);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  drawCubeBase();
+  drawJaggedCrack();
+</script>
+</body>
+</html>

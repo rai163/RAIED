@@ -1,0 +1,111 @@
+composite: `<div class="guide-section"><h4>🛡️ Composite Armor (Steel + Ceramic + Polymer) — Complete Manufacturing Guide</h4>
+            <h5>1. MATERIAL STACK & LAYER FUNCTIONS</h5>
+            <table class="refinery-table">
+                <tr><th>Layer</th><th>Material</th><th>Thickness</th><th>Function</th><th>Density (g/cm³)</th></tr>
+                <tr>:</th>Strike face (front)</th><td>RHA steel (Armox 500 or equivalent)</th><td>2mm</th><td>Initial projectile deformation, spall generation</th><td>7.85</th></tr>
+                <tr>:</th>Ceramic layer</th><td>Al₂O₃ 99.5% hexagonal tiles</th><td>6mm</th><td>Projectile shattering, conoid formation, dwell effect</th><td>3.90</th></tr>
+                <tr>:</th>Adhesive interlayer</th><td>Toughened epoxy (2-part)</th><td>0.5mm</th><td>Stress transfer, energy absorption</th><td>1.15</th></tr>
+                <tr>:</th>Backing laminate</th><td>Aramid fabric (Kevlar® 29) in epoxy</th><td>8mm (12 layers)</th><td>Catch debris, tensile failure, delamination</th><td>1.44</th></tr>
+                <tr>:</th>Anti-spall liner</th><td>Polyurea</th><td>1mm</th><td>Backface debris containment, multi-hit capability</th><td>1.10</th></tr>
+            </table>
+            
+            <h5>2. PHYSICS OF COMPOSITE ARMOR</h5>
+            <div class="chemical-equation">
+                Impedance matching (ceramic to projectile):
+                Z = ρ × V (wave speed)
+                For Al₂O₃: Z = 3.90 × 10³ × 10,500 = 41 × 10⁶ kg/m²·s
+                For steel projectile: Z = 7.85 × 10³ × 5,100 = 40 × 10⁶ kg/m²·s
+                → Near-perfect impedance match maximizes stress transfer
+                
+                Dwell time (ceramic failure): t_dwell = L / V_c
+                For 6mm ceramic, V_c ≈ 8,000 m/s (crack speed) → t_dwell = 0.75 μs
+                During dwell, projectile erodes, reducing length by 20-40%
+                
+                Kinetic energy absorption distribution:
+                - Steel strike face: 15-20%
+                - Ceramic comminution: 25-30%
+                - Backing laminate: 40-45%
+                - Adhesive interlayer: 5-10%
+            </div>
+            
+            <h5>3. MANUFACTURING PROCESS</h5>
+            <h5>Step 1: Ceramic Tile Production (8 hours per batch)</h5>
+            <ul>
+                <li>Powder preparation: Al₂O₃ (99.5%, 0.5μm particle size) + 0.5% MgO sintering aid</li>
+                <li>Spray drying: Form spherical agglomerates (100-200μm diameter)</li>
+                <li>Cold isostatic pressing (CIP): 200 MPa, produces green body 55×55×6.5mm (allows for shrinkage)</li>
+                <li>Sintering: 1600°C for 4 hours (10°C/min ramp, 2°C/min cooling from 1000°C)</li>
+                <li>Final dimensions: 50×50×6mm ±0.05mm, hardness >1400 HV</li>
+            </ul>
+            
+            <h5>Step 2: Backing Laminate Preparation (6 hours)</h5>
+            <ul>
+                <li>Pre-preg: 12 layers aramid fabric (400 g/m²) impregnated with epoxy (40% resin by weight)</li>
+                <li>Lay-up sequence: Cross-ply orientation (0°/90°/0°/90°) for balanced properties</li>
+                <li>Consolidation: Vacuum bag at -0.95 bar, heat to 80°C for 1 hour, cool to room temperature</li>
+                <li>Trim to 2.7m × 1.5m (shutter dimensions) by water-jet</li>
+            </ul>
+            
+            <h5>Step 3: Adhesive Application & Tile Placement (3 hours)</h5>
+            <ul>
+                <li>Mix epoxy adhesive (LOCTITE EA 9394) at 100:17 resin:hardener ratio</li>
+                <li>Apply 0.5-1.0mm adhesive to backing laminate using notched trowel (3mm notches)</li>
+                <li>Place ceramic tiles in offset pattern (like brick laying), 0.5mm gaps between tiles</li>
+                <li>Apply 0.5mm adhesive over tiles (flood coat)</li>
+                <li>Position steel face plate (2mm RHA), apply 50kg/m² weight to ensure contact</li>
+            </ul>
+            
+            <h5>Step 4: Vacuum Bagging & Curing (8 hours)</h5>
+            <ul>
+                <li>Place assembly in vacuum bag, apply -0.95 bar vacuum</li>
+                <li>Transfer to autoclave: Ramp 25→120°C at 2°C/min, hold 120°C for 3 hours, apply 5 bar pressure</li>
+                <li>Cool to 60°C at 1°C/min, then release pressure, cool to room temperature</li>
+            </ul>
+            
+            <h5>Step 5: Edge Sealing & Anti-Spall Coating</h5>
+            <ul>
+                <li>Route edges to remove excess adhesive, apply polyurethane sealant (1-2mm)</li>
+                <li>Spray polyurea on back face (2mm thickness), extends 25mm onto edges</li>
+                <li>Cure: 23°C for 24 hours</li>
+            </ul>
+            
+            <h5>4. QUALITY CONTROL</h5>
+            <table class="refinery-table">
+                <tr><th>Test</th><th>Method</th><th>Acceptance</th><th>Frequency</th></tr>
+                <tr>:</th>Ultrasonic C-scan</th><td>5 MHz, immersion</th><td>Void <2%, no delamination >25mm²</th><td>100%</th></tr>
+                <tr>:</th>Ceramic hardness</th><td>Vickers (HV 1kg)</th><td>>1400 HV</th><td>1 per 100 tiles</th></tr>
+                <tr>:</th>Adhesive bond strength</th><td>Pull-off test (ASTM D4541)</th><td>>5 MPa</th><td>1 per batch</th></tr>
+                <tr>:</th>Ballistic test (V50)</th><td>20mm FSP, 0° impact</th><td>>750 m/s</th><td>1 per 10 shutters</th></tr>
+                <tr>:</th>Multi-hit (5 hits, 100mm circle)</th><td>650 m/s</th><td>No perforation</th><td>1 per 50 shutters</th></tr>
+            </table>
+            
+            <h5>5. COST BREAKDOWN (per m²)</h5>
+            <table class="refinery-table">
+                <tr><th>Cost Element</th><th>Value (USD)</th></tr>
+                <tr>:</th>RHA Steel Face (2mm)</th><td>$140</th></tr>
+                <tr>:</th>Al₂O₃ Ceramic Tiles (6mm)</th><td>$220</th></tr>
+                <tr>:</th>Aramid Fabric (12 layers, Kevlar®)</th><td>$300</th></tr>
+                <tr>:</th>Epoxy Resin + Hardener</th><td>$85</th></tr>
+                <tr>:</th>Adhesive (LOCTITE)</th><td>$40</th></tr>
+                <tr>:</th>Labor (lamination, bagging, curing)</th><td>$150</th></tr>
+                <tr>:</th>Quality Control + Testing</th><td>$45</th></tr>
+                <tr>:</th><strong>Total Manufacturing Cost</strong></th><td><strong>$980/m²</strong></th></tr>
+                <tr>:</th>10-Year Maintenance ($20/m²/year × 10)</th><td>$200/m²</th></tr>
+                <tr>:</th><strong>Total Lifecycle Cost (10 years)</strong></th><td><strong>$1,180/m²</strong></th></tr>
+            </table>
+            
+            <h5>6. REFINERY INTEGRATION — THE BEAUTIFUL SYMMETRY</h5>
+            <div class="beautiful-symmetry-box">
+                <strong>🏭 THE BEAUTIFUL SYMMETRY OF COMPOSITE ARMOR</strong><br><br>
+                1. The REFINERY's FCC unit produces propylene and ethylene — feedstocks for epoxy resin<br>
+                2. The REFINERY's catalytic reformer produces benzene and toluene for BPA (epoxy backbone)<br>
+                3. The REFINERY's steam methane reformer produces hydrogen for ceramic sintering atmosphere<br>
+                4. The REFINERY's utilities provide compressed air for vacuum bagging and spray coating<br>
+                5. The ceramic tiles are bonded using polymers derived from refinery petrochemicals<br>
+                6. The same refinery that processes crude oil also provides the petrochemicals to manufacture the armor that protects it<br><br>
+                <strong>The refinery's petrochemical streams become the polymer matrix that holds the armor together.</strong><br><br>
+                <em>From crude oil to composite armor — a complete vertical integration.</em>
+            </div>
+            
+            <div class="note-box">🛡️ <strong>Summary:</strong> 3.0× multiplier, 38-42 kg/m², V50 ≈ 750-800 m/s, multi-hit capable.</div>
+</div>`,

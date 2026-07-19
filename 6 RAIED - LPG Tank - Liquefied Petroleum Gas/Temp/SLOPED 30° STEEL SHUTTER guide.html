@@ -1,0 +1,106 @@
+sloped: `<div class="guide-section"><h4>📐 Sloped 30° Steel Shutter — Complete Manufacturing Guide</h4>
+            <h5>1. DESIGN PRINCIPLE & PHYSICS</h5>
+            <p>The 30° sloped surface increases effective thickness and induces projectile ricochet, reducing kinetic energy transfer by 30-40% compared to flat plate.</p>
+            <div class="chemical-equation">
+                Effective thickness: t_eff = t / cos(θ) = 8mm / cos(30°) = 8 / 0.866 = 9.24mm (15.5% increase)
+                
+                Ricochet condition: Impact angle > critical angle = arcsin(σ_yield / ρ·v²)
+                For SS304: σ_yield = 215 MPa, ρ = 7930 kg/m³, v = 800 m/s
+                Critical angle = arcsin(215×10⁶ / (7930 × 640,000)) = arcsin(0.0423) ≈ 2.4°
+                
+                Kinetic energy reduction after ricochet:
+                KE_remaining = KE_initial × (1 - e^{-μ·θ}) where μ ≈ 0.5 (friction coefficient)
+                For 30° slope: KE_remaining = KE_initial × (1 - e^{-0.5×30°×π/180}) = KE_initial × 0.23
+                
+                → 77% energy dissipated, 23% retained (equivalent to 3.8mm flat plate)
+            </div>
+            
+            <h5>2. MATERIAL REQUIREMENTS</h5>
+            <ul>
+                <li>Base material: SS304 or SS316 (corrosion-resistant grade)</li>
+                <li>Thickness: 8mm ±0.2mm</li>
+                <li>Width: 1500mm (finished shutter width)</li>
+                <li>Length: 2700mm (finished shutter height)</li>
+            </ul>
+            
+            <h5>3. MANUFACTURING PROCESS</h5>
+            <h5>Step 1: Plate Preparation (SS304 manufacturing per standard guide)</h5>
+            <ul>
+                <li>Produce 8mm SS304 plate per standard process</li>
+                <li>Cut to 1550mm × 2750mm blanks (allows for trimming)</li>
+                <li>Edge preparation: Deburr, remove scale, apply lubricant (graphite-based for forming)</li>
+            </ul>
+            
+            <h5>Step 2: Press Brake Forming (45 minutes per plate)</h5>
+            <p><strong>Equipment:</strong> 1000-ton hydraulic press brake with 6m bed, CNC back gauge, angle measurement system</p>
+            <ul>
+                <li>Die selection: 30° V-die, opening width = 8× thickness = 64mm</li>
+                <li>Forming speed: 5 mm/sec, 3-5 passes to achieve 30° angle without cracking</li>
+                <li>Over-bend compensation: +2° to account for springback</li>
+                <li>Bend radius: 2× thickness = 16mm minimum</li>
+                <li>Calculations: <div class="chemical-equation">Bend allowance = θ × π/180 × (R + K×t) = 30° × π/180 × (16 + 0.33×8) = 0.5236 × 18.64 = 9.76mm</div></li>
+            </ul>
+            
+            <h5>Step 3: Stiffener Welding (2 hours)</h5>
+            <ul>
+                <li>Stiffener material: 3mm thick × 50mm wide SS304 strip</li>
+                <li>Placement: Vertical orientation, 400mm spacing</li>
+                <li>Welding process: TIG (GTAW) with ER308L filler (1.6mm diameter)</li>
+                <li>Parameters: 120A, 12V, Ar shielding 15 L/min, travel speed 100 mm/min</li>
+                <li>Weld sequence: Intermittent (50mm weld, 50mm gap) to minimize distortion</li>
+            </ul>
+            
+            <h5>Step 4: Stress Relief Annealing (4 hours)</h5>
+            <ul>
+                <li>Heat to 400°C at 5°C/min, hold 2 hours, cool in still air</li>
+                <li>Purpose: Relieve residual stresses from forming and welding</li>
+                <li>Measurement: Residual stress by X-ray diffraction (target <50 MPa)</li>
+            </ul>
+            
+            <h5>Step 5: Surface Treatment (3 hours)</h5>
+            <ul>
+                <li>Shot blasting: Steel grit G40, 6 bar pressure, coverage 200% (SA 2.5 standard)</li>
+                <li>Surface profile: 40-75μm (Ra 4-6μm)</li>
+                <li>Primer application: Zinc-rich epoxy, DFT 80-100μm, by airless spray (2.5 mm tip, 200 bar)</li>
+                <li>Cure: 23°C for 24 hours, or 80°C for 2 hours</li>
+                <li>Final coating (optional): Polyurethane topcoat, 50μm, for color coding</li>
+            </ul>
+            
+            <h5>4. QUALITY CONTROL</h5>
+            <table class="refinery-table">
+                <tr><th>Test</th><th>Method</th><th>Acceptance</th><th>Frequency</th></tr>
+                <tr><td>Angle verification</th><td>Digital protractor (6 measurements/edge)</th><td>30° ±0.5°</th><td>Each shutter</th></tr>
+                <tr>:</p>Weld penetration</th><td>Dye penetrant (ASTM E165)</th><td>No surface cracks, full fusion</th><td>Each weld</th></tr>
+                <tr>:</p>Coating thickness</th><td>Magnetic gauge (ASTM D1186)</th><td>80-100μm DFT</th><td>10 spots/shutter</th></tr>
+                <tr>:</p>Adhesion</th><td>Cross-cut tape test (ASTM D3359)</th><td>5B (no detachment)</th><td>1 per batch</th></tr>
+                <tr>:</p>Salt spray resistance</th><td>ASTM B117</th><td>500h no red rust</th><td>1 per 100 shutters</th></tr>
+            </table>
+            
+            <h5>5. COST BREAKDOWN (per m²)</h5>
+            <table class="refinery-table">
+                <tr><th>Cost Element</th><th>Value (USD)</th></tr>
+                <tr>:</p>Base SS304 Plate (8mm)</th><td>$550</th></tr>
+                <tr>:</p>Forming (press brake + tooling amortization)</th><td>$35</th></tr>
+                <tr>:</p>Stiffener + Welding</th><td>$20</th></tr>
+                <tr>:</p>Stress Relief Annealing</th><td>$15</th></tr>
+                <tr>:</p>Surface Treatment (blast + prime)</th><td>$25</th></tr>
+                <tr>:</p>Quality Control</th><td>$8</th></tr>
+                <tr>:</p><strong>Total Manufacturing Cost</strong></th><td><strong>$653/m²</strong></th></tr>
+                <tr>:</p>10-Year Maintenance ($9/m²/year × 10)</th><td>$90/m²</th></tr>
+                <tr>:</p><strong>Total Lifecycle Cost (10 years)</strong></th><td><strong>$743/m²</strong></th></tr>
+            </table>
+            
+            <h5>6. REFINERY INTEGRATION — THE BEAUTIFUL SYMMETRY</h5>
+            <div class="beautiful-symmetry-box">
+                <strong>🏭 THE BEAUTIFUL SYMMETRY OF SLOPED STEEL</strong><br><br>
+                1. The REFINERY produces crude oil that powers the rolling mills and furnaces<br>
+                2. The REFINERY's steam methane reformer produces hydrogen for annealing atmosphere<br>
+                3. The REFINERY's cogeneration plant provides high-pressure steam for the press brake<br>
+                4. The 30° slope is optimized using computational fluid dynamics (CFD) run on refinery servers<br>
+                5. The same refineries that produce jet fuel also produce the energy to form these shutters<br><br>
+                <strong>The refinery's energy and hydrogen enable the precision manufacturing of sloped armor that protects it.</strong><br><br>
+                <em>Energy self-sufficiency in defense manufacturing.</em>
+            </div>
+            
+            <div class="note-box">📐 <strong>Summary:</strong> 1.4× multiplier, 69 kg/m², V50 ≈ 650 m/s, 30-40% ricochet efficiency.</div>
+</div>`,

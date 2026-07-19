@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integrated Defense System – Linked Tools</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #0a0f1a;
+            color: #e2e8f0;
+            overflow: hidden;
+        }
+        .tab-bar {
+            display: flex;
+            background: #1e293b;
+            border-bottom: 2px solid #2dd4bf;
+            padding: 0 20px;
+            gap: 4px;
+            z-index: 10;
+            position: relative;
+        }
+        .tab-button {
+            background: #334155;
+            border: none;
+            color: #cbd5e1;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 12px 12px 0 0;
+        }
+        .tab-button.active {
+            background: #2dd4bf;
+            color: #0f1724;
+            box-shadow: 0 -2px 8px rgba(45,212,191,0.4);
+        }
+        .tab-button:hover:not(.active) {
+            background: #475569;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 48px);
+            overflow: auto;
+            background: #0a0f1a;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #0a0f1a;
+        }
+        .error-message {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #f87171;
+            background: #1e293b;
+            text-align: center;
+            padding: 20px;
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="tab-bar">
+        <button class="tab-button active" data-tab="tab1">🎮 3D Tank Defense</button>
+        <button class="tab-button" data-tab="tab2">⏱️ Shutter Timing & Damage</button>
+        <button class="tab-button" data-tab="tab3">📐 Expandable Shutter Layer Editor</button>
+    </div>
+
+    <div id="tab1" class="tab-content active">
+        <iframe src="part1.html" title="3D Tank Defense" onerror="this.parentElement.innerHTML='<div class=error-message>❌ Failed to load part1.html<br>Make sure the file is in the same folder.</div>'"></iframe>
+    </div>
+    <div id="tab2" class="tab-content">
+        <iframe src="part2.html" title="Shutter Timing Simulator" onerror="this.parentElement.innerHTML='<div class=error-message>❌ Failed to load part2.html<br>Make sure the file is in the same folder.</div>'"></iframe>
+    </div>
+    <div id="tab3" class="tab-content">
+        <iframe src="part3.html" title="Shutter Layer Editor" onerror="this.parentElement.innerHTML='<div class=error-message>❌ Failed to load part3.html<br>Make sure the file is in the same folder.</div>'"></iframe>
+    </div>
+
+    <script>
+        // Tab switching logic
+        const tabs = document.querySelectorAll('.tab-button');
+        const contents = document.querySelectorAll('.tab-content');
+        tabs.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabId = btn.getAttribute('data-tab');
+                contents.forEach(c => c.classList.remove('active'));
+                document.getElementById(tabId).classList.add('active');
+                tabs.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+
+        // --- Relay parameters from part3 to part2 ---
+        window.addEventListener('message', function(event) {
+            const data = event.data;
+            if (data && data.type === 'updateParams') {
+                // Forward the message to the part2 iframe
+                const part2Iframe = document.querySelector('#tab2 iframe');
+                if (part2Iframe && part2Iframe.contentWindow) {
+                    part2Iframe.contentWindow.postMessage(data, '*');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

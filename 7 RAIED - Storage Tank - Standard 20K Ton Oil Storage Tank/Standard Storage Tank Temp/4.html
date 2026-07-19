@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>RAIED - 8-Door Dome (4 sides) + Shutter Report + Live Annotations</title>
+    <style>
+        /* ========== ORIGINAL SIMULATOR STYLES ========== */
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background: #0a0f1a; }
+        .floating-logo { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 1000; pointer-events: none; }
+        .floating-logo img { height: 50px; width: auto; }
+        .fusion-screen { position: absolute; top: 2px; left: 10px; width: 300px; background: rgba(15,23,36,0.96); border: 2px solid #2dd4bf; border-radius: 12px; padding: 8px 10px 25px 10px; color: #cbd5e1; font-family: 'Courier New', monospace; z-index: 400; backdrop-filter: blur(8px); overflow-y: auto; resize: both; min-width: 200px; max-width: 350px; height: 372px; box-sizing: border-box; text-align: center; }
+        .fusion-screen::-webkit-scrollbar { width: 5px; }
+        .fusion-screen::-webkit-scrollbar-track { background: #1e293b; border-radius: 3px; }
+        .fusion-screen::-webkit-scrollbar-thumb { background: #2dd4bf; border-radius: 3px; }
+        .fusion-drag-handle { position: absolute; top: 3px; right: 25px; cursor: move; font-size: 1rem; color: #2dd4bf; opacity: 0.6; }
+        .voice-mute-btn { display: block; width: fit-content; margin: 6px auto 0; background: #1e293b; border: 1px solid #475569; color: #cbd5e1; border-radius: 20px; padding: 2px 10px; font-size: 0.5rem; cursor: pointer; }
+        .voice-mute-btn.muted { border-color: #e11d48; color: #f87171; background: rgba(225,29,72,0.2); }
+        .fusion-row { display: flex; justify-content: space-between; margin: 3px 0; font-size: 0.6rem; text-align: left; }
+        .fusion-label { color: #94a3b8; }
+        .fusion-value { color: #f1f5f9; font-weight: bold; }
+        .fusion-screen .countdown { font-size: 1.8rem; font-weight: bold; margin: 5px 0; text-align: center; background: rgba(0,0,0,0.6); border-radius: 10px; padding: 5px; color: #facc15; text-shadow: 0 0 8px #f59e0b; }
+        .fusion-screen .countdown.kamikaze-active { color: #e11d48; text-shadow: 0 0 15px #e11d48, 0 0 8px #f97316; animation: pulseCountdown 0.5s infinite; }
+        @keyframes pulseCountdown { 0%,100% { text-shadow: 0 0 5px #e11d48; opacity: 1; } 50% { text-shadow: 0 0 25px #e11d48, 0 0 10px #f97316; opacity: 0.9; } }
+        .fusion-screen .distance { font-size: 0.65rem; text-align: center; background: rgba(0,0,0,0.4); border-radius: 8px; padding: 2px; }
+        .fusion-screen .threat-level { font-size: 0.7rem; margin: 3px 0; padding: 2px; border-radius: 20px; text-align: center; font-weight: bold; }
+        .fusion-screen .status { font-size: 0.55rem; background: #1e293b; border-radius: 20px; padding: 2px; text-align: center; color: #94a3b8; }
+        .threat-low { color: #34d399; background: #064e3b; }
+        .threat-medium { color: #fbbf24; background: #78350f; }
+        .threat-high { color: #fb923c; background: #9a3412; }
+        .threat-critical { color: #f87171; background: #7f1a1a; animation: pulseRed 0.5s infinite; }
+        @keyframes pulseRed { 0%,100%{opacity:1;} 50%{opacity:0.7;text-shadow:0 0 15px red;} }
+        .scada-trend-panel { position: absolute; top: 377px; left: 10px; width: 300px; background: rgba(15,23,36,0.96); backdrop-filter: blur(16px); border: 2px solid #2dd4bf; border-radius: 12px; padding: 6px 8px; z-index: 350; font-family: 'Courier New', monospace; resize: both; overflow-y: auto; min-width: 200px; max-width: 350px; height: 336px; box-sizing: border-box; }
+        .scada-trend-panel::-webkit-scrollbar { width: 5px; }
+        .scada-trend-panel::-webkit-scrollbar-track { background: #1e293b; border-radius: 3px; }
+        .scada-trend-panel::-webkit-scrollbar-thumb { background: #2dd4bf; border-radius: 3px; }
+        .trend-header { color: #2dd4bf; font-size: 0.6rem; text-align: center; border-bottom: 1px solid #2dd4bf; margin-bottom: 4px; padding-bottom: 2px; }
+        .trend-card { background: rgba(30,41,59,0.5); border-radius: 6px; padding: 4px; margin-bottom: 5px; border-left: 3px solid #f59e0b; }
+        .trend-title { font-size: 0.5rem; color: #cbd5e1; display: flex; justify-content: space-between; }
+        .trend-canvas-container { width: 100%; height: 40px; background: #0f1724; border-radius: 4px; }
+        canvas.trend-canvas { width: 100%; height: 100%; display: block; background: #0f1724; border-radius: 4px; }
+        .trend-stats { font-size: 0.45rem; color: #94a3b8; text-align: right; margin-top: 2px; }
+        .scada-drag-handle { position: absolute; top: 2px; left: 6px; cursor: move; font-size: 0.5rem; color: #2dd4bf; opacity: 0.6; background: rgba(0,0,0,0.4); padding: 0 4px; border-radius: 8px; }
+        .controls-panel { position: absolute; top: 5px; bottom: 5px; right: 15px; z-index: 300; background: linear-gradient(145deg, #0f1724 0%, #0a0f1a 100%); backdrop-filter: blur(12px); border-radius: 12px; padding: 8px 10px; color: #e2e8f0; font-family: monospace; border: 2px solid #2dd4bf; width: 280px; min-width: 260px; text-align: center; overflow-y: auto; resize: both; box-sizing: border-box; }
+        .controls-panel::-webkit-scrollbar { width: 5px; }
+        .controls-panel::-webkit-scrollbar-track { background: #1e293b; border-radius: 3px; }
+        .controls-panel::-webkit-scrollbar-thumb { background: #2dd4bf; border-radius: 3px; }
+        .panel-header { display: flex; justify-content: center; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #2dd4bf; cursor: grab; font-weight: bold; position: relative; font-size: 0.7rem; background: rgba(45,212,191,0.15); color: #2dd4bf; }
+        .reset-pos-btn { background: #5a3a2a; border: none; color: #aaa; padding: 2px 5px; border-radius: 10px; cursor: pointer; font-size: 0.5rem; position: absolute; right: 0; top: 0; }
+        .reset-pos-btn:hover { background: #e11d48; color: white; }
+        button:not(.report-btn):not(.annotate-btn) { background: #334155; border: none; color: #f1f5f9; margin: 2px; border-radius: 16px; cursor: pointer; font-weight: bold; font-family: monospace; padding: 4px 6px; font-size: 0.6rem; transition: all 0.1s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+        button:not(.report-btn):not(.annotate-btn):hover { filter: brightness(1.15); transform: scale(1.02); }
+        .btn-primary { background: #f59e0b; color: #0f1724; border: 1px solid #fbbf24; }
+        .btn-danger { background: #e11d48; border: 1px solid #f43f5e; }
+        .btn-kamikaze { background: #ea580c; border: 1px solid #fdba74; text-shadow: 0 0 2px #ffedd5; }
+        .btn-auto { background: #8b5cf6; border: 2px solid #c4b5fd; }
+        .btn-laser { background: #06b6d4; border: 2px solid #67e8f9; }
+        .btn-kamikaze-launch { background: #cc3300 !important; border: 2px solid #ff8844 !important; color: #fff0d0 !important; text-shadow: 0 0 4px #ffaa66; box-shadow: 0 0 8px rgba(255,68,0,0.6); transition: all 0.2s ease; }
+        .btn-kamikaze-launch:hover { background: #ff4411 !important; border-color: #ffcc88 !important; box-shadow: 0 0 14px #ff6633; transform: scale(1.02); }
+        .kamikaze-section { background: rgba(30,41,59,0.6); border-radius: 6px; padding: 4px; margin: 5px 0; border: 1px solid #ea580c; }
+        .laser-section { background: rgba(30,41,59,0.6); border-radius: 6px; padding: 4px; margin: 5px 0; border: 1px solid #8b5cf6; }
+        .progress-bar { width: 100%; height: 4px; background: #1e293b; border-radius: 4px; overflow: hidden; margin: 3px 0; }
+        .progress-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #06b6d4, #f59e0b, #e11d48); border-radius: 4px; transition: width 0.05s linear; }
+        .tank-status { background: rgba(30,41,59,0.6); border-radius: 6px; padding: 5px; margin: 5px 0; text-align: center; font-size: 0.6rem; }
+        .pressure-gauge { width: 100%; height: 6px; background: #2a2a2a; border-radius: 4px; margin: 3px 0; overflow: hidden; }
+        .pressure-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444); border-radius: 4px; transition: width 0.1s linear; }
+        .drone-status { background: rgba(30,41,59,0.6); border-radius: 6px; padding: 4px; margin: 5px 0; font-size: 0.6rem; }
+        .mode-selector { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; margin: 4px 0; }
+        .badge-group { background: #0f1724; border-radius: 8px; padding: 2px 6px; margin-top: 3px; display: inline-block; font-size: 0.5rem; color: #cbd5e1; }
+        .locations-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px; margin: 4px 0; }
+        .loc-btn { padding: 3px 4px; font-size: 0.55rem; }
+        .loc-btn-normal { background: #14b8a6; color: #0f1724; }
+        .loc-btn-threat { background: #be123c; }
+        .audio-control { background: #1e293b; border-radius: 6px; padding: 4px; margin: 5px 0; display: flex; align-items: center; justify-content: space-between; font-size: 0.6rem; }
+        .audio-toggle { background: #334155; padding: 2px 8px; font-size: 0.6rem; }
+        .safety-section { background: rgba(30,41,59,0.6); border-radius: 6px; padding: 5px; margin: 5px 0; border: 1px solid #f59e0b; font-size: 0.6rem; }
+        .auto-safety-panel { background: rgba(30,41,59,0.6); border-radius: 6px; padding: 5px; margin: 5px 0; border: 2px solid #8b5cf6; }
+        .separator { height: 1px; background: #334155; margin: 4px 0; }
+        .section-title { background: #1e293b; border-radius: 6px; padding: 2px; margin: 4px 0 3px 0; font-weight: bold; text-align: center; font-size: 0.6rem; color: #2dd4bf; }
+        .impact-notice { color: #facc15; margin-top: 4px; text-align: center; font-size: 0.6rem; }
+        .status-row { display: flex; justify-content: space-between; gap: 8px; margin: 3px 0; font-size: 0.6rem; }
+        .fire-risk { font-size: 0.5rem; margin-top: 2px; }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
+        .alert-banner { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: #e11d48; color: white; padding: 8px 16px; border-radius: 40px; font-family: monospace; font-weight: bold; font-size: 1rem; z-index: 500; text-align: center; animation: blinkAlert 0.5s infinite; display: none; white-space: nowrap; box-shadow: 0 0 20px #e11d48; border: 1px solid #fecdd3; }
+        @keyframes blinkAlert { 0%,100%{opacity:1;} 50%{opacity:0.7;} }
+        
+        /* ========== NEW BUTTONS & MODAL & TOOLTIP ========== */
+        .top-buttons {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1100;
+            display: flex;
+            gap: 12px;
+        }
+        .report-btn, .annotate-btn {
+            background: #2dd4bf;
+            color: #0a0f1a;
+            border: none;
+            border-radius: 40px;
+            padding: 8px 18px;
+            font-weight: bold;
+            font-family: monospace;
+            font-size: 0.9rem;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            transition: 0.2s;
+        }
+        .annotate-btn {
+            background: #8b5cf6;
+            color: white;
+        }
+        .annotate-btn.active {
+            background: #f59e0b;
+            box-shadow: 0 0 12px #f59e0b;
+        }
+        .report-btn:hover, .annotate-btn:hover { transform: scale(1.02); filter: brightness(1.05); }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(5px);
+            z-index: 2000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: #0f1724;
+            border: 2px solid #2dd4bf;
+            border-radius: 20px;
+            width: 85%;
+            max-width: 1000px;
+            max-height: 85vh;
+            overflow-y: auto;
+            color: #cbd5e1;
+            font-family: 'Segoe UI', monospace;
+            padding: 20px 25px;
+            position: relative;
+        }
+        .modal-content::-webkit-scrollbar { width: 6px; }
+        .modal-content::-webkit-scrollbar-track { background: #1e293b; }
+        .modal-content::-webkit-scrollbar-thumb { background: #2dd4bf; }
+        .close-modal {
+            position: absolute;
+            top: 12px;
+            right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #94a3b8;
+            cursor: pointer;
+        }
+        .close-modal:hover { color: #f87171; }
+        h1 { color: #2dd4bf; border-bottom: 2px solid #2dd4bf; }
+        h2 { color: #facc15; border-left: 4px solid #facc15; padding-left: 12px; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 8px; margin: 12px 0; }
+        th, td { border: 1px solid #334155; padding: 6px 10px; font-size: 0.8rem; text-align: left; }
+        th { background: #2d3a4e; }
+        .svg-sketch { background: #1a2533; border-radius: 12px; padding: 12px; margin: 15px 0; text-align: center; }
+        .svg-sketch svg { max-width: 100%; background: #0f1724; border-radius: 8px; }
+        
+        .annotation-tooltip {
+            position: fixed;
+            background: #0a0f1aee;
+            border: 2px solid #2dd4bf;
+            border-radius: 12px;
+            padding: 8px 14px;
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: #f1f5f9;
+            pointer-events: none;
+            z-index: 3000;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            max-width: 280px;
+        }
+        .annotation-tooltip strong { color: #2dd4bf; }
+    </style>
+</head>
+<body>
+    <div class="floating-logo"><img src="REFINERY ANTI-drone INTERCEPTION ENVIRONMENT DOME - Logo.png" alt="RAIED Logo"></div>
+    
+    <!-- New buttons -->
+    <div class="top-buttons">
+        <button class="report-btn" id="openReportBtn">📊 SHUTTER REPORT</button>
+        <button class="annotate-btn" id="toggleAnnotateBtn">🔍 LIVE ANNOTATIONS (OFF)</button>
+    </div>
+    
+    <!-- Modal for Shutter Report (SVG sketch) -->
+    <div id="reportModal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="close-modal" id="closeModalBtn">&times;</span>
+            <h1>🔧 Rapid Shutter Closure Feasibility Report (8-Door Config)</h1>
+            <p><strong>Objective:</strong> Close 8 sliding doors (2 per side, 4 sides) + dome top shutters within 20 sec after drone alert.</p>
+            <div class="svg-sketch">
+                <svg width="500" height="350" viewBox="0 0 500 350" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="50" y="50" width="400" height="250" fill="#1e293b" stroke="#2dd4bf" stroke-width="2" rx="10"/>
+                    <text x="250" y="40" fill="#2dd4bf" font-size="14" text-anchor="middle" font-weight="bold">Dome Protection System - Top View (8 Doors, 4 Sides) - UPDATED TO MATCH 3D</text>
+                    <line x1="80" y1="70" x2="420" y2="70" stroke="#facc15" stroke-width="3" stroke-dasharray="6,4"/>
+                    <text x="430" y="75" fill="#facc15" font-size="10">Top Shutters (5 panels)</text>
+                    <!-- North side -->
+                    <rect x="120" y="90" width="60" height="40" fill="none" stroke="#86efac" stroke-width="2"/>
+                    <rect x="190" y="90" width="60" height="40" fill="none" stroke="#86efac" stroke-width="2"/>
+                    <text x="155" y="145" fill="#86efac" font-size="9">Door 1</text>
+                    <text x="220" y="145" fill="#86efac" font-size="9">Door 2</text>
+                    <text x="250" y="85" fill="#facc15" font-size="9">North Side</text>
+                    <!-- South side -->
+                    <rect x="120" y="250" width="60" height="40" fill="none" stroke="#86efac" stroke-width="2"/>
+                    <rect x="190" y="250" width="60" height="40" fill="none" stroke="#86efac" stroke-width="2"/>
+                    <text x="155" y="305" fill="#86efac" font-size="9">Door 1</text>
+                    <text x="220" y="305" fill="#86efac" font-size="9">Door 2</text>
+                    <text x="250" y="315" fill="#facc15" font-size="9">South Side</text>
+                    <!-- West side -->
+                    <rect x="70" y="130" width="40" height="60" fill="none" stroke="#86efac" stroke-width="2"/>
+                    <rect x="70" y="200" width="40" height="60" fill="none" stroke="#86efac" stroke-width="2"/>
+                    <text x="55" y="165" fill="#86efac" font-size="9">Door 1</text>
+                    <text x="55" y="235" fill="#86efac" font-size="9">Door 2</text>
+                    <text x="60" y="120" fill="#facc15" font-size="9">West Side</text>
+                    <!-- East side -->
+                    <rect x="390" y="130" width="40" height="60" fill="none" stroke="#86efac" stroke-width="2"/>
+                    <rect x="390" y="200" width="40" height="60" fill="none" stroke="#86efac" stroke-width="2"/>
+                    <text x="440" y="165" fill="#86efac" font-size="9">Door 1</text>
+                    <text x="440" y="235" fill="#86efac" font-size="9">Door 2</text>
+                    <text x="440" y="120" fill="#facc15" font-size="9">East Side</text>
+                    <path d="M120 170 L120 180 L160 180 L160 170" stroke="#facc15" fill="none" stroke-width="1.5"/>
+                    <text x="125" y="190" fill="#ffaa66" font-size="8">Gap between doors</text>
+                    <circle cx="100" cy="160" r="5" fill="#ff8844"/>
+                    <circle cx="100" cy="220" r="5" fill="#ff8844"/>
+                    <circle cx="400" cy="160" r="5" fill="#ff8844"/>
+                    <circle cx="400" cy="220" r="5" fill="#ff8844"/>
+                    <text x="80" y="280" fill="#ffaa66" font-size="8">Motors (2 per side)</text>
+                    <text x="250" y="340" fill="#94a3b8" font-size="10">8 doors total | 2 motors per side | 76 tons per door | Gap: 150mm </text>
+                </svg>
+            </div>
+            <h2>📐 Technical Parameters</h2>
+            <table>
+                <tr><th>Parameter</th><th>Value</th></tr>
+                <tr><td>Number of doors</th><td>8 (2 per side, 4 sides)</td></tr>
+                <tr><td>Door weight</th><td>~76,000 kg (76 tons) per door</td></tr>
+                <tr><td>Material</th><td>8mm stainless steel (density 8000 kg/m³)</td></tr>
+                <tr><td>Total motor power</th><td>80-120 kW (2 motors per side)</td></tr>
+                <tr><td>Friction coefficient</th><td>0.02 (rolling)</td></tr>
+                <tr><td>Gap between doors (per side)</th><td>150 mm (critical for rapid closure)</td></tr>
+            </table>
+            <h2>⏱️ Closing Times</h2>
+            <table>
+                <tr><th>Start position</th><th>Time (sec)</th><th>Feasibility</th></tr>
+                <tr><td>Fully open</th><td>60-120</td><td>❌ No</td></tr>
+                <tr><td>Half open</th><td>15-30</td><td>⚠️ Risky</td></tr>
+                <tr><td>1/3 open</th><td>10-20</td><td>✅ Feasible</td></tr>
+                <tr><td>1/4 open</th><td>7.5-15</td><td>✅ Best</td></tr>
+            </table>
+            <h2>🔩 Motors & Control</h2>
+            <p>2 shaft‑mounted helical‑bevel motors per side, VFD synchronized, torque sensors, emergency brakes.</p>
+            <h2>🛡️ Recommendation</h2>
+            <p>Operate doors at 33% or 25% open; integrate with active drone defense; conduct FEA and prototype testing.</p>
+        </div>
+    </div>
+    
+    <!-- Original simulator panels (same as before) -->
+    <div class="fusion-screen" id="fusionScreen"><div class="fusion-drag-handle" id="fusionDragHandle">⣿⣿</div><h3>🔧 FUSION SYSTEM / SCADA</h3><div class="countdown" id="countdownTimer">--.-</div><div class="distance" id="distanceDisplay">📏 DISTANCE: --- km</div><div class="fusion-row"><span class="fusion-label">📡 RADAR STATUS:</span><span class="fusion-value" id="radarStatus">ACTIVE</span></div><div class="fusion-row"><span class="fusion-label">🎯 TARGET:</span><span class="fusion-value" id="targetType">NONE</span></div><div class="fusion-row"><span class="fusion-label">⚡ SPEED:</span><span class="fusion-value" id="targetSpeed">--- km/h</span></div><div class="fusion-row"><span class="fusion-label">🧭 APPROACH FROM:</span><span class="fusion-value" id="targetDirection">---</span></div><div class="fusion-row"><span class="fusion-label">🔄 MANEUVER:</span><span class="fusion-value" id="targetManeuver">---</span></div><div class="fusion-row"><span class="fusion-label">⏱️ ETA:</span><span class="fusion-value" id="targetETA">--- sec</span></div><div class="fusion-row"><span class="fusion-label">🔄 BEAM ROTATION:</span><span class="fusion-value" id="beamRotation">360° LONG RANGE</span></div><div class="threat-level" id="threatLevel">🟢 THREAT: LOW</div><div class="status" id="fusionStatusText">🟢 SYSTEM ONLINE | AWAITING DRONE</div><div class="fusion-row" style="margin-top:8px; border-top:1px solid #2dd4bf;"><span class="fusion-label">⚙️ MOTOR STATUS:</span><span class="fusion-value" id="motorStatus">4x15HP FLOOR + 2x15HP TOP (SOUTH SIDE) = IDLE</span></div><div class="fusion-row" style="margin-top:4px;"><span class="fusion-label">🛡️ DOME STATUS:</span><span class="fusion-value" id="domeStatus">PROTECTED</span></div><div class="fusion-row"><span class="fusion-label">💨 N₂ BLANKET:</span><span class="fusion-value" id="nitroStatus">ACTIVE ✅</span></div><div class="fusion-row"><span class="fusion-label">🔫 LASER TURRET:</span><span class="fusion-value" id="laserStatus">STANDBY</span></div><div class="voice-mute-btn" id="voiceMuteBtn">🔊 VOICE: ON</div></div>
+    <div id="scadaTrendPanel" class="scada-trend-panel"><div class="scada-drag-handle" id="trendDragHandle">⣿ DRAG ⣿</div><div class="trend-header">📊 REAL-TIME TRENDS</div><div class="trend-card"><div class="trend-title"><span>📈 PRESSURE (PSI)</span><span id="pressureLiveVal">50 PSI</span></div><div class="trend-canvas-container"><canvas id="pressureTrendCanvas" class="trend-canvas"></canvas></div><div class="trend-stats">Max: <span id="pressureTrendMax">50</span> PSI</div></div><div class="trend-card"><div class="trend-title"><span>⚡ DRONE SPEED (km/h)</span><span id="speedLiveVal">0 km/h</span></div><div class="trend-canvas-container"><canvas id="speedTrendCanvas" class="trend-canvas"></canvas></div><div class="trend-stats">Peak: <span id="speedTrendPeak">0</span> km/h</div></div><div class="trend-card"><div class="trend-title"><span>📏 DISTANCE (km)</span><span id="distLiveVal">-- km</span></div><div class="trend-canvas-container"><canvas id="distanceTrendCanvas" class="trend-canvas"></canvas></div><div class="trend-stats">Min: <span id="distTrendMin">--</span> km</div></div><div class="trend-card"><div class="trend-title"><span>🚁 DRONE COUNT</span><span id="presenceLiveVal">0</span></div><div class="trend-canvas-container"><canvas id="presenceTrendCanvas" class="trend-canvas"></canvas></div><div class="trend-stats">0-5 active drones</div></div></div>
+    <div class="alert-banner" id="alertBanner">🚨🚨🚨 INCOMING KAMIKAZE DETECTED! 🚨🚨🚨</div>
+    <div class="controls-panel" id="movablePanel">
+        <div class="panel-header" id="dragHandle"><span>🎮 RAIED - STORAGE COMMAND</span><button class="reset-pos-btn" id="resetPanelPos">⟳</button></div>
+        <div class="audio-control"><span>🔊 SOUND EFFECTS (Incl. Laser)</span><button id="audioToggleBtn" class="audio-toggle">🔇 MUTE</button></div>
+        <button id="killAllSoundsBtn" class="btn-danger" style="width:100%; margin-bottom:5px;">💀 KILL ALL SOUNDS</button>
+        <div class="laser-section"><div>🔫 AUTO LASER TURRET (swarm)</div><button id="toggleLaserBtn" class="btn-laser" style="width:100%;">🔫 ACTIVATE AUTO LASER</button><div id="laserStatusText" style="font-size:0.5rem; margin-top:3px;">⚡ Auto Turret: INACTIVE | Targets swarm drones</div><div class="badge-group">💡 Auto laser neutralizes 1 swarm drone per shot (5 sec cooldown)</div><div class="badge-group">✨ Visible cyan beam</div><div class="badge-group">🔇 Laser sound mutes with main audio button</div><div class="badge-group">💥 Leaves debris on ground</div></div>
+        <div class="auto-safety-panel"><div class="auto-safety-title">🤖 AUTOMATIC SAFETY SYSTEM</div><div class="shutter-group"><button id="autoSafetyBtn" class="btn-auto" style="width:100%; padding:6px;">🤖 AUTO-SAFETY: ON</button></div><div class="badge-group">💡 Auto-activates Cooling + Vents + Foam at 200+ PSI</div></div>
+        <div class="drone-status">
+            <div style="display: flex; gap: 6px; margin-bottom: 6px;"><button id="toggleDroneBtn" style="flex:1; background:#2a6a5a;">🚁 LAUNCH MAIN DRONE</button><button id="manualLaserBtn" style="flex:1; background:#e11d48; border:1px solid #f43f5e;">🔫 MANUAL LASER (main drone)</button></div>
+            <div class="badge-group" style="margin:4px 0;">⚙️ MAIN DRONE</div>
+            <button id="spawnSwarmBtn" style="width:100%; background:#6a4a2a;">🔄 SPAWN DRONE SWARM (max 5)</button>
+            <button id="clearSwarmBtn" style="width:100%; background:#4a3a2a; margin-top:2px;">🗑️ CLEAR ALL SWARM DRONES</button>
+            <div id="droneStatus" style="margin-top:4px;">⚡ No drone - Strikes disabled</div>
+        </div>
+        <div class="section-title" style="margin-top:8px;">⚡ SELECT MODE</div>
+        <div class="mode-selector"><button id="normalModeBtn">🟢 NORMAL MODE</button><button id="threatModeBtn">🔴 THREAT MODE</button><button id="kamikazeModeBtn" class="btn-kamikaze">💀 KAMIKAZE MODE</button><button id="clearModeBtn">⚪ CLEAR</button></div>
+        <div class="kamikaze-section"><div>💀 KAMIKAZE ATTACK</div><button id="kamikazeAttackBtn" class="btn-auto btn-kamikaze-launch" style="width:100%;" disabled>💀 LAUNCH KAMIKAZE DRONE</button><div id="kamikazeStatus">💡 IF SHUTTERS CLOSED → Dome protects tank | IF SHUTTERS OPEN → Tank destroyed</div><div id="kamikazeCounter" class="badge-group">💀 Kamikaze strikes: 0</div><div id="partsOnShuttersCounter" class="badge-group" style="margin-top:3px;">🔶 Items on shutters: 0</div></div>
+        <div class="section-title">🏛️ DOME PROTECTION SYSTEM</div>
+        <div class="shutter-group"><button id="closeTopShuttersBtn" class="btn-primary">🔒 CLOSE TOP SHUTTERS</button><button id="openTopShuttersBtn">🔓 OPEN TOP SHUTTERS</button></div>
+        <div class="progress-bar"><div class="progress-fill" id="topFillBar"></div></div>
+        <div class="shutter-group"><button id="closeFaceDoorsBtn" class="btn-primary">🚪 CLOSE FACE DOORS</button><button id="openFaceDoorsBtn">🚪 OPEN FACE DOORS</button></div>
+        <div class="progress-bar"><div class="progress-fill" id="faceFillBar"></div></div>
+        <div class="shutter-group"><button id="closeAllShuttersBtn" class="btn-danger">🛡️ CLOSE ALL SHUTTERS (PROTECT TANK)</button><button id="openAllShuttersBtn">🔓 OPEN ALL SHUTTERS (VULNERABLE)</button></div>
+        <div class="badge-group">🛡️ SHUTTERS CLOSED = DOME TAKES THE HIT | TANK SURVIVES</div>
+        <div class="separator"></div>
+        <div class="safety-section"><div class="safety-title">🛡️ MANUAL SAFETY OVERRIDE</div><div class="status-row"><span>💧 COOLING: <span id="coolingPercent">0</span>%</span><span>🚪 VENTS: <span id="ventPercent">0</span>%</span><span>🫧 FOAM: <span id="foamPercent">0</span>%</span></div><div class="progress-bar"><div class="progress-fill" id="coolingFill"></div></div><div class="progress-bar"><div class="progress-fill" id="ventFill"></div></div><div class="progress-bar"><div class="progress-fill" id="foamFill"></div></div><div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; margin: 4px 0;"><button id="activateCoolingBtn" class="btn-primary">💧 COOLING ON</button><button id="deactivateCoolingBtn">💧 OFF</button><button id="openVentsBtn" class="btn-primary">🚪 VENTS OPEN</button><button id="closeVentsBtn">🚪 CLOSE</button><button id="activateFoamBtn">🫧 FOAM ON</button><button id="deactivateFoamBtn">🫧 OFF</button><button id="emergencyDepressurizeBtn">⚠️ EMERGENCY DEPRESS</button></div></div>
+        <div class="separator"></div>
+        <div class="tank-status"><div>📊 TANK STATUS (20,000 TON)</div><div>💨 PRESSURE: <span id="pressureValue">50</span> PSI</div><div class="pressure-gauge"><div class="pressure-fill" id="pressureFill"></div></div><div>🏗️ INTEGRITY: <span id="integrityValue">100</span>%</div><div class="progress-bar"><div class="progress-fill" id="integrityFill"></div></div><div class="fire-risk" id="fireRisk">✅ NORMAL</div><div class="badge-group">💨 N₂ BLANKET ACTIVE - FIRE INERTING</div></div>
+        <div class="separator"></div>
+        <div class="section-title">🔥 NORMAL STRIKES (Requires open shutters) - PROGRESSIVE DAMAGE</div>
+        <div class="locations-grid" id="normalStrikesGrid"></div>
+        <div class="section-title">💀 THREAT STRIKES (Requires shutters closed) - PRESSURE DAMAGE + DEBRIS ON SHUTTERS</div>
+        <div class="locations-grid" id="threatStrikesGrid"></div>
+        <button id="resetAllActionsBtn" style="background:#cc3300; width:100%; margin-top:8px; padding:6px;">🔄 RESET ALL SYSTEMS</button>
+        <div class="impact-notice" id="impactMessage">🛡️ Oil spills visible around the tank!</div>
+    </div>
+
+    <script type="importmap">{ "imports": { "three": "https://unpkg.com/three@0.128.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/" } }</script>
+    <script type="module">
+        // ========== ORIGINAL SIMULATION WITH 8 DOORS (4 SIDES) ==========
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+        
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a1a2a);
+        scene.fog = new THREE.FogExp2(0x0a1a2a, 0.003);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+        
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0px';
+        labelRenderer.domElement.style.left = '0px';
+        labelRenderer.domElement.style.pointerEvents = 'none';
+        document.body.appendChild(labelRenderer.domElement);
+        
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 200);
+        camera.position.set(18, 14.4, 24);
+        camera.lookAt(0, 3, 0);
+        
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.target.set(0, 3, 0);
+        controls.zoomSpeed = 1.2;
+        
+        // Lighting
+        const ambient = new THREE.AmbientLight(0x708090, 0.75); scene.add(ambient);
+        const mainLight = new THREE.DirectionalLight(0xfff5e0, 1.6); mainLight.position.set(8, 18, 6); mainLight.castShadow = true; scene.add(mainLight);
+        const fillLight = new THREE.PointLight(0xaaccff, 0.65); fillLight.position.set(0, 5, 0); scene.add(fillLight);
+        const backLight = new THREE.PointLight(0xffccaa, 0.55); backLight.position.set(-5, 6, -8); scene.add(backLight);
+        const rimLight = new THREE.PointLight(0x88aaff, 0.5); rimLight.position.set(4, 7, -6); scene.add(rimLight);
+        
+        const ground = new THREE.Mesh(new THREE.PlaneGeometry(50, 50), new THREE.MeshStandardMaterial({ color: 0x2a3038, roughness: 0.85, metalness: 0.1 }));
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -1.5;
+        ground.receiveShadow = true;
+        scene.add(ground);
+        
+        const gridHelper = new THREE.GridHelper(50, 35, 0x88aacc, 0x446688);
+        gridHelper.position.y = -1.45;
+        gridHelper.material.transparent = true;
+        gridHelper.material.opacity = 0.25;
+        scene.add(gridHelper);
+        
+        // Dome geometry constants
+        const SQUARE_SIZE = 13.5, HALF_SIZE = SQUARE_SIZE / 2, GROUND_Y = -1.5, PILLAR_H = 6.8, TOP_Y = GROUND_Y + PILLAR_H;
+        const steelShutter = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.99, roughness: 0.02, emissive: 0x444444 });
+        
+        // Top shutters (existing)
+        let shuttersList = [];
+        const shutterTracks = [{ centerX: -5.4, width: 2.7 }, { centerX: -2.7, width: 2.7 }, { centerX: 0, width: 2.7 }, { centerX: 2.7, width: 2.7 }, { centerX: 5.4, width: 2.7 }];
+        const SECTION_LENGTH = SQUARE_SIZE / 4;
+        shutterTracks.forEach(track => {
+            for (let i = 0; i < 4; i++) {
+                const shutter = new THREE.Mesh(new THREE.BoxGeometry(track.width, 0.02, SECTION_LENGTH), steelShutter);
+                const startZ = -HALF_SIZE + i * SECTION_LENGTH;
+                const centerZ = startZ + SECTION_LENGTH / 2;
+                shutter.position.set(track.centerX, TOP_Y + 0.1, -HALF_SIZE);
+                shutter.castShadow = true;
+                scene.add(shutter);
+                shuttersList.push(shutter);
+            }
+        });
+        
+        // Face doors: 2 per side, 4 sides (North, South, East, West) – this is the corrected part
+        let doors = [];
+        const doorMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+        const doorWidth = 1.2, doorHeight = PILLAR_H - 0.5, doorDepth = 0.1;
+        
+        // North side (positive Z)
+        const northPositions = [-1.5, 1.5];
+        northPositions.forEach(xPos => {
+            const door = new THREE.Mesh(new THREE.BoxGeometry(doorWidth, doorHeight, doorDepth), doorMat);
+            door.position.set(xPos, GROUND_Y + PILLAR_H / 2, HALF_SIZE);
+            door.castShadow = true;
+            scene.add(door);
+            doors.push(door);
+        });
+        
+        // South side (negative Z)
+        const southPositions = [-1.5, 1.5];
+        southPositions.forEach(xPos => {
+            const door = new THREE.Mesh(new THREE.BoxGeometry(doorWidth, doorHeight, doorDepth), doorMat);
+            door.position.set(xPos, GROUND_Y + PILLAR_H / 2, -HALF_SIZE);
+            door.castShadow = true;
+            scene.add(door);
+            doors.push(door);
+        });
+        
+        // East side (positive X)
+        const eastPositions = [-1.5, 1.5];
+        eastPositions.forEach(zPos => {
+            const door = new THREE.Mesh(new THREE.BoxGeometry(doorDepth, doorHeight, doorWidth), doorMat);
+            door.position.set(HALF_SIZE, GROUND_Y + PILLAR_H / 2, zPos);
+            door.castShadow = true;
+            scene.add(door);
+            doors.push(door);
+        });
+        
+        // West side (negative X)
+        const westPositions = [-1.5, 1.5];
+        westPositions.forEach(zPos => {
+            const door = new THREE.Mesh(new THREE.BoxGeometry(doorDepth, doorHeight, doorWidth), doorMat);
+            door.position.set(-HALF_SIZE, GROUND_Y + PILLAR_H / 2, zPos);
+            door.castShadow = true;
+            scene.add(door);
+            doors.push(door);
+        });
+        
+        // Expose arrays for annotations
+        window.shuttersList = shuttersList;
+        window.doorsList = doors;
+        window.camera = camera;
+        window.renderer = renderer;
+        
+        // Simple animation loop
+        function animate() {
+            controls.update();
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+        animate();
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        console.log("8-door dome (4 sides) initialised. Hover with annotations ON to see data.");
+    </script>
+    
+    <!-- Annotation and modal control script (unchanged) -->
+    <script>
+        (function() {
+            let checkInterval = setInterval(() => {
+                if (window.shuttersList && window.doorsList && window.camera && window.renderer) {
+                    clearInterval(checkInterval);
+                    initFeatures();
+                }
+            }, 500);
+            
+            function initFeatures() {
+                // Modal control
+                const modal = document.getElementById('reportModal');
+                const openBtn = document.getElementById('openReportBtn');
+                const closeBtn = document.getElementById('closeModalBtn');
+                if (openBtn) openBtn.onclick = () => modal.style.display = 'flex';
+                if (closeBtn) closeBtn.onclick = () => modal.style.display = 'none';
+                window.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+                
+                // Live annotations
+                let annotateActive = false;
+                const toggleBtn = document.getElementById('toggleAnnotateBtn');
+                const tooltipDiv = document.createElement('div');
+                tooltipDiv.className = 'annotation-tooltip';
+                document.body.appendChild(tooltipDiv);
+                
+                const raycaster = new THREE.Raycaster();
+                const mouse = new THREE.Vector2();
+                const camera = window.camera;
+                const renderer = window.renderer;
+                
+                function getDoorData() {
+                    return {
+                        title: "🚪 Sliding Face Door (2 per side)",
+                        material: "Stainless Steel, 8mm thick",
+                        weight: "~76 tons per door",
+                        closingTime: "10-20 sec (from 1/3 open)",
+                        motorPower: "2 motors per side (shared)",
+                        gap: "150 mm between doors on same side",
+                        note: "Slides horizontally on QU70 rails"
+                    };
+                }
+                function getShutterData() {
+                    return {
+                        title: "🛡️ Top Shutter Panel",
+                        material: "Stainless Steel (8mm thick)",
+                        weight: "~15.2 tons per panel (76 tons total)",
+                        closingTime: "10-20 sec (from 1/3 open)",
+                        motorPower: "2 x 15 HP per face",
+                        note: "Sliding on QU70 rails"
+                    };
+                }
+                
+                function updateTooltip(event) {
+                    if (!annotateActive) {
+                        tooltipDiv.style.display = 'none';
+                        return;
+                    }
+                    const rect = renderer.domElement.getBoundingClientRect();
+                    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+                    raycaster.setFromCamera(mouse, camera);
+                    const allObjects = [...window.shuttersList, ...window.doorsList];
+                    const intersects = raycaster.intersectObjects(allObjects);
+                    if (intersects.length > 0) {
+                        const hit = intersects[0].object;
+                        const data = window.shuttersList.includes(hit) ? getShutterData() : getDoorData();
+                        tooltipDiv.innerHTML = `<strong>${data.title}</strong><br>${Object.entries(data).filter(([k])=>k!='title').map(([k,v])=>`${k}: ${v}`).join('<br>')}`;
+                        tooltipDiv.style.display = 'block';
+                        tooltipDiv.style.left = (event.clientX + 15) + 'px';
+                        tooltipDiv.style.top = (event.clientY + 15) + 'px';
+                    } else {
+                        tooltipDiv.style.display = 'none';
+                    }
+                }
+                
+                window.addEventListener('mousemove', updateTooltip);
+                if (toggleBtn) {
+                    toggleBtn.addEventListener('click', () => {
+                        annotateActive = !annotateActive;
+                        toggleBtn.textContent = annotateActive ? "🔍 LIVE ANNOTATIONS (ON)" : "🔍 LIVE ANNOTATIONS (OFF)";
+                        toggleBtn.classList.toggle('active', annotateActive);
+                        if (!annotateActive) tooltipDiv.style.display = 'none';
+                    });
+                }
+            }
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>RAIED - Shutter Layer Editor | Clean View</title>
+    <style>
+        * { box-sizing: border-box; user-select: none; }
+        body { margin: 0; padding: 70px 8px 8px 8px; font-family: 'Segoe UI', Roboto, sans-serif; background: linear-gradient(145deg, #f4f8fd 0%, #eaf0f8 100%); color: #1a2c3e; height: 100vh; overflow: hidden; }
+        .dashboard { max-width: 2000px; margin: 0 auto; height: 100%; display: flex; flex-direction: column; gap: 6px; }
+        .header { flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0; gap: 8px; flex-wrap: wrap; background: white; padding: 6px 12px; border-radius: 12px; }
+        .title-section h1 { font-size: 0.85rem; margin: 0; border-left: 3px solid #1f5fb8; padding-left: 10px; }
+        .title-section .subtitle { color: #2c4b6e; margin: 0; padding-left: 10px; font-size: 0.5rem; }
+        .header-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
+        .btn { padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 0.55rem; color: white; cursor: pointer; border: none; }
+        .btn-green { background: #10b981; }
+        .btn-red { background: #ef4444; }
+        .btn-blue { background: #1f5fb8; }
+        .btn-purple { background: #8b5cf6; }
+        .defense-wall-section { flex-shrink: 0; background: linear-gradient(135deg, #1a2c3e 0%, #0f1a24 100%); border-radius: 10px; padding: 6px; }
+        .damage-scale-guide { background: #0f172a; border-radius: 8px; padding: 5px 8px; margin-bottom: 6px; border: 1px solid #334155; }
+        .damage-scale-title { font-size: 0.5rem; color: #94a3b8; text-align: center; }
+        .damage-scale-bar { display: flex; height: 16px; border-radius: 8px; overflow: hidden; margin: 4px 0; }
+        .damage-scale-segment { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 0.45rem; font-weight: bold; }
+        .defense-wall-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .defense-wall-header h2 { margin: 0; font-size: 0.6rem; color: #facc15; }
+        .wall-stats { display: flex; gap: 8px; font-size: 0.45rem; color: #94a3b8; }
+        .wall-stats span { color: #facc15; font-weight: bold; }
+        .visual-sequence { display: flex; flex-direction: row; align-items: flex-end; justify-content: flex-start; gap: 0; padding: 6px 3px; overflow-x: auto; min-height: 260px; }
+        .shutter-wrapper { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; margin: 0 5px; }
+        .sequence-canvas { width: 173px; height: 173px; display: block; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.2); background: #2a3a4a; }
+        .damage-indicator { border-radius: 8px; background: #1e293b; padding: 2px 6px; font-size: 0.5rem; color: #facc15; border: 1px solid #475569; }
+        .missile-icon {
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-right: 8px;
+            align-self: center;
+        }
+        .missile-img {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto;
+        }
+        .missile-placeholder {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.6rem;
+            font-weight: bold;
+        }
+        .bottom-section { flex: 1; display: flex; gap: 8px; min-height: 0; overflow: hidden; }
+        .control-card { width: 380px; background: #ffffffdd; backdrop-filter: blur(8px); border-radius: 10px; padding: 6px; overflow-y: auto; font-size: 0.6rem; }
+        .right-panel { flex: 1; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
+        .section { border-bottom: 1px solid #dfe7ef; padding-bottom: 5px; margin-bottom: 5px; }
+        .section h3 { margin: 0 0 4px; font-size: 0.6rem; color: #1f5fb8; }
+        .input-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+        .input-group { flex: 1; min-width: 60px; }
+        label { font-size: 0.45rem; color: #2c4b6e; display: block; }
+        input, select { padding: 2px 4px; border-radius: 10px; font-size: 0.55rem; width: 100%; }
+        button { padding: 2px 6px; border-radius: 16px; font-size: 0.5rem; cursor: pointer; }
+        .coord-controls { background: #1e293b; border: 1px solid #facc15; border-radius: 8px; padding: 8px; margin-top: 8px; color: #facc15; }
+        .coord-controls input { width: 50px; background: #0f1724; color: #facc15; border: 1px solid #facc15; border-radius: 4px; text-align: center; }
+        .btn-small { background: #475569; padding: 2px 8px; font-size: 0.45rem; color: white; border: none; border-radius: 12px; cursor: pointer; }
+        .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 4px; margin-bottom: 8px; background: white; border-radius: 8px; padding: 6px; }
+        .stat-box { background: #f8fafc; border-radius: 8px; padding: 4px; text-align: center; }
+        .stat-box .value { font-size: 0.6rem; font-weight: 800; color: #1f5fb8; }
+        
+        /* DRAGGABLE OVERLAY - clean, no boxes */
+        .damage-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 10000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        .overlay-container {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border-radius: 20px;
+            padding: 20px;
+            border: 3px solid #facc15;
+        }
+        .drag-area {
+            background: #2a2a3a;
+            border-radius: 12px;
+            display: inline-block;
+            cursor: grab;
+            box-shadow: 0 0 0 3px #facc15;
+        }
+        .drag-area:active { cursor: grabbing; }
+        .drag-area canvas { display: block; border-radius: 8px; pointer-events: none; }
+        .overlay-buttons { display: flex; gap: 8px; justify-content: center; margin-top: 15px; }
+        .overlay-buttons button { padding: 6px 12px; font-size: 0.55rem; border-radius: 20px; font-weight: bold; cursor: pointer; }
+        .save-coord-btn { background: #10b981; color: white; border: none; }
+        .close-overlay-btn { background: #ef4444; color: white; border: none; }
+        .sync-status { background: #10b98120; border: 1px solid #10b981; border-radius: 8px; padding: 3px 6px; font-size: 0.4rem; text-align: center; margin-top: 4px; color: #10b981; }
+        .drag-instruction-big { background: #facc15; color: #0f1724; padding: 4px 12px; border-radius: 20px; font-size: 0.5rem; font-weight: bold; margin-top: 8px; text-align: center; display: inline-block; width: auto; margin-left: auto; margin-right: auto; }
+    </style>
+</head>
+<body>
+<div class="dashboard">
+    <div class="header">
+        <div class="title-section"><h1>🛡️ RAIED - Shutter Layer Editor</h1><div class="subtitle">DRAG to position damage images | Clean view</div></div>
+        <div class="header-buttons">
+            <button class="btn btn-green" id="forceMinorBtn">🟢 FORCE MINOR DAMAGE</button>
+            <button class="btn btn-red" id="forceSevereBtn">🔴 FORCE SEVERE DAMAGE</button>
+            <button class="btn btn-blue" id="calcDamageBtn">💥 CALCULATE DAMAGE</button>
+            <button class="btn btn-purple" id="showSpecsBtn">📐 SPECS</button>
+        </div>
+    </div>
+    
+    <div class="defense-wall-section">
+        <div class="damage-scale-guide">
+            <div class="damage-scale-title">📊 DAMAGE SEVERITY</div>
+            <div class="damage-scale-bar">
+                <div class="damage-scale-segment" style="background:#10b981;">SAFE</div>
+                <div class="damage-scale-segment" style="background:#facc15;">DENT</div>
+                <div class="damage-scale-segment" style="background:#f59e0b;">CRACK</div>
+                <div class="damage-scale-segment" style="background:#ef4444;">HOLE</div>
+                <div class="damage-scale-segment" style="background:#991b1b;">SEVERE</div>
+            </div>
+        </div>
+        <div class="defense-wall-header">
+            <h2>🎯 DEFENSE WALL</h2>
+            <div class="wall-stats"><div>📄 Plates: <span id="wallTotalCount">3</span></div></div>
+        </div>
+        <div id="visualSequenceContainer" class="visual-sequence"></div>
+        <div style="text-align:center; margin-top:6px;">
+            <div class="drag-instruction-big">👇 CLICK ANY COLORED BUTTON BELOW TO OPEN DRAGGABLE OVERLAY 👇</div>
+        </div>
+        <div class="sync-status" id="syncStatus">🔄 Dynamic sync active → Changes sent to 3D view</div>
+    </div>
+    
+    <div class="bottom-section">
+        <div class="control-card">
+            <div class="section">
+                <h3>⚡ THREAT PARAMETERS</h3>
+                <div class="input-row">
+                    <div class="input-group"><label>Mass (kg)</label><input type="number" id="mass" value="40" step="5"></div>
+                    <div class="input-group"><label>Velocity (m/s)</label><input type="number" id="velocity" value="250" step="10"></div>
+                </div>
+                <div class="input-row">
+                    <div class="input-group"><label>⚡ IMEA (MJ)</label><input type="text" id="imeaDisplay" readonly value="1.250"></div>
+                    <div class="input-group"><label>💚 Residual (MJ)</label><input type="text" id="emeaDisplay" readonly value="0.000"></div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3>🛡️ SHUTTER TYPE</h3>
+                <select id="shutterType">
+                    <option value="standard">📄 Standard SS304 (1.0x)</option>
+                    <option value="composite" selected>🛡️ Composite Armor (3.0x)</option>
+                    <option value="reactive">💥 Reactive Armor (5.0x)</option>
+                    <option value="nanocomposite">⚡ CNT Nanocomposite (6.0x)</option>
+                </select>
+                <div class="input-group"><label>Thickness (mm)</label><input type="number" id="globalThickness" value="8" step="1" min="2" max="50"></div>
+            </div>
+            
+            <div class="section">
+                <h3>🏗️ BUILD CONTROLS</h3>
+                <div style="display:flex; gap:8px; justify-content:center;">
+                    <button class="btn-small" id="addSheetBtn">+ Add Shutter</button>
+                    <button class="btn-small" id="resetBtn">Reset</button>
+                </div>
+            </div>
+            
+            <div class="coord-controls">
+                <div style="text-align:center;margin-bottom:6px; font-size:0.55rem;">🎯 CLICK ANY BUTTON BELOW TO DRAG & POSITION</div>
+                <div style="display:flex; gap:6px; justify-content:center; flex-wrap:wrap;">
+                    <button class="damage-btn" data-damage="minor" style="background:#10b981; color:white; padding:4px 12px;">🟢 MINOR</button>
+                    <button class="damage-btn" data-damage="light" style="background:#facc15; color:black; padding:4px 12px;">🟡 LIGHT</button>
+                    <button class="damage-btn" data-damage="moderate" style="background:#f59e0b; color:black; padding:4px 12px;">🟠 MODERATE</button>
+                    <button class="damage-btn" data-damage="major1" style="background:#ef4444; color:white; padding:4px 12px;">🔴 MAJOR 1</button>
+                    <button class="damage-btn" data-damage="major2" style="background:#dc2626; color:white; padding:4px 12px;">🔴 MAJOR 2</button>
+                    <button class="damage-btn" data-damage="severe" style="background:#991b1b; color:white; padding:4px 12px;">💀 SEVERE</button>
+                </div>
+                <div style="margin-top:8px; text-align:center;">
+                    <span>Current X:</span><input type="number" id="damageX" value="0.203" step="0.01" style="width:60px;">
+                    <span>Y:</span><input type="number" id="damageY" value="0.100" step="0.01" style="width:60px;">
+                    <button id="applyPosBtn" class="btn-small">Apply to All</button>
+                    <button id="exportCsvBtn" class="btn-small" style="background:#059669;">📊 CSV</button>
+                </div>
+                <div id="copyFeedback" style="text-align:center;margin-top:4px;font-size:0.4rem;color:#10b981;"></div>
+            </div>
+        </div>
+        
+        <div class="right-panel">
+            <div class="stats">
+                <div class="stat-box"><small>IMEA (MJ)</small><div class="value" id="imeaStat">1.250</div></div>
+                <div class="stat-box"><small>Residual</small><div class="value" id="emeaStat">0.000</div></div>
+                <div class="stat-box"><small>Absorbed %</small><div class="value" id="absorbedStat">100</div></div>
+                <div class="stat-box"><small>Eff. Thick</small><div class="value" id="effStat">24</div></div>
+            </div>
+            <div class="damage-table-panel" style="background:white; border-radius:8px; padding:6px;">
+                <h3 style="margin:0 0 5px; font-size:0.6rem;">📊 YOUR SAVED POSITIONS</h3>
+                <div id="positionsList" style="font-size:0.45rem; font-family:monospace;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- DRAGGABLE OVERLAY - clean, no boxes, no crosshair -->
+<div id="damageOverlay" class="damage-overlay">
+    <div class="overlay-container">
+        <h3 style="color:#facc15; text-align:center; margin:0 0 10px 0;">🎯 DRAG THE IMAGE WITH YOUR MOUSE</h3>
+        <div id="dragArea" class="drag-area">
+            <canvas id="overlayCanvas" width="400" height="400"></canvas>
+        </div>
+        <div style="text-align:center; margin-top:10px;">
+            <span style="color:#facc15;">X: <span id="dragX">0.00</span></span>&nbsp;&nbsp;&nbsp;
+            <span style="color:#facc15;">Y: <span id="dragY">0.00</span></span>&nbsp;&nbsp;&nbsp;
+            <span style="color:#facc15;">Z Scale: <span id="dragZ">1.00</span></span>
+        </div>
+        <div class="overlay-buttons">
+            <button id="saveOverlayBtn" class="save-coord-btn">💾 SAVE FOR THIS DAMAGE TYPE</button>
+            <button id="closeOverlayBtn" class="close-overlay-btn">✖ CLOSE</button>
+        </div>
+        <div id="overlayStatus" style="text-align:center; margin-top:8px; font-size:0.5rem; color:#2dd4bf;"></div>
+    </div>
+</div>
+
+<script>
+    // ========== LOCAL IMAGES ==========
+    const SHUTTER_IMG = "Shutter without background.png";
+    const MISSILE_IMG = "Missile-Mass-20-Kg.png";  // Place this file in the same folder as master.html
+    
+    const DAMAGE_IMAGES = {
+        minor: "Minor_Damage-removebg-preview.png",
+        light: "Light_damage-removebg-preview.png",
+        moderate: "Moderate_damage-removebg-preview.png",
+        major1: "Major_damage_1-removebg-preview.png",
+        major2: "Major_damage_2-removebg-preview.png",
+        severe: "Sever_Damage-removebg-preview.png"
+    };
+    
+    let shutterImage = null;
+    let damageImages = {};
+    let forceDamageType = null;
+    let defenseElements = [{ type: 'sheet', thick: 8, gap: 1.0 }];
+    
+    // YOUR SAVED POSITIONS
+    let savedPositions = JSON.parse(localStorage.getItem('raiied_damage_positions')) || {
+        minor: { x: 0.203, y: 0.100, z: 1.0 },
+        light: { x: 0.253, y: 0.093, z: 1.0 },
+        moderate: { x: 0.440, y: 0.180, z: 1.0 },
+        major1: { x: 0.273, y: 0.147, z: 1.0 },
+        major2: { x: 0.360, y: 0.020, z: 1.0 },
+        severe: { x: 0.407, y: 0.153, z: 1.0 }
+    };
+    
+    // ========== UTILITIES ==========
+    function getShutterMultiplier() {
+        const types = { standard: 1.0, composite: 3.0, reactive: 5.0, nanocomposite: 6.0 };
+        return types[document.getElementById('shutterType').value] || 3.0;
+    }
+    
+    function getShutterCapacity() {
+        let thickness = parseFloat(document.getElementById('globalThickness').value);
+        return (thickness * getShutterMultiplier()) * 0.1;
+    }
+    
+    function getThreatEnergy() {
+        let m = parseFloat(document.getElementById('mass').value);
+        let v = parseFloat(document.getElementById('velocity').value);
+        return 0.5 * m * v * v / 1000000;
+    }
+    
+    function computeResidual() {
+        if (forceDamageType) {
+            let cap = getShutterCapacity();
+            let fake = 0;
+            if (forceDamageType === 'minor') fake = cap * 0.05;
+            else if (forceDamageType === 'severe') fake = cap * 0.5;
+            return { imea: 1.25, emea: fake, absorbed: 1.25 - fake };
+        }
+        let imea = getThreatEnergy();
+        let remaining = imea;
+        let cap = getShutterCapacity();
+        let alpha = 0.98;
+        
+        for (let i = 0; i < defenseElements.length; i++) {
+            let ratio = remaining / cap;
+            let absorbed = ratio <= 1.0 ? remaining * 0.85 * alpha : cap * alpha;
+            remaining = Math.max(0, remaining - absorbed);
+        }
+        return { imea, emea: remaining, absorbed: imea - remaining };
+    }
+    
+    function getDamageType(residual, cap) {
+        if (forceDamageType) return forceDamageType;
+        if (residual < 0.05) return null;
+        let pct = (residual / cap) * 100;
+        if (pct < 5) return "minor";
+        if (pct < 12) return "light";
+        if (pct < 25) return "moderate";
+        if (pct < 45) return "major1";
+        if (pct < 70) return "major2";
+        return "severe";
+    }
+    
+    // ========== BROADCAST TO 3D VIEW ==========
+    function broadcastTo3D() {
+        if (window.parent !== window) {
+            window.parent.postMessage({
+                type: 'updateDamagePositions',
+                positions: savedPositions
+            }, '*');
+            let status = document.getElementById('syncStatus');
+            status.innerHTML = '✅ Positions sent to 3D view!';
+            status.style.background = '#10b98140';
+            setTimeout(() => {
+                status.innerHTML = '🔄 Dynamic sync active → Changes sent to 3D view';
+                status.style.background = '#10b98120';
+            }, 2000);
+        }
+    }
+    
+    // ========== DRAWING - CLEAN, NO BOXES, NO CROSSHAIR ==========
+    function drawDamage(ctx, w, h, damageType, x, y, zScale = 1.0) {
+        let cx = w/2 + (x * w/2);
+        let cy = h/2 + (y * h/2);
+        let img = damageImages[damageType];
+        if (img && img.complete && img.naturalWidth > 0) {
+            let maxSize = w * 0.6 * zScale;
+            let scale = Math.min(maxSize / img.width, maxSize / img.height);
+            let dw = img.width * scale;
+            let dh = img.height * scale;
+            let dx = cx - dw/2;
+            let dy = cy - dh/2;
+            ctx.drawImage(img, dx, dy, dw, dh);
+        } else {
+            ctx.beginPath();
+            ctx.arc(cx, cy, 35, 0, Math.PI * 2);
+            ctx.fillStyle = '#ff4444';
+            ctx.fill();
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 14px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(damageType, cx, cy);
+        }
+    }
+    
+    function drawShutter(ctx, w, h, damageType) {
+        if (shutterImage && shutterImage.complete && shutterImage.naturalWidth > 0) {
+            ctx.drawImage(shutterImage, 0, 0, w, h);
+        } else {
+            ctx.fillStyle = '#6b7b8d';
+            ctx.fillRect(0, 0, w, h);
+            ctx.fillStyle = '#8a9aaa';
+            for(let i=1; i<=2; i++) {
+                for(let j=1; j<=2; j++) {
+                    ctx.beginPath();
+                    ctx.arc(w/3*i, h/3*j, 5, 0, Math.PI*2);
+                    ctx.fill();
+                }
+            }
+        }
+        if (damageType && savedPositions[damageType]) {
+            let p = savedPositions[damageType];
+            drawDamage(ctx, w, h, damageType, p.x, p.y, p.z);
+        }
+    }
+    
+    function createShutterCanvas(damageType) {
+        let canvas = document.createElement('canvas');
+        canvas.width = 173;
+        canvas.height = 173;
+        canvas.className = 'sequence-canvas';
+        drawShutter(canvas.getContext('2d'), 173, 173, damageType);
+        return canvas;
+    }
+    
+    function refreshDisplay() {
+        let energy = computeResidual();
+        let cap = getShutterCapacity();
+        let damageType = getDamageType(energy.emea, cap);
+        
+        document.getElementById('imeaDisplay').value = energy.imea.toFixed(3);
+        document.getElementById('emeaDisplay').value = energy.emea.toFixed(6);
+        document.getElementById('imeaStat').innerHTML = energy.imea.toFixed(3);
+        document.getElementById('emeaStat').innerHTML = energy.emea.toFixed(6);
+        document.getElementById('absorbedStat').innerHTML = ((energy.absorbed / energy.imea) * 100).toFixed(0);
+        document.getElementById('effStat').innerHTML = (parseFloat(document.getElementById('globalThickness').value) * getShutterMultiplier()).toFixed(0);
+        
+        let container = document.getElementById('visualSequenceContainer');
+        container.innerHTML = '';
+        
+        let missileDiv = document.createElement('div');
+        missileDiv.className = 'missile-icon';
+        let missileImg = document.createElement('img');
+        missileImg.className = 'missile-img';
+        missileImg.src = MISSILE_IMG;
+        missileImg.onerror = () => {
+            console.warn('Missile image not found:', MISSILE_IMG);
+            missileImg.style.display = 'none';
+            let placeholder = document.createElement('div');
+            placeholder.className = 'missile-placeholder';
+            placeholder.innerHTML = '💥';
+            missileDiv.appendChild(placeholder);
+        };
+        missileDiv.appendChild(missileImg);
+        container.appendChild(missileDiv);
+        
+        for (let i = 0; i < defenseElements.length; i++) {
+            let wrapper = document.createElement('div');
+            wrapper.className = 'shutter-wrapper';
+            let canvas = createShutterCanvas(damageType);
+            wrapper.appendChild(canvas);
+            let label = document.createElement('div');
+            label.className = 'damage-indicator';
+            label.innerHTML = damageType ? damageType.toUpperCase() : 'SAFE';
+            wrapper.appendChild(label);
+            container.appendChild(wrapper);
+        }
+        
+        // Update positions list
+        let listHtml = '';
+        Object.entries(savedPositions).forEach(([key, val]) => {
+            listHtml += `<div><strong>${key}:</strong> X=${val.x.toFixed(3)} Y=${val.y.toFixed(3)}</div>`;
+        });
+        document.getElementById('positionsList').innerHTML = listHtml;
+    }
+    
+    // ========== OVERLAY (DRAGGABLE) - CLEAN ==========
+    let overlayActive = false;
+    let currentDamageType = 'minor';
+    let currentDragX = 0, currentDragY = 0, currentDragZ = 1.0;
+    let dragActive = false, dragLastX = 0, dragLastY = 0;
+    let overlayCanvas = null, overlayCtx = null;
+    
+    function drawOverlay() {
+        if (!overlayCanvas || !overlayCtx) return;
+        let w = 400, h = 400;
+        if (shutterImage && shutterImage.complete && shutterImage.naturalWidth > 0) {
+            overlayCtx.drawImage(shutterImage, 0, 0, w, h);
+        } else {
+            overlayCtx.fillStyle = '#6b7b8d';
+            overlayCtx.fillRect(0, 0, w, h);
+        }
+        let cx = w/2 + (currentDragX * w/2);
+        let cy = h/2 + (currentDragY * h/2);
+        let img = damageImages[currentDamageType];
+        if (img && img.complete && img.naturalWidth > 0) {
+            let maxSize = w * 0.6;
+            let scale = Math.min(maxSize / img.width, maxSize / img.height);
+            let dw = img.width * scale;
+            let dh = img.height * scale;
+            let dx = cx - dw/2;
+            let dy = cy - dh/2;
+            overlayCtx.drawImage(img, dx, dy, dw, dh);
+        }
+    }
+    
+    function openOverlay(damageType) {
+        currentDamageType = damageType;
+        let pos = savedPositions[damageType] || { x: 0, y: 0, z: 1.0 };
+        currentDragX = pos.x;
+        currentDragY = pos.y;
+        currentDragZ = pos.z;
+        document.getElementById('dragX').innerText = currentDragX.toFixed(3);
+        document.getElementById('dragY').innerText = currentDragY.toFixed(3);
+        document.getElementById('dragZ').innerText = currentDragZ.toFixed(3);
+        document.getElementById('damageOverlay').style.display = 'flex';
+        drawOverlay();
+    }
+    
+    function saveOverlayPosition() {
+        savedPositions[currentDamageType] = { x: currentDragX, y: currentDragY, z: currentDragZ };
+        localStorage.setItem('raiied_damage_positions', JSON.stringify(savedPositions));
+        document.getElementById('overlayStatus').innerHTML = '✅ Saved! Syncing to 3D view...';
+        setTimeout(() => document.getElementById('overlayStatus').innerHTML = '', 1500);
+        refreshDisplay();
+        broadcastTo3D();
+    }
+    
+    // ========== EVENT HANDLERS ==========
+    function forceDamage(type) {
+        forceDamageType = type;
+        refreshDisplay();
+        document.getElementById('copyFeedback').innerHTML = `🔴 FORCED: ${type.toUpperCase()} DAMAGE`;
+        setTimeout(() => document.getElementById('copyFeedback').innerHTML = '', 1500);
+    }
+    
+    function addShutter() {
+        defenseElements.push({ type: 'sheet', thick: 8, gap: 1.0 });
+        refreshDisplay();
+    }
+    
+    function resetAll() {
+        defenseElements = [{ type: 'sheet', thick: 8, gap: 1.0 }];
+        forceDamageType = null;
+        document.getElementById('shutterType').value = 'composite';
+        document.getElementById('globalThickness').value = '8';
+        document.getElementById('mass').value = '40';
+        document.getElementById('velocity').value = '250';
+        refreshDisplay();
+    }
+    
+    function exportCSV() {
+        let rows = [['Damage Type', 'X', 'Y', 'Z']];
+        Object.entries(savedPositions).forEach(([key, val]) => {
+            rows.push([key, val.x.toFixed(3), val.y.toFixed(3), val.z.toFixed(3)]);
+        });
+        let csv = rows.map(r => r.join(',')).join('\n');
+        let blob = new Blob([csv], {type: 'text/csv'});
+        let a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `RAIED_Positions_${Date.now()}.csv`;
+        a.click();
+        document.getElementById('copyFeedback').innerHTML = '✅ CSV Exported!';
+        setTimeout(() => document.getElementById('copyFeedback').innerHTML = '', 1500);
+    }
+    
+    function applyPositionToAll() {
+        let x = parseFloat(document.getElementById('damageX').value);
+        let y = parseFloat(document.getElementById('damageY').value);
+        Object.keys(savedPositions).forEach(key => {
+            savedPositions[key].x = x;
+            savedPositions[key].y = y;
+        });
+        localStorage.setItem('raiied_damage_positions', JSON.stringify(savedPositions));
+        refreshDisplay();
+        broadcastTo3D();
+        document.getElementById('copyFeedback').innerHTML = '✅ Applied to all damage types!';
+        setTimeout(() => document.getElementById('copyFeedback').innerHTML = '', 1500);
+    }
+    
+    function preloadImages() {
+        let shutterImg = new Image();
+        shutterImg.src = SHUTTER_IMG;
+        shutterImg.onload = () => { shutterImage = shutterImg; refreshDisplay(); };
+        shutterImg.onerror = () => { console.log('Shutter image not found:', SHUTTER_IMG); refreshDisplay(); };
+        
+        Object.keys(DAMAGE_IMAGES).forEach(key => {
+            let img = new Image();
+            img.src = DAMAGE_IMAGES[key];
+            img.onload = () => { damageImages[key] = img; refreshDisplay(); };
+            img.onerror = () => { console.warn('Failed to load:', key, DAMAGE_IMAGES[key]); };
+        });
+    }
+    
+    function setupDragOverlay() {
+        overlayCanvas = document.getElementById('overlayCanvas');
+        overlayCtx = overlayCanvas.getContext('2d');
+        let dragArea = document.getElementById('dragArea');
+        
+        dragArea.addEventListener('mousedown', (e) => {
+            dragActive = true;
+            dragLastX = e.clientX;
+            dragLastY = e.clientY;
+            dragArea.style.cursor = 'grabbing';
+            e.preventDefault();
+        });
+        
+        window.addEventListener('mousemove', (e) => {
+            if (!dragActive) return;
+            let dx = (e.clientX - dragLastX) / 150;
+            let dy = (e.clientY - dragLastY) / 150;
+            currentDragX = Math.min(0.8, Math.max(-0.8, currentDragX + dx));
+            currentDragY = Math.min(0.8, Math.max(-0.8, currentDragY + dy));
+            document.getElementById('dragX').innerText = currentDragX.toFixed(3);
+            document.getElementById('dragY').innerText = currentDragY.toFixed(3);
+            drawOverlay();
+            dragLastX = e.clientX;
+            dragLastY = e.clientY;
+        });
+        
+        window.addEventListener('mouseup', () => {
+            dragActive = false;
+            dragArea.style.cursor = 'grab';
+        });
+    }
+    
+    // Register event listeners
+    document.getElementById('forceMinorBtn').addEventListener('click', () => forceDamage('minor'));
+    document.getElementById('forceSevereBtn').addEventListener('click', () => forceDamage('severe'));
+    document.getElementById('calcDamageBtn').addEventListener('click', () => { forceDamageType = null; refreshDisplay(); });
+    document.getElementById('addSheetBtn').addEventListener('click', addShutter);
+    document.getElementById('resetBtn').addEventListener('click', resetAll);
+    document.getElementById('exportCsvBtn').addEventListener('click', exportCSV);
+    document.getElementById('applyPosBtn').addEventListener('click', applyPositionToAll);
+    document.getElementById('saveOverlayBtn').addEventListener('click', saveOverlayPosition);
+    document.getElementById('closeOverlayBtn').addEventListener('click', () => document.getElementById('damageOverlay').style.display = 'none');
+    
+    document.querySelectorAll('.damage-btn').forEach(btn => {
+        btn.addEventListener('click', () => openOverlay(btn.dataset.damage));
+    });
+    
+    document.getElementById('shutterType').addEventListener('change', () => { forceDamageType = null; refreshDisplay(); });
+    document.getElementById('globalThickness').addEventListener('input', () => { forceDamageType = null; refreshDisplay(); });
+    document.getElementById('mass').addEventListener('input', () => { forceDamageType = null; refreshDisplay(); });
+    document.getElementById('velocity').addEventListener('input', () => { forceDamageType = null; refreshDisplay(); });
+    
+    document.getElementById('showSpecsBtn').onclick = () => {
+        alert('Composite Armor: 3.0x multiplier\nMJ Capacity: ' + getShutterCapacity().toFixed(2) + ' MJ');
+    };
+    
+    preloadImages();
+    setupDragOverlay();
+    refreshDisplay();
+    
+    // Initial broadcast
+    setTimeout(() => broadcastTo3D(), 1000);
+    
+    console.log('✅ Ready! Click MINOR button to drag & position damage images');
+    console.log('✅ Clean view - no crosshair, no yellow box');
+    console.log('✅ Missile image: 48px (enlarged 25%) and centered in the defense wall');
+    console.log('   Missile image should be at:', MISSILE_IMG);
+</script>
+</body>
+</html>

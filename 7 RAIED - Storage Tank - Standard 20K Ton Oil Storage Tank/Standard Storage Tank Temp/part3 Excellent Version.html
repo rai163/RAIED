@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>RAIED - Realistic Damage | Full Cost & Specs with PDF Export</title>
+    <style>
+        * { box-sizing: border-box; user-select: none; }
+        body { margin: 0; padding: 70px 8px 8px 8px; font-family: 'Segoe UI', Roboto, sans-serif; background: linear-gradient(145deg, #f4f8fd 0%, #eaf0f8 100%); color: #1a2c3e; height: 100vh; overflow: hidden; }
+        .dashboard { max-width: 2000px; margin: 0 auto; height: 100%; display: flex; flex-direction: column; gap: 6px; }
+        .header { flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0; gap: 8px; flex-wrap: wrap; }
+        .title-section h1 { font-size: 0.85rem; margin: 0 0 2px 0; border-left: 3px solid #1f5fb8; padding-left: 10px; }
+        .title-section .subtitle { color: #2c4b6e; margin: 0; padding-left: 10px; font-size: 0.5rem; }
+        .header-buttons { display: flex; gap: 8px; }
+        .cost-btn, .specs-btn, .strike-btn { padding: 3px 8px; border-radius: 16px; font-weight: bold; font-size: 0.55rem; color: white; cursor: pointer; border: none; }
+        .cost-btn { background: linear-gradient(135deg, #1f5fb8, #153e75); }
+        .cost-btn:hover { background: linear-gradient(135deg, #2a6fc9, #1a4685); transform: translateY(-1px); }
+        .specs-btn { background: linear-gradient(135deg, #2d6a4f, #1b4d3d); }
+        .specs-btn:hover { background: linear-gradient(135deg, #40916c, #2d6a4f); transform: translateY(-1px); }
+        .strike-btn { background: linear-gradient(135deg, #dc2626, #991b1b); }
+        .strike-btn:hover { background: linear-gradient(135deg, #ef4444, #b91c1c); transform: translateY(-1px); animation: shake 0.3s; }
+        @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-2px); } 75% { transform: translateX(2px); } }
+        
+        /* Modals */
+        .modal { display: none; position: fixed; top: 70px; left: 0; width: 100%; height: calc(100% - 70px); background: rgba(0,0,0,0.85); z-index: 999; justify-content: center; align-items: flex-start; overflow-y: auto; padding: 10px; }
+        .modal-content { background: linear-gradient(135deg, #f0f4f9, #e8edf5); border-radius: 16px; padding: 15px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; border: 2px solid #1f5fb8; box-shadow: 0 10px 30px rgba(0,0,0,0.3); margin: 10px auto; }
+        .modal-content h3 { margin: 0 0 10px; color: #1f5fb8; text-align: center; font-size: 1rem; border-bottom: 2px solid #2dd4bf; display: inline-block; width: auto; padding-bottom: 4px; }
+        .modal-content h4 { font-size: 0.75rem; color: #2d6a4f; margin: 12px 0 6px 0; border-left: 3px solid #2d6a4f; padding-left: 8px; }
+        .modal-content .spec-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #cbd5e1; font-size: 0.7rem; }
+        .modal-content .spec-item .label { font-weight: bold; color: #1e293b; }
+        .modal-content .spec-item .value { color: #2d6a4f; font-family: monospace; }
+        .modal-content .note-box { padding: 8px; border-radius: 8px; margin-top: 10px; text-align: center; font-size: 0.65rem; background: #e0f2e9; color: #1b4d3d; }
+        .close-modal, .pdf-btn { display: inline-block; width: auto; background: #1f5fb8; color: white; border: none; padding: 8px 16px; border-radius: 20px; margin-top: 12px; margin-right: 8px; cursor: pointer; font-weight: bold; font-size: 0.7rem; }
+        .pdf-btn { background: #dc2626; }
+        .pdf-btn:hover { background: #b91c1c; }
+        .close-modal:hover { background: #153e75; }
+        .modal-buttons { text-align: center; margin-top: 8px; }
+        .pillar-stress-container { display: flex; gap: 20px; justify-content: center; margin: 15px 0; flex-wrap: wrap; }
+        .pillar-card { text-align: center; background: #fff; border-radius: 12px; padding: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .pillar-canvas { width: 100px; height: 180px; background: #e2e8f0; border-radius: 8px; margin-bottom: 8px; }
+        .real-time-load { background: #f8fafc; border-radius: 12px; padding: 10px; margin: 10px 0; text-align: center; border: 2px solid #2dd4bf; }
+        .load-gauge { width: 100%; height: 12px; background: #e2e8f0; border-radius: 6px; margin-top: 8px; overflow: hidden; }
+        .load-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444); border-radius: 6px; transition: width 0.3s ease; }
+        
+        /* Defense wall */
+        .defense-wall-section { flex-shrink: 0; background: linear-gradient(135deg, #1a2c3e 0%, #0f1a24 100%); border-radius: 10px; padding: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); position: relative; overflow: hidden; }
+        .damage-scale-guide { background: #0f172a; border-radius: 8px; padding: 5px 8px; margin-bottom: 6px; border: 1px solid #334155; }
+        .damage-scale-title { font-size: 0.5rem; color: #94a3b8; text-align: center; margin-bottom: 4px; }
+        .damage-scale-bar { display: flex; height: 16px; border-radius: 8px; overflow: hidden; margin-bottom: 4px; }
+        .damage-scale-segment { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 0.45rem; font-weight: bold; }
+        .defense-wall-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 4px; }
+        .defense-wall-header h2 { margin: 0; font-size: 0.6rem; color: #facc15; }
+        .wall-stats { display: flex; gap: 8px; font-size: 0.45rem; color: #94a3b8; }
+        .wall-stats span { color: #facc15; font-weight: bold; }
+        
+        .visual-sequence {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 0;
+            padding: 6px 3px;
+            background: transparent;
+            overflow-x: auto;
+            overflow-y: visible;
+            min-height: 180px;
+            flex-wrap: nowrap;
+            position: relative;
+        }
+        
+        .drag-element { display: inline-flex; flex-direction: column; align-items: center; flex-shrink: 0; position: relative; cursor: grab; }
+        .drag-element:active { cursor: grabbing; }
+        .drag-element.dragging { cursor: grabbing; opacity: 0.7; z-index: 1000; }
+        .shutter-wrapper { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
+        .sequence-canvas { width: 110px; height: 110px; background: transparent; border-radius: 0; display: block; }
+        .distance-display { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; background: #f59e0b; border-radius: 16px; padding: 4px 8px; margin: 0 3px; min-width: 50px; cursor: pointer; transition: all 0.2s ease; align-self: center; }
+        .distance-display.selected-gap { background: #10b981; box-shadow: 0 0 0 2px #facc15, 0 0 0 4px #1e293b; }
+        .distance-value-circled { font-size: 0.65rem; font-weight: 800; color: #0f1724; background: #facc15; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border: 2px solid #1e293b; }
+        .layer-container { display: inline-flex; flex-direction: row; align-items: flex-end; gap: 4px; background: #1a2c3e; border-radius: 12px; padding: 4px 8px; border: 1px solid #475569; }
+        .internal-gap-control { display: inline-flex; flex-direction: column; align-items: center; background: #06b6d4; border-radius: 12px; padding: 3px 6px; cursor: pointer; transition: all 0.2s ease; align-self: center; }
+        .internal-gap-control.selected-gap { background: #10b981; box-shadow: 0 0 0 2px #facc15; }
+        .missile-icon { width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-right: 6px; align-self: center; }
+        .missile-icon img { width: 75px; height: 75px; object-fit: contain; transition: transform 0.3s ease; }
+        .missile-icon.firing img { animation: missileFire 0.5s ease-out; }
+        @keyframes missileFire { 0% { transform: translateX(0) scale(1); } 30% { transform: translateX(15px) scale(1.1); } 100% { transform: translateX(0) scale(1); } }
+        .strike-flash { position: absolute; pointer-events: none; border-radius: 50%; background: radial-gradient(circle, rgba(255,200,50,0.9) 0%, rgba(255,100,20,0.5) 40%, rgba(255,0,0,0) 70%); animation: flashBoom 0.6s ease-out forwards; z-index: 10; }
+        @keyframes flashBoom { 0% { width: 10px; height: 10px; opacity: 1; } 100% { width: 100px; height: 100px; opacity: 0; } }
+        .shutter-hit { animation: shutterShake 0.4s ease-out; }
+        @keyframes shutterShake { 0%,100% { transform: translateX(0); } 15% { transform: translateX(-4px); } 30% { transform: translateX(4px); } 45% { transform: translateX(-3px); } 60% { transform: translateX(2px); } 75% { transform: translateX(-1px); } }
+        .bottom-section { flex: 1; display: flex; gap: 8px; min-height: 0; overflow: hidden; }
+        .control-card { width: 340px; background: #ffffffdd; backdrop-filter: blur(8px); border-radius: 10px; padding: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); border: 1px solid rgba(255,255,255,0.6); overflow-y: auto; height: 100%; font-size: 0.6rem; }
+        .right-panel { flex: 1; display: flex; flex-direction: column; gap: 6px; height: 100%; overflow-y: auto; padding-right: 3px; }
+        .section { border-bottom: 1px solid #dfe7ef; padding-bottom: 5px; margin-bottom: 5px; }
+        .section h3 { margin: 0 0 4px; font-size: 0.6rem; color: #1f5fb8; }
+        .input-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+        .input-group { flex: 1; min-width: 60px; }
+        label { font-size: 0.45rem; margin-bottom: 1px; color: #2c4b6e; display: block; }
+        input, select { padding: 2px 4px; border-radius: 10px; font-size: 0.55rem; width: 100%; }
+        button { padding: 2px 6px; border-radius: 16px; font-size: 0.5rem; margin: 1px 1px 0 0; cursor: pointer; }
+        .distance-controls-panel { background: #eef2ff; border-radius: 8px; padding: 6px; margin-top: 6px; margin-bottom: 6px; }
+        .gap-control-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; font-size: 0.5rem; }
+        .gap-control-row input { width: 60px; padding: 2px; text-align: center; }
+        .element-list { max-height: 100px; overflow-y: auto; }
+        .element-item { padding: 2px 5px; font-size: 0.5rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .element-item.selected { background: #d1fae5; border: 1px solid #10b981; }
+        .quick-btn { width: 18px; height: 18px; font-size: 0.65rem; border: none; border-radius: 50%; cursor: pointer; }
+        .quick-btn.minus { background: #dc2626; color: white; }
+        .quick-btn.plus { background: #10b981; color: white; }
+        .quick-count { font-size: 0.65rem; min-width: 22px; text-align: center; }
+        .stats { display: grid; grid-template-columns: repeat(5,1fr); gap: 4px; margin-bottom: 8px; background: white; border-radius: 8px; padding: 6px; }
+        .stat-box { background: #f8fafc; border-radius: 8px; padding: 4px; text-align: center; }
+        .damage-table-panel { background: #f8fafc; border-radius: 8px; padding: 4px; margin-bottom: 4px; }
+        .damage-table { width: 85%; margin: 0 auto; border-collapse: collapse; font-size: 9px; }
+        .damage-table th, .damage-table td { border: 1px solid #cbd5e1; padding: 1px 2px; text-align: center; }
+        .legend-panel { background: #f0f4f9; border-radius: 8px; padding: 4px; margin-bottom: 6px; }
+        .legend-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 2px; text-align: center; font-size: 0.4rem; }
+        .offset-control { background: #eef2ff; border-radius: 8px; padding: 4px; margin-top: 4px; text-align: center; }
+        .drag-instruction { font-size: 0.4rem; padding: 3px; margin-top: 3px; text-align: center; background: #1e293b; color: #facc15; border-radius: 8px; }
+        .btn-small { background: #475569; padding: 1px 5px; font-size: 0.45rem; color: white; border: none; border-radius: 12px; cursor: pointer; }
+        .gap-selection-hint { background: #fef3c7; color: #92400e; font-size: 0.45rem; padding: 4px; border-radius: 8px; margin-top: 5px; text-align: center; }
+    </style>
+</head>
+<body>
+<div class="dashboard">
+    <div class="header">
+        <div class="title-section"><h1>🛡️ RAIED - Realistic Damage Mapping</h1><div class="subtitle">Drag shutters ↔️ gaps | Damage = Incoming Energy / Capacity</div></div>
+        <div class="header-buttons">
+            <button class="strike-btn" id="fireStrikeBtn">💥 FIRE STRIKE</button>
+            <button class="specs-btn" id="showSpecsBtn">📐 MATERIAL SPECS + PDF</button>
+            <button class="cost-btn" id="showCostBtn">💰 COST/BENEFIT + PDF</button>
+        </div>
+    </div>
+    
+    <!-- COST MODAL -->
+    <div id="costModal" class="modal">
+        <div class="modal-content">
+            <h3>💰 COST / BENEFIT ANALYSIS</h3>
+            <div id="modalCostAnalysis"></div>
+            <div class="modal-buttons">
+                <button class="pdf-btn" id="exportCostPDFBtn">📄 EXPORT PDF</button>
+                <button class="close-modal" id="closeCostModalBtn">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- SPECS MODAL -->
+    <div id="specsModal" class="modal">
+        <div class="modal-content">
+            <h3>📐 ENGINEERING MATERIAL SPECIFICATIONS</h3>
+            <div class="real-time-load">
+                <div class="load-value" id="livePillarLoad">0</div>
+                <div class="load-unit">kN per pillar (Design: 1,225 kN)</div>
+                <div class="load-gauge"><div class="load-fill" id="loadFillBar"></div></div>
+                <div id="loadStatusText" style="font-size:0.55rem; margin-top:8px;"></div>
+            </div>
+            <div class="pillar-stress-container" id="pillarStressContainer"></div>
+            <div id="safetyNote" class="note-box">💡 Configuration within safe limits.</div>
+            <div class="modal-buttons">
+                <button class="pdf-btn" id="exportSpecsPDFBtn">📄 EXPORT PDF</button>
+                <button class="close-modal" id="closeSpecsModalBtn">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="defense-wall-section" id="defenseWallSection">
+        <div class="damage-scale-guide"><div class="damage-scale-title">📊 DAMAGE SEVERITY</div><div class="damage-scale-bar"><div class="damage-scale-segment" style="background:#d1fae5;">SA</div><div class="damage-scale-segment" style="background:#fef9c3;">0.3</div><div class="damage-scale-segment" style="background:#fde047;">0.5</div><div class="damage-scale-segment" style="background:#facc15;">0.8</div><div class="damage-scale-segment" style="background:#eab308;">1.2</div><div class="damage-scale-segment" style="background:#ca8a04;">1.5</div><div class="damage-scale-segment" style="background:#fed7aa;">1.8</div><div class="damage-scale-segment" style="background:#fdba74;">2.1</div><div class="damage-scale-segment" style="background:#fb923c;">2.4</div><div class="damage-scale-segment" style="background:#f97316;">2.7</div><div class="damage-scale-segment" style="background:#ea580c;">3.0</div><div class="damage-scale-segment" style="background:#fca5a5;">3.5</div><div class="damage-scale-segment" style="background:#f87171;">4.2</div><div class="damage-scale-segment" style="background:#ef4444;">5.0+</div></div><div class="damage-scale-labels"><span>Safe</span><span>Dent</span><span>Crack</span><span>Hole</span></div></div>
+        <div class="defense-wall-header"><h2>🎯 DEFENSE WALL <span style="font-size:0.5rem;">(Drag shutters ↔️ gaps)</span></h2><div class="wall-stats"><div>📄 Shutters: <span id="wallSheetCount">0</span></div><div>🧱 Layers: <span id="wallLayerCount">0</span></div><div>💥 Plates: <span id="wallTotalCount">0</span></div></div></div>
+        <div id="visualSequenceContainer" class="visual-sequence"></div>
+        <div class="drag-instruction">🔴 Click gaps → Use +/- | 💥 FIRE STRIKE updates damage</div>
+    </div>
+    
+    <div class="bottom-section">
+        <div class="control-card">
+            <div class="section"><h3>⚡ THREAT</h3><div class="input-row"><div class="input-group"><label>Mass (kg)</label><input type="number" id="mass" value="40" step="10"></div><div class="input-group"><label>Velocity (m/s)</label><input type="number" id="velocity" value="250" step="10"></div></div><div class="input-row"><div class="input-group"><label>IMEA (MJ)</label><input type="text" id="imeaDisplay" readonly></div><div class="input-group"><label>Residual (MJ)</label><input type="text" id="emeaDisplay" readonly></div></div></div>
+            <div class="section"><h3>🛡️ SHUTTER TYPE (8 Options)</h3><select id="shutterType"><option value="standard">📄 Standard SS304 (1.0x)</option><option value="sloped">📐 Sloped 30° (1.4x)</option><option value="corrugated">〰️ Corrugated Steel (1.8x)</option><option value="composite" selected>🛡️ Composite Armor (3.0x)</option><option value="reactive">💥 Reactive Armor (5.0x)</option><option value="uhpc">🪨 UHPC / Ductal® (2.2x)</option><option value="ceramic">🔷 Ceramic-Faced (4.0x)</option><option value="nanocomposite">⚡ CNT Nanocomposite (6.0x)</option></select><div class="input-group"><label>Thickness (mm)</label><input type="number" id="globalThickness" value="8" step="1" min="2" max="100"></div></div>
+            <div class="section"><h3>🏗️ QUICK BUILD</h3><div style="display:flex; gap:6px;"><div style="flex:1; text-align:center;"><label>SHUTTERS</label><div style="display:flex; align-items:center; justify-content:center; gap:4px;"><button class="quick-btn minus" id="removeSheetQuick">−</button><span class="quick-count" id="sheetCountDisplay">0</span><button class="quick-btn plus" id="addSheetQuick">+</button></div></div><div style="flex:1; text-align:center;"><label>LAYERS (2 sheets)</label><div style="display:flex; align-items:center; justify-content:center; gap:4px;"><button class="quick-btn minus" id="removeLayerQuick">−</button><span class="quick-count" id="layerCountDisplay">0</span><button class="quick-btn plus" id="addLayerQuick">+</button></div></div></div></div>
+            <div class="distance-controls-panel"><div class="distance-controls-title">📏 ADJUST SELECTED GAP</div><div class="gap-selection-hint" id="selectedGapHint">💡 Click orange gap or cyan internal gap</div><div class="gap-control-row"><label>Selected gap:</label><div><button id="gapDecBtn" style="background:#dc2626;">−0.1</button><input type="number" id="gapValue" value="1.0" step="0.1" min="0.5" max="5.0" style="width:60px;"><button id="gapIncBtn" style="background:#10b981;">+0.1</button><button id="applyGapBtn" style="background:#1f5fb8;">Apply</button></div></div></div>
+            <div class="section"><h3>🔧 ELEMENT EDITOR</h3><div id="elementListContainer" class="element-list"></div><div style="display:flex; gap:4px; margin-top:5px;"><button id="resetCustomBtn" class="btn-small">⟳ Reset</button><button id="clearAllBtn" class="btn-small">🗑️ Clear</button><button id="selectFirstBtn" class="btn-small">Select First</button></div></div>
+            <div class="offset-control"><div>🎯 Damage Offset X: <input type="number" id="offsetX" value="15" step="5"> Y: <input type="number" id="offsetY" value="10" step="5"></div><div class="offset-row"><button id="centerBtn">Center</button><button id="resetOffsetBtn">Default</button><button id="refreshBtn">⟳ Update</button><button id="exportBtn">📋 Export Config</button></div></div>
+        </div>
+        <div class="right-panel">
+            <div class="stats"><div class="stat-box"><small>IMEA (MJ)</small><div class="value" id="imea">–</div></div><div class="stat-box"><small>Residual (MJ)</small><div class="value" id="emea">–</div></div><div class="stat-box"><small>Absorbed %</small><div class="value" id="absorbedPct">–</div></div><div class="stat-box"><small>Eff Thick (mm)</small><div class="value" id="effectiveThick">–</div></div><div class="stat-box"><small>MJ Capacity</small><div class="value" id="mjCapacity">–</div></div></div>
+            <div class="damage-table-panel"><h3 id="tableTitle">📊 Damage Lookup</h3><table class="damage-table" id="damageLookupTable"><thead><tr><th>mm</th><th>0.5</th><th>1.0</th><th>2.0</th><th>3.5</th><th>5.0</th><th>8.0</th><th>12</th></tr></thead><tbody id="tableBody"></tbody></table></div>
+            <div class="legend-panel"><h4>📖 DAMAGE LEGEND</h4><div class="legend-grid"><div><span style="background:#d1fae5;">SA</span> 0.0-0.2</div><div><span style="background:#fef9c3;">Dent</span> 0.3-0.9</div><div><span style="background:#fed7aa;">Crack</span> 1.0-1.9</div><div><span style="background:#fca5a5;">Hole</span> 2.0-5.0</div></div></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Load html2pdf library (from CDN) if not already loaded (old code used it)
+    if (typeof html2pdf === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+        script.crossOrigin = 'anonymous';
+        document.head.appendChild(script);
+    }
+    
+    // ========== IMAGES ==========
+    const SHUTTER_IMG = "https://www.dropbox.com/scl/fi/zcc1vab374gay58tf16vr/Shutter-without-background.png?rlkey=fs9l8rrs73q299pqdu3tfwlq9&st=sadrt2bb&raw=1";
+    const MISSILE_IMG = "https://dl.dropboxusercontent.com/scl/fi/2i2exxz0i0tbp03s912dj/Missile-Mass-20-Kg.png?rlkey=37jxbmc814pshahpq0th2w8ih&st=hjk3j0co&raw=1";
+    const DAMAGE_IMAGES = {
+        minor: "Minor_Damage-removebg-preview.png",
+        light: "Light_damage-removebg-preview.png",
+        moderate: "Moderate_damage-removebg-preview.png",
+        major1: "Major_damage_1-removebg-preview.png",
+        major2: "Major_damage_2-removebg-preview.png",
+        severe: "Sever_Damage-removebg-preview.png"
+    };
+    
+    let savedPositions = JSON.parse(localStorage.getItem('raiied_damage_positions')) || {
+        minor: { x: 0.203, y: 0.100, z: 1.0 },
+        light: { x: 0.253, y: 0.093, z: 1.0 },
+        moderate: { x: 0.440, y: 0.180, z: 1.0 },
+        major1: { x: 0.273, y: 0.147, z: 1.0 },
+        major2: { x: 0.360, y: 0.020, z: 1.0 },
+        severe: { x: 0.407, y: 0.153, z: 1.0 }
+    };
+    
+    let damageImages = {};
+    let shutterImage = null;
+    
+    let defenseElements = [];
+    let elementOffsets = [];
+    let isDragging = false, draggedElementIndex = null, dragStartX = 0, dragStartGap = 0, dragStartOffset = 0;
+    let selectedElementIndex = 0, selectedGapIndex = null, selectedLayerGapElementIndex = null;
+    const MIN_GAP = 0.5, MAX_GAP = 5.0;
+    
+    const shutterData = {
+        standard: { multiplier: 1.0, name: "Standard SS304", density: 7930, pricePerKg: 2.80, fabrication: 1.3, maintenance: 8 },
+        sloped: { multiplier: 1.4, name: "Sloped 30°", density: 7930, pricePerKg: 2.80, fabrication: 1.5, maintenance: 9 },
+        corrugated: { multiplier: 1.8, name: "Corrugated Steel", density: 7930, pricePerKg: 2.80, fabrication: 1.8, maintenance: 12 },
+        composite: { multiplier: 3.0, name: "Composite Armor", density: 4500, pricePerKg: 8.50, fabrication: 2.5, maintenance: 20 },
+        reactive: { multiplier: 5.0, name: "Reactive Armor", density: 5000, pricePerKg: 15.00, fabrication: 3.5, maintenance: 45 },
+        uhpc: { multiplier: 2.2, name: "UHPC / Ductal®", density: 2800, pricePerKg: 1.20, fabrication: 2.0, maintenance: 5 },
+        ceramic: { multiplier: 4.0, name: "Ceramic-Faced Armor", density: 3700, pricePerKg: 25.00, fabrication: 3.0, maintenance: 15 },
+        nanocomposite: { multiplier: 6.0, name: "CNT Nanocomposite", density: 1600, pricePerKg: 120.00, fabrication: 5.0, maintenance: 8 }
+    };
+    
+    function getCurrentShutter() { return shutterData[document.getElementById('shutterType').value] || shutterData.composite; }
+    function getShutterMultiplier() { return getCurrentShutter().multiplier; }
+    function getShutterCapacity() { let thick = parseFloat(document.getElementById('globalThickness').value); return (thick * getShutterMultiplier()) * 0.1; }
+    function getThreatEnergy() { let m = parseFloat(document.getElementById('mass').value); let v = parseFloat(document.getElementById('velocity').value); return 0.5 * m * v * v / 1e6; }
+    function clampGap(v) { return Math.max(MIN_GAP, Math.min(MAX_GAP, Math.round(v * 10) / 10)); }
+    
+    // Realistic damage: incoming energy / capacity, clamped 0-5
+    function calculateDamageForSheet(sheetIndex) {
+        const imea = getThreatEnergy();
+        const cap = getShutterCapacity();
+        let incoming = imea;
+        let currentSheet = 0;
+        for (let i = 0; i < defenseElements.length; i++) {
+            const el = defenseElements[i];
+            const gapBefore = el.gap || 1.0;
+            const gapEffect = 1 + (gapBefore - 1) * 0.15;
+            if (el.type === 'sheet') {
+                if (currentSheet === sheetIndex) return Math.min(5.0, incoming / cap);
+                let ratio = incoming / cap;
+                let absorbed = (ratio <= 1.0) ? incoming * 0.85 * 0.98 : cap * 0.98;
+                incoming = Math.max(0, incoming - absorbed) * gapEffect;
+                currentSheet++;
+            } else if (el.type === 'layer') {
+                if (currentSheet === sheetIndex) return Math.min(5.0, incoming / cap);
+                let ratio1 = incoming / cap;
+                let absorbed1 = ratio1 <= 1.0 ? incoming * 0.85 * 0.98 : cap * 0.98;
+                let afterFirst = Math.max(0, incoming - absorbed1);
+                let intGapEffect = 1 + (el.intGap - 1) * 0.15;
+                afterFirst = afterFirst * intGapEffect;
+                currentSheet++;
+                if (currentSheet === sheetIndex) return Math.min(5.0, afterFirst / cap);
+                let ratio2 = afterFirst / cap;
+                let absorbed2 = ratio2 <= 1.0 ? afterFirst * 0.85 * 0.98 : cap * 0.98;
+                incoming = Math.max(0, afterFirst - absorbed2) * gapEffect;
+                currentSheet++;
+            }
+        }
+        return 0;
+    }
+    
+    function getDamageSeverity(damageValue) {
+        if (damageValue < 0.2) return null;
+        if (damageValue < 0.5) return 'minor';
+        if (damageValue < 1.0) return 'light';
+        if (damageValue < 1.5) return 'moderate';
+        if (damageValue < 2.5) return 'major1';
+        if (damageValue < 4.0) return 'major2';
+        return 'severe';
+    }
+    
+    function drawDamageImage(ctx, w, h, severity) {
+        const pos = savedPositions[severity];
+        if (!pos) return;
+        const img = damageImages[severity];
+        if (!img || !img.complete) return;
+        let cx = w/2 + (pos.x * w/2);
+        let cy = h/2 + (pos.y * h/2);
+        const maxSize = w * 0.6;
+        let scale = Math.min(maxSize / img.width, maxSize / img.height);
+        let dw = img.width * scale, dh = img.height * scale;
+        ctx.drawImage(img, cx - dw/2, cy - dh/2, dw, dh);
+    }
+    
+    function drawShutterWithDamage(ctx, w, h, damageValue) {
+        if (shutterImage && shutterImage.complete) ctx.drawImage(shutterImage, 0, 0, w, h);
+        else { ctx.fillStyle = '#6b7b8d'; ctx.fillRect(0, 0, w, h); }
+        const severity = getDamageSeverity(damageValue);
+        if (severity) drawDamageImage(ctx, w, h, severity);
+    }
+    
+    function makeCanvas(size) { let c = document.createElement('canvas'); c.width = size; c.height = size; c.className = 'sequence-canvas'; return c; }
+    
+    function fullRefresh() {
+        buildDamageTable();
+        const container = document.getElementById('visualSequenceContainer');
+        container.innerHTML = '';
+        const missileDiv = document.createElement('div'); missileDiv.className = 'missile-icon';
+        const missileImg = document.createElement('img'); missileImg.src = MISSILE_IMG; missileDiv.appendChild(missileImg);
+        container.appendChild(missileDiv);
+        
+        while (elementOffsets.length < defenseElements.length) elementOffsets.push(0);
+        while (elementOffsets.length > defenseElements.length) elementOffsets.pop();
+        
+        let plateCounter = 0;
+        for (let i = 0; i < defenseElements.length; i++) {
+            const el = defenseElements[i];
+            const dragWrapper = document.createElement('div'); dragWrapper.className = 'drag-element'; dragWrapper.setAttribute('data-idx', i);
+            dragWrapper.style.transform = `translateX(${elementOffsets[i] || 0}px)`;
+            dragWrapper.style.cursor = 'grab';
+            dragWrapper.addEventListener('mousedown', (e) => {
+                if (e.target.closest('.internal-gap-control')) return;
+                e.preventDefault(); e.stopPropagation();
+                isDragging = true; draggedElementIndex = i;
+                dragStartX = e.clientX; dragStartGap = defenseElements[0]?.gap || 1.0;
+                dragStartOffset = elementOffsets[i] || 0;
+                document.body.style.cursor = 'grabbing';
+                dragWrapper.classList.add('dragging');
+            });
+            
+            if (el.type === 'sheet') {
+                const damageVal = calculateDamageForSheet(plateCounter);
+                const wrapper = document.createElement('div'); wrapper.className = 'shutter-wrapper';
+                const canvas = makeCanvas(110);
+                drawShutterWithDamage(canvas.getContext('2d'), 110, 110, damageVal);
+                wrapper.appendChild(canvas);
+                dragWrapper.appendChild(wrapper);
+                container.appendChild(dragWrapper);
+                plateCounter++;
+            } else if (el.type === 'layer') {
+                const leftDamage = calculateDamageForSheet(plateCounter);
+                const rightDamage = calculateDamageForSheet(plateCounter+1);
+                const layerDiv = document.createElement('div'); layerDiv.className = 'layer-container';
+                const leftWrap = document.createElement('div'); leftWrap.className = 'shutter-wrapper';
+                const leftCanvas = makeCanvas(94);
+                drawShutterWithDamage(leftCanvas.getContext('2d'), 94, 94, leftDamage);
+                leftWrap.appendChild(leftCanvas);
+                layerDiv.appendChild(leftWrap);
+                const intGapDiv = document.createElement('div'); intGapDiv.className = 'internal-gap-control';
+                intGapDiv.innerHTML = `<div class="distance-line"></div><div class="distance-value-circled">${el.intGap.toFixed(1)}</div><div class="distance-line"></div><div class="distance-label">LAYER GAP</div>`;
+                intGapDiv.addEventListener('click', (e) => { e.stopPropagation(); selectedLayerGapElementIndex = i; selectedGapIndex = null; updateSelectedGapDisplay(); fullRefresh(); });
+                layerDiv.appendChild(intGapDiv);
+                const rightWrap = document.createElement('div'); rightWrap.className = 'shutter-wrapper';
+                const rightCanvas = makeCanvas(94);
+                drawShutterWithDamage(rightCanvas.getContext('2d'), 94, 94, rightDamage);
+                rightWrap.appendChild(rightCanvas);
+                layerDiv.appendChild(rightWrap);
+                dragWrapper.appendChild(layerDiv);
+                container.appendChild(dragWrapper);
+                plateCounter += 2;
+            }
+            if (i < defenseElements.length - 1) {
+                const distDisplay = document.createElement('div'); distDisplay.className = 'distance-display';
+                const gapVal = defenseElements[i]?.gap || 1.0;
+                distDisplay.innerHTML = `<div class="distance-line"></div><div class="distance-value-circled">${gapVal.toFixed(1)}</div><div class="distance-line"></div><div class="distance-label">GAP ${i+1}</div>`;
+                distDisplay.addEventListener('click', (e) => { e.stopPropagation(); selectedGapIndex = i; selectedLayerGapElementIndex = null; updateSelectedGapDisplay(); fullRefresh(); });
+                container.appendChild(distDisplay);
+            }
+        }
+        if (selectedLayerGapElementIndex !== null) {
+            const layerDiv = document.querySelector(`.layer-container[data-idx="${selectedLayerGapElementIndex}"]`);
+            if (layerDiv) layerDiv.querySelector('.internal-gap-control')?.classList.add('selected-gap');
+        }
+        updateStats(); renderElementList(); updateWallCounters(); updateSelectedGapDisplay();
+        updateCostBenefitForModal();  // update modal content
+        updateMaterialSpecsForModal(); // update specs modal
+    }
+    
+    function updateStats() {
+        const imea = getThreatEnergy();
+        let remaining = imea;
+        const cap = getShutterCapacity();
+        for (let i = 0; i < defenseElements.length; i++) {
+            const el = defenseElements[i];
+            const gapBefore = el.gap || 1.0;
+            const gapEffect = 1 + (gapBefore - 1) * 0.15;
+            if (el.type === 'sheet') {
+                let ratio = remaining / cap;
+                let absorbed = (ratio <= 1.0) ? remaining * 0.85 * 0.98 : cap * 0.98;
+                remaining = Math.max(0, remaining - absorbed) * gapEffect;
+            } else if (el.type === 'layer') {
+                let ratio1 = remaining / cap;
+                let absorbed1 = ratio1 <= 1.0 ? remaining * 0.85 * 0.98 : cap * 0.98;
+                let afterFirst = Math.max(0, remaining - absorbed1);
+                let intGapEffect = 1 + (el.intGap - 1) * 0.15;
+                afterFirst = afterFirst * intGapEffect;
+                let ratio2 = afterFirst / cap;
+                let absorbed2 = ratio2 <= 1.0 ? afterFirst * 0.85 * 0.98 : cap * 0.98;
+                remaining = Math.max(0, afterFirst - absorbed2) * gapEffect;
+            }
+        }
+        const absorbed = imea - remaining;
+        document.getElementById('imea').innerHTML = imea.toFixed(3);
+        document.getElementById('emea').innerHTML = remaining.toFixed(3);
+        document.getElementById('absorbedPct').innerHTML = ((absorbed/imea)*100).toFixed(0);
+        document.getElementById('effectiveThick').innerHTML = (parseFloat(document.getElementById('globalThickness').value) * getShutterMultiplier()).toFixed(0);
+        document.getElementById('mjCapacity').innerHTML = cap.toFixed(2);
+        document.getElementById('imeaDisplay').value = imea.toFixed(3);
+        document.getElementById('emeaDisplay').value = remaining.toFixed(6);
+        updatePillarVisualization();
+    }
+    
+    function buildDamageTable() {
+        const thicknesses = [4,6,8,10,12,16,20,25,30,40,50];
+        const mjVals = [0.5,1.0,2.0,3.5,5.0,8.0,12.0];
+        const mult = getShutterMultiplier();
+        document.getElementById('tableTitle').innerHTML = `📊 Damage (×${mult})`;
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+        for (let t of thicknesses) {
+            const eff = t * mult;
+            const row = tbody.insertRow();
+            row.insertCell(0).textContent = eff;
+            for (let mj of mjVals) {
+                let raw = mj / (eff * 0.1);
+                let dmg = Math.min(5, raw);
+                let cell = row.insertCell();
+                cell.textContent = dmg < 0.2 ? "SA" : dmg.toFixed(1);
+                cell.style.backgroundColor = dmg<0.2?'#d1fae5':dmg<0.5?'#fef9c3':dmg<1.0?'#fde047':dmg<1.5?'#facc15':dmg<2.0?'#eab308':dmg<2.5?'#ca8a04':dmg<3.0?'#fed7aa':dmg<3.5?'#fdba74':dmg<4.0?'#fb923c':'#ef4444';
+            }
+        }
+    }
+    
+    function handleMouseMove(e) {
+        if (!isDragging || draggedElementIndex === null) return;
+        const deltaX = e.clientX - dragStartX;
+        elementOffsets[draggedElementIndex] = dragStartOffset + deltaX;
+        const dw = document.querySelector(`.drag-element[data-idx="${draggedElementIndex}"]`);
+        if (dw) dw.style.transform = `translateX(${elementOffsets[draggedElementIndex]}px)`;
+        let newGap = clampGap(dragStartGap + deltaX / 40);
+        if (defenseElements.length >= 1 && newGap !== defenseElements[0].gap) {
+            defenseElements[0].gap = newGap;
+            fullRefresh();
+        }
+    }
+    function handleMouseUp() { if (isDragging) { isDragging = false; draggedElementIndex = null; document.body.style.cursor = ''; const dw = document.querySelector('.drag-element.dragging'); if (dw) dw.classList.remove('dragging'); fullRefresh(); } }
+    
+    function updateSelectedGapDisplay() {
+        const hint = document.getElementById('selectedGapHint');
+        if (selectedLayerGapElementIndex !== null && defenseElements[selectedLayerGapElementIndex]?.type === 'layer') {
+            document.getElementById('gapValue').value = defenseElements[selectedLayerGapElementIndex].intGap.toFixed(1);
+            hint.innerHTML = `✅ Selected: INTERNAL GAP of Layer ${selectedLayerGapElementIndex+1}`;
+            return;
+        }
+        if (selectedGapIndex !== null && defenseElements[selectedGapIndex]) {
+            document.getElementById('gapValue').value = defenseElements[selectedGapIndex].gap.toFixed(1);
+            hint.innerHTML = `✅ Gap AFTER Element ${selectedGapIndex+1}`;
+        } else { hint.innerHTML = '💡 Click orange gap or cyan internal gap'; }
+    }
+    function applyGapToSelected() {
+        let newGap = clampGap(parseFloat(document.getElementById('gapValue').value) || 1.0);
+        if (selectedLayerGapElementIndex !== null && defenseElements[selectedLayerGapElementIndex]?.type === 'layer') {
+            defenseElements[selectedLayerGapElementIndex].intGap = newGap;
+            fullRefresh(); return;
+        }
+        if (selectedGapIndex !== null && defenseElements[selectedGapIndex]) {
+            defenseElements[selectedGapIndex].gap = newGap;
+            fullRefresh();
+        } else alert('Click a gap first');
+    }
+    
+    function renderElementList() {
+        const container = document.getElementById('elementListContainer'); container.innerHTML = '';
+        if (!defenseElements.length) { container.innerHTML = '<div>No elements</div>'; return; }
+        defenseElements.forEach((el, idx) => {
+            const div = document.createElement('div'); div.className = 'element-item';
+            if (idx === selectedElementIndex) div.classList.add('selected');
+            div.innerHTML = `<span>${el.type === 'sheet' ? `📄 Shutter ${idx+1} | gap=${el.gap.toFixed(1)}m` : `🧱 Layer ${idx+1} | int=${el.intGap.toFixed(1)}m | gap=${el.gap.toFixed(1)}m`}</span><button class="del-el" data-idx="${idx}">🗑️</button>`;
+            div.addEventListener('click', (e) => { if (!e.target.classList.contains('del-el')) { selectedElementIndex = idx; renderElementList(); } });
+            container.appendChild(div);
+        });
+        document.querySelectorAll('.del-el').forEach(btn => btn.addEventListener('click', (e) => { const idx = parseInt(btn.dataset.idx); defenseElements.splice(idx,1); elementOffsets.splice(idx,1); if (selectedElementIndex >= defenseElements.length) selectedElementIndex = Math.max(0, defenseElements.length-1); fullRefresh(); }));
+    }
+    
+    function updateWallCounters() {
+        const sc = defenseElements.filter(e=>e.type==='sheet').length;
+        const lc = defenseElements.filter(e=>e.type==='layer').length;
+        document.getElementById('wallSheetCount').innerHTML = sc;
+        document.getElementById('wallLayerCount').innerHTML = lc;
+        document.getElementById('wallTotalCount').innerHTML = sc + lc*2;
+        document.getElementById('sheetCountDisplay').innerHTML = sc;
+        document.getElementById('layerCountDisplay').innerHTML = lc;
+    }
+    
+    function addSheet() { defenseElements.push({ type: 'sheet', thick: parseFloat(document.getElementById('globalThickness').value), gap: 1.0 }); elementOffsets.push(0); fullRefresh(); }
+    function removeSheet() { for(let i=defenseElements.length-1;i>=0;i--) if(defenseElements[i].type==='sheet') { defenseElements.splice(i,1); elementOffsets.splice(i,1); break; } fullRefresh(); }
+    function addLayer() { defenseElements.push({ type: 'layer', thick: parseFloat(document.getElementById('globalThickness').value), gap: 1.0, intGap: 1.0 }); elementOffsets.push(0); fullRefresh(); }
+    function removeLayer() { for(let i=defenseElements.length-1;i>=0;i--) if(defenseElements[i].type==='layer') { defenseElements.splice(i,1); elementOffsets.splice(i,1); break; } fullRefresh(); }
+    function resetExample() { defenseElements = [{ type: 'sheet', thick: 8, gap: 1.0 }]; elementOffsets = [0]; selectedElementIndex=0; selectedGapIndex=null; selectedLayerGapElementIndex=null; fullRefresh(); }
+    function clearAll() { defenseElements = []; elementOffsets = []; fullRefresh(); }
+    function selectFirst() { if(defenseElements.length) selectedElementIndex=0; renderElementList(); fullRefresh(); }
+    function centerOffset() { document.getElementById('offsetX').value=0; document.getElementById('offsetY').value=0; fullRefresh(); }
+    function resetOffset() { document.getElementById('offsetX').value=15; document.getElementById('offsetY').value=10; fullRefresh(); }
+    function exportConfig() { const config = { mass: document.getElementById('mass').value, velocity: document.getElementById('velocity').value, shutterType: document.getElementById('shutterType').value, thickness: document.getElementById('globalThickness').value, defenseElements, elementOffsets }; const blob = new Blob([JSON.stringify(config,null,2)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'raiied_config.json'; a.click(); }
+    function animateStrike() { const missileIcon = document.querySelector('.missile-icon'); if (missileIcon) { missileIcon.classList.add('firing'); setTimeout(() => missileIcon.classList.remove('firing'), 500); } fullRefresh(); }
+    
+    function updatePillarVisualization() {
+        const sc = defenseElements.filter(e => e.type === 'sheet').length;
+        const lc = defenseElements.filter(e => e.type === 'layer').length;
+        const thickness = parseFloat(document.getElementById('globalThickness').value);
+        const shutter = getCurrentShutter();
+        const wpm2 = (thickness / 1000) * shutter.density;
+        const sw = 150 * wpm2;
+        const pc = 10880, pr = 1366, bw = 152604, mw = 1000;
+        const slk = (pc + pr + bw/4 + sw/4 + mw) * 9.81 / 1000;
+        const load = Math.round(slk * (1 + (sc + lc) * 0.05));
+        const pct = Math.min(100, (load / 1225) * 100);
+        document.getElementById('livePillarLoad').innerHTML = load;
+        document.getElementById('loadFillBar').style.width = pct + '%';
+        document.getElementById('loadStatusText').innerHTML = pct<40?'✅ SAFE':pct<70?'⚠️ MODERATE':pct<90?'⚠️ HIGH':'🔴 CRITICAL';
+        const container = document.getElementById('pillarStressContainer');
+        container.innerHTML = '';
+        ['P1 (SW)','P2 (SE)','P3 (NE)','P4 (NW)'].forEach(name => {
+            const card = document.createElement('div'); card.className = 'pillar-card';
+            const c = document.createElement('canvas'); c.width=100; c.height=180; c.className='pillar-canvas';
+            drawPillarCanvas(c.getContext('2d'), pct);
+            const l = document.createElement('div'); l.className='pillar-label'; l.textContent=name;
+            const ls = document.createElement('div'); ls.className='pillar-load'; ls.textContent=`${load} kN / 1,225 kN`;
+            const ind = document.createElement('div'); ind.className=`stress-indicator ${pct<40?'stress-low':pct<70?'stress-medium':pct<90?'stress-high':'stress-critical'}`;
+            card.appendChild(c); card.appendChild(l); card.appendChild(ls); card.appendChild(ind); container.appendChild(card);
+        });
+        const sn = document.getElementById('safetyNote');
+        if(pct>85){ sn.className='note-box critical-box'; sn.innerHTML='🔴 CRITICAL: Exceeds recommended pillar load.'; }
+        else if(pct>65){ sn.className='note-box warning-box'; sn.innerHTML='⚠️ WARNING: Pillar load elevated.'; }
+        else{ sn.className='note-box'; sn.innerHTML='💡 Configuration within safe limits.'; }
+    }
+    
+    function drawPillarCanvas(ctx, percent) {
+        const w=100, h=180, color = percent<40?'#10b981':percent<70?'#f59e0b':percent<90?'#ef4444':'#7f1d1d';
+        ctx.clearRect(0,0,w,h); ctx.fillStyle='#e2e8f0'; ctx.fillRect(10,10,w-20,h-20);
+        const fh=(h-20)*(percent/100); ctx.fillStyle=color; ctx.fillRect(10,10+(h-20-fh),w-20,fh);
+        ctx.strokeStyle='#1e293b'; ctx.strokeRect(10,10,w-20,h-20);
+        ctx.fillStyle='#475569'; for(let i=0;i<4;i++){ ctx.beginPath(); ctx.arc(20+i*20,h/2,3,0,2*Math.PI); ctx.fill(); }
+        ctx.fillStyle='#1e293b'; ctx.font='bold 12px monospace'; ctx.fillText(`${Math.round(percent)}%`, w/2-15, h-12);
+    }
+    
+    // ==== COST/BENEFIT MODAL CONTENT ====
+    function updateCostBenefitForModal() {
+        const energy = computeTotalEnergy();
+        const shutter = getCurrentShutter();
+        const thick = parseFloat(document.getElementById('globalThickness').value);
+        const eff = thick * shutter.multiplier;
+        const cap = eff * 0.1;
+        const wkg = (thick/1000) * shutter.density;
+        const mc = wkg * shutter.pricePerKg;
+        const tcpm2 = mc + mc * (shutter.fabrication - 1);
+        const tpc = tcpm2 * 100;
+        const am = shutter.maintenance * 100;
+        const t10 = tpc + am * 10;
+        const cpmj = tcpm2 / cap;
+        const apct = ((energy.absorbed / energy.imea) * 100).toFixed(0);
+        let pr = "Excellent";
+        if (energy.emea > 0.2) pr = "Good";
+        if (energy.emea > 1.0) pr = "Fair";
+        if (energy.emea > 2.0) pr = "Poor";
+        const rec = energy.emea < 0.05 ? "✅ FULL PROTECTION" : energy.emea < 0.2 ? "⚠️ PARTIAL" : "❌ NOT PROTECTED";
+        const f = (n) => '$' + n.toLocaleString(undefined, {maximumFractionDigits: 0});
+        document.getElementById('modalCostAnalysis').innerHTML = `
+            <div class="spec-item"><span class="label">🛡️ Technology:</span><span>${shutter.name} (${shutter.multiplier}×)</span></div>
+            <div class="spec-item"><span class="label">📏 Effective Thickness:</span><span>${eff} mm</span></div>
+            <div class="spec-item"><span class="label">💥 MJ Capacity:</span><span>${cap.toFixed(2)} MJ</span></div>
+            <div class="spec-item"><span class="label">⚡ IMEA (MJ):</span><span>${energy.imea.toFixed(3)}</span></div>
+            <div class="spec-item"><span class="label">💚 Absorbed (MJ):</span><span>${energy.absorbed.toFixed(3)} (${apct}%)</span></div>
+            <div class="spec-item"><span class="label">💔 Residual (MJ):</span><span>${energy.emea.toFixed(6)}</span></div>
+            <div class="spec-item"><span class="label">💰 Cost per m²:</span><span>${f(tcpm2)}</span></div>
+            <div class="spec-item"><span class="label">💎 Cost per MJ:</span><span>${f(cpmj)}/MJ</span></div>
+            <div class="spec-item"><span class="label">🏭 100m² Facility:</span><span>${f(tpc)}</span></div>
+            <div class="spec-item"><span class="label">🔧 Annual Maintenance:</span><span>${f(am)}/year</span></div>
+            <div class="spec-item"><span class="label">📅 10-Year Total:</span><span>${f(t10)}</span></div>
+            <div class="spec-item"><span class="label">📊 Weight:</span><span>${wkg.toFixed(0)} kg/m²</span></div>
+            <div class="spec-item"><span class="label">🛡️ Protection Rating:</span><span>${pr}</span></div>
+            <div class="note-box" style="background:#10b98120; color:#1f5fb8;">${rec}</div>
+        `;
+    }
+    
+    function computeTotalEnergy() {
+        let remaining = getThreatEnergy();
+        const cap = getShutterCapacity();
+        for (let i = 0; i < defenseElements.length; i++) {
+            const el = defenseElements[i];
+            const gapBefore = el.gap || 1.0;
+            const gapEffect = 1 + (gapBefore - 1) * 0.15;
+            if (el.type === 'sheet') {
+                let ratio = remaining / cap;
+                let absorbed = (ratio <= 1.0) ? remaining * 0.85 * 0.98 : cap * 0.98;
+                remaining = Math.max(0, remaining - absorbed) * gapEffect;
+            } else if (el.type === 'layer') {
+                let ratio1 = remaining / cap;
+                let absorbed1 = ratio1 <= 1.0 ? remaining * 0.85 * 0.98 : cap * 0.98;
+                let afterFirst = Math.max(0, remaining - absorbed1);
+                let intGapEffect = 1 + (el.intGap - 1) * 0.15;
+                afterFirst = afterFirst * intGapEffect;
+                let ratio2 = afterFirst / cap;
+                let absorbed2 = ratio2 <= 1.0 ? afterFirst * 0.85 * 0.98 : cap * 0.98;
+                remaining = Math.max(0, afterFirst - absorbed2) * gapEffect;
+            }
+        }
+        return { imea: getThreatEnergy(), absorbed: getThreatEnergy() - remaining, emea: remaining };
+    }
+    
+    // ==== MATERIAL SPECS MODAL CONTENT ====
+    function updateMaterialSpecsForModal() {
+        const shutter = getCurrentShutter();
+        const thick = parseFloat(document.getElementById('globalThickness').value);
+        const eff = thick * shutter.multiplier;
+        const cap = eff * 0.1;
+        // Re‑calculate pillar load to show in specs
+        const sc = defenseElements.filter(e => e.type === 'sheet').length;
+        const lc = defenseElements.filter(e => e.type === 'layer').length;
+        const wpm2 = (thick / 1000) * shutter.density;
+        const sw = 150 * wpm2;
+        const pc = 10880, pr = 1366, bw = 152604, mw = 1000;
+        const slk = (pc + pr + bw/4 + sw/4 + mw) * 9.81 / 1000;
+        const load = Math.round(slk * (1 + (sc + lc) * 0.05));
+        const pct = Math.min(100, (load / 1225) * 100);
+        
+        // This content is inserted into the existing modal's body (the area below the real-time load)
+        // We'll place it inside a div inside the modal. But the modal already has a structure with real-time load,
+        // we need to fill the bottom part. Since the modal content has a fixed layout, I will append the details
+        // after the real-time load section. To avoid duplication, we'll just update the existing elements.
+        // Actually the modal already has a div for pillarStressContainer and safetyNote, but we also need shutter details.
+        // Let's inject a new section inside the modal content after the pillarStressContainer.
+        const existingDiv = document.getElementById('specsModal').querySelector('.modal-content');
+        let detailsDiv = document.getElementById('modalSpecsDetails');
+        if (!detailsDiv) {
+            detailsDiv = document.createElement('div');
+            detailsDiv.id = 'modalSpecsDetails';
+            const container = document.getElementById('pillarStressContainer').parentNode;
+            container.insertBefore(detailsDiv, document.getElementById('safetyNote'));
+        }
+        detailsDiv.innerHTML = `
+            <h4>🛡️ Current Shutter: ${shutter.name}</h4>
+            <div class="spec-item"><span class="label">Physical Thickness:</span><span class="value">${thick} mm</span></div>
+            <div class="spec-item"><span class="label">Effective Thickness:</span><span class="value">${eff} mm</span></div>
+            <div class="spec-item"><span class="label">MJ Capacity:</span><span class="value">${cap.toFixed(2)} MJ</span></div>
+            <div class="spec-item"><span class="label">Weight per m²:</span><span class="value">${wpm2.toFixed(0)} kg/m²</span></div>
+            <div class="spec-item"><span class="label">Density:</span><span class="value">${shutter.density} kg/m³</span></div>
+            <h4>🏛️ Foundation & Pillars</h4>
+            <div class="spec-item"><span class="label">Pillar load (each):</span><span class="value">${load} kN / 1,225 kN (${pct.toFixed(0)}%)</span></div>
+            <div class="spec-item"><span class="label">Concrete grade:</span><span class="value">C50/60 (pillars) | C35/45 (raft)</span></div>
+            <div class="spec-item"><span class="label">Pillar dimensions:</span><span class="value">800 × 800 mm, height 6,800 mm</span></div>
+            <div class="spec-item"><span class="label">Reinforcement:</span><span class="value">12 × Ø25 mm B500C + stirrups Ø10 @150mm</span></div>
+            <div class="spec-item"><span class="label">Raft foundation:</span><span class="value">15,000 × 15,000 × 500 mm, Ø16 @150mm c/c</span></div>
+            <h4>🔩 Shutter Track</h4>
+            <div class="spec-item"><span class="label">Material:</span><span class="value">S355 C-channel, M24 bolts grade 10.9</span></div>
+        `;
+    }
+    
+    // ========== PDF EXPORT ==========
+    async function exportModalToPDF(modalId, filename) {
+        const modal = document.getElementById(modalId);
+        const content = modal.querySelector('.modal-content').cloneNode(true);
+        // Remove close buttons and extra buttons from clone
+        content.querySelectorAll('.close-modal, .pdf-btn, .modal-buttons').forEach(el => el.remove());
+        const html = `<div style="padding:20px; font-family:Arial, sans-serif;">${content.innerHTML}</div>`;
+        const opt = {
+            margin: [0.5, 0.5, 0.5, 0.5],
+            filename: filename,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+        if (typeof html2pdf !== 'undefined') {
+            const element = document.createElement('div');
+            element.innerHTML = html;
+            document.body.appendChild(element);
+            await html2pdf().set(opt).from(element).save();
+            document.body.removeChild(element);
+        } else {
+            alert('PDF library still loading. Please try again in a moment.');
+        }
+    }
+    
+    document.getElementById('exportCostPDFBtn').onclick = () => exportModalToPDF('costModal', 'RAIED_Cost_Analysis.pdf');
+    document.getElementById('exportSpecsPDFBtn').onclick = () => exportModalToPDF('specsModal', 'RAIED_Material_Specs.pdf');
+    
+    // ========== EVENT LISTENERS ==========
+    document.getElementById('refreshBtn').addEventListener('click', fullRefresh);
+    document.getElementById('addSheetQuick').addEventListener('click', addSheet);
+    document.getElementById('removeSheetQuick').addEventListener('click', removeSheet);
+    document.getElementById('addLayerQuick').addEventListener('click', addLayer);
+    document.getElementById('removeLayerQuick').addEventListener('click', removeLayer);
+    document.getElementById('resetCustomBtn').addEventListener('click', resetExample);
+    document.getElementById('clearAllBtn').addEventListener('click', clearAll);
+    document.getElementById('selectFirstBtn').addEventListener('click', selectFirst);
+    document.getElementById('exportBtn').addEventListener('click', exportConfig);
+    document.getElementById('centerBtn').addEventListener('click', centerOffset);
+    document.getElementById('resetOffsetBtn').addEventListener('click', resetOffset);
+    document.getElementById('shutterType').addEventListener('change', fullRefresh);
+    document.getElementById('globalThickness').addEventListener('input', fullRefresh);
+    ['mass','velocity'].forEach(id => document.getElementById(id).addEventListener('input', fullRefresh));
+    document.getElementById('gapDecBtn').addEventListener('click', () => { let v = parseFloat(document.getElementById('gapValue').value)||1.0; v = clampGap(v-0.1); document.getElementById('gapValue').value=v.toFixed(1); applyGapToSelected(); });
+    document.getElementById('gapIncBtn').addEventListener('click', () => { let v = parseFloat(document.getElementById('gapValue').value)||1.0; v = clampGap(v+0.1); document.getElementById('gapValue').value=v.toFixed(1); applyGapToSelected(); });
+    document.getElementById('applyGapBtn').addEventListener('click', applyGapToSelected);
+    document.getElementById('fireStrikeBtn').addEventListener('click', animateStrike);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.getElementById('showCostBtn').onclick = () => { updateCostBenefitForModal(); document.getElementById('costModal').style.display='flex'; };
+    document.getElementById('closeCostModalBtn').onclick = () => document.getElementById('costModal').style.display='none';
+    document.getElementById('showSpecsBtn').onclick = () => { updateMaterialSpecsForModal(); updatePillarVisualization(); document.getElementById('specsModal').style.display='flex'; };
+    document.getElementById('closeSpecsModalBtn').onclick = () => document.getElementById('specsModal').style.display='none';
+    
+    function preloadImages() {
+        const img = new Image(); img.src = SHUTTER_IMG; img.onload = () => { shutterImage = img; fullRefresh(); };
+        for (let [key, src] of Object.entries(DAMAGE_IMAGES)) {
+            const dmg = new Image(); dmg.src = src; dmg.onload = () => { damageImages[key] = dmg; fullRefresh(); };
+        }
+    }
+    
+    preloadImages();
+    resetExample();
+</script>
+</body>
+</html>

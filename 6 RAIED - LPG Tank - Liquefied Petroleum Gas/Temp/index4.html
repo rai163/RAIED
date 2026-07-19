@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>RAIED 8-Shutter Full Ring</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: black;
+        }
+        #sim {
+            display: block;
+            margin: 0 auto;
+            background: black;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="controls">
+    SPACE: Deploy &nbsp;&nbsp; R: Retract &nbsp;&nbsp; ESC: Reset
+</div>
+
+<canvas id="sim" width="1280" height="720"></canvas>
+
+<script>
+const canvas = document.getElementById("sim");
+const ctx = canvas.getContext("2d");
+
+let tankImg = new Image();
+tankImg.src = "tank.png";
+
+// Approx tank center based on drawImage(200,50,900,620)
+const tankCenter = { x: 200 + 900 / 2, y: 50 + 620 / 2 }; // (650, 360)
+
+// Motion parameters
+const buryDepth = 350;
+const riseSpeed = 4;
+
+// Mechanical visual parameters
+const cavityInset = 8;   // side-only inset
+const cavityDepth = 8;   // nitrogen cavity depth
+const lipDepth = 18;     // bottom lip extension
+
+function makeQuadShutter(name, tl, tr, br, bl) {
+    const midTop = {
+        x: (tl.x + tr.x) / 2,
+        y: (tl.y + tr.y) / 2
+    };
+    const midBottom = {
+        x: (bl.x + br.x) / 2,
+        y: (bl.y + br.y) / 2
+    };
+
+    const dx = midBottom.x - midTop.x;
+    const dy = midBottom.y - midTop.y;
+    const len = Math.sqrt(dx*dx + dy*dy) || 1;
+    const nx = dx / len;
+    const ny = dy / len;
+
+    return {
+        name,
+        tl, tr, br, bl,
+        nx, ny,
+        offset: buryDepth,
+        buriedOffset: buryDepth,
+        targetOffset: 0
+    };
+}
+
+// Base middle shutter geometry (your measured one)
+const baseMiddleTL = { x: 508, y: 270 };
+const baseMiddleTR = { x: 765, y: 270 };
+const baseMiddleBL = { x: 500, y: 610 };
+const baseMiddleBR = { x: 778, y: 620 };
+
+// Compute base angle from tank center to middle shutter bottom midpoint
+const baseMidBottom = {
+    x: (baseMiddleBL.x + baseMiddleBR.x) / 2,
+    y: (baseMiddleBL.y + baseMiddleBR.y) / 2
+};
+const baseAngle = Math.atan2(
+    baseMidBottom.y - tankCenter.y,
+    baseMidBottom.x - tankCenter.x
+);
+
+// Helper: rotate a point around tank center by angle
+function rotatePointAroundCenter(p, angle) {
+    const dx = p.x - tankCenter.x;
+    const dy = p.y - tankCenter.y;
+    const cosA = Math.cos(angle);
+    const sinA = Math.sin(angle);
+    return {
+        x: tankCenter.x + dx * cosA - dy * sinA,
+        y: tankCenter.y + dx * sinA + dy * cosA
+    };
+}
+
+// Build 8 shutters by rotating the base middle shutter
+const shutters = [];
+const count = 8;
+for (let i = 0; i < count; i++) {
+    const angle = baseAngle + (i * 2 * Math.PI / count);
+    const delta = angle - baseAngle;
+
+    const tl = rotatePointAroundCenter(baseMiddleTL, delta);
+    const tr = rotatePointAroundCenter(baseMiddleTR, delta);
+    const bl = rotatePointAroundCenter(baseMiddleBL, delta);
+    const br = rotatePointAroundCenter(baseMiddleBR, delta);
+
+    shutters.push(makeQuadShutter("shutter_" + i, tl, tr, br, bl));
+}
+
+let deploy = false;
+let retract = false;
+
+tankImg.onload = () => {
+    draw();
+};
+
+function drawShutter3D(s) {
+    const mo = s.offset;
+    const ox = s.nx * mo;
+    const oy = s.ny * mo;
+
+    // Outer sheet (front)
+    const fTL = { x: s.tl.x + ox, y: s.tl.y + oy };
+    const fTR = { x: s.tr.x + ox, y: s.tr.y + oy };
+    const fBR = { x: s.br.x + ox, y: s.br.y + oy };
+    const fBL = { x: s.bl.x + ox, y: s.bl.y + oy };
+
+    // Inner sheet (inset left/right, flush at top, extended down for lip)
+    const iTL = { x: fTL.x + cavityInset, y: fTL.y };
+    const iTR = { x: fTR.x - cavityInset, y: fTR.y };
+    const iBR = { x: fBR.x - cavityInset, y: fBR.y + lipDepth };
+    const iBL = { x: fBL.x + cavityInset, y: fBL.y + lipDepth };
+
+    // Nitrogen cavity (between outer and inner sheets)
+    const cTL = { x: iTL.x, y: iTL.y + cavityDepth };
+    const cTR = { x: iTR.x, y: iTR.y + cavityDepth };
+    const cBR = { x: iBR.x, y: iBR.y - cavityDepth };
+    const cBL = { x: iBL.x, y: iBL.y - cavityDepth };
+
+    // Dynamic shadow
+    const shadowFactor = s.offset / s.buriedOffset;
+    const shadowOffsetX = 22 * shadowFactor;
+    const shadowOffsetY = 22 * shadowFactor;
+
+    // Shadow
+    ctx.save();
+    ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+    ctx.beginPath();
+    ctx.moveTo(iTL.x + shadowOffsetX, iTL.y + shadowOffsetY);
+    ctx.lineTo(iTR.x + shadowOffsetX, iTR.y + shadowOffsetY);
+    ctx.lineTo(iBR.x + shadowOffsetX, iBR.y + shadowOffsetY);
+    ctx.lineTo(iBL.x + shadowOffsetX, iBL.y + shadowOffsetY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // Cavity
+    ctx.save();
+    ctx.fillStyle = "#1a1a1a";
+    ctx.beginPath();
+    ctx.moveTo(cTL.x, cTL.y);
+    ctx.lineTo(cTR.x, cTR.y);
+    ctx.lineTo(cBR.x, cBR.y);
+    ctx.lineTo(cBL.x, cBL.y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // Inner sheet
+    ctx.save();
+    const innerGrad = ctx.createLinearGradient(iTL.x, iTL.y, iBR.x, iBR.y);
+    innerGrad.addColorStop(0, "#3c6aa3");
+    innerGrad.addColorStop(1, "#1b304a");
+    ctx.fillStyle = innerGrad;
+    ctx.beginPath();
+    ctx.moveTo(iTL.x, iTL.y);
+    ctx.lineTo(iTR.x, iTR.y);
+    ctx.lineTo(iBR.x, iBR.y);
+    ctx.lineTo(iBL.x, iBL.y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // Outer sheet
+    ctx.save();
+    const outerGrad = ctx.createLinearGradient(fTL.x, fTL.y, fBR.x, fBR.y);
+    outerGrad.addColorStop(0, "#4f7fbf");
+    outerGrad.addColorStop(1, "#2f5688");
+    ctx.fillStyle = outerGrad;
+    ctx.beginPath();
+    ctx.moveTo(fTL.x, fTL.y);
+    ctx.lineTo(fTR.x, fTR.y);
+    ctx.lineTo(fBR.x, fBR.y);
+    ctx.lineTo(fBL.x, fBL.y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // Bottom lip shadow
+    ctx.save();
+    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+    ctx.beginPath();
+    ctx.moveTo(iBL.x, iBL.y);
+    ctx.lineTo(iBR.x, iBR.y);
+    ctx.lineTo(iBR.x + shadowOffsetX * 0.4, iBR.y + shadowOffsetY * 0.4);
+    ctx.lineTo(iBL.x + shadowOffsetX * 0.4, iBL.y + shadowOffsetY * 0.4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // Ambient occlusion at top
+    ctx.save();
+    ctx.strokeStyle = "rgba(0,0,0,0.45)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(fTL.x, fTL.y + 1);
+    ctx.lineTo(fTR.x, fTR.y + 1);
+    ctx.stroke();
+    ctx.restore();
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.drawImage(tankImg, 200, 50, 900, 620);
+
+    shutters.forEach(drawShutter3D);
+
+    requestAnimationFrame(draw);
+}
+
+document.addEventListener("keydown", (e) => {
+    if (e.code === "Space") {
+        deploy = true;
+        retract = false;
+    }
+    if (e.code === "KeyR") {
+        retract = true;
+        deploy = false;
+    }
+    if (e.code === "Escape") {
+        deploy = false;
+        retract = false;
+        shutters.forEach(s => s.offset = s.buriedOffset);
+    }
+});
+
+function animate() {
+    shutters.forEach(s => {
+        if (deploy && s.offset > s.targetOffset) {
+            s.offset -= riseSpeed;
+            if (s.offset < s.targetOffset) s.offset = s.targetOffset;
+        }
+        if (retract && s.offset < s.buriedOffset) {
+            s.offset += riseSpeed;
+            if (s.offset > s.buriedOffset) s.offset = s.buriedOffset;
+        }
+    });
+
+    requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+
+</body>
+</html>

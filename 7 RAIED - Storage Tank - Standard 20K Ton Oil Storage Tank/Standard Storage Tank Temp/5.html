@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+<body>
+    <!-- Logo section - top centre -->
+    <div style="text-align: center; padding: 20px 0 10px 0; background-color: #ffffff;">
+        <img src="refinery_anti_drone_logo.png" 
+             alt="Refinery Anti-drone Interception Environment Dome Logo" 
+             style="max-width: 300px; width: 90%; height: auto;">
+    </div>
+
+
+<title>Spaced Panel Structural Comparator</title>
+  <style>
+    :root{
+      --bg:#f5f1e8;
+      --ink:#1f2522;
+      --muted:#5d675f;
+      --line:#c9c1b4;
+      --accent:#1e6b5c;
+      --accent2:#b46a3c;
+      --panel:#fffdf8;
+    }
+    body{
+      margin:0;
+      font-family:"Inter",sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+    }
+    .wrap{
+      max-width:1100px;
+      margin:auto;
+      padding:24px;
+    }
+    h1,h2{
+      font-family:"Space Grotesk",sans-serif;
+      margin:0 0 12px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      gap:24px;
+    }
+    .box{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:20px;
+      box-shadow:0 10px 30px rgba(0,0,0,.05);
+    }
+    .inputs{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:14px;
+    }
+    label{
+      display:block;
+      font-size:14px;
+      color:var(--muted);
+      margin-bottom:6px;
+    }
+    input,select{
+      width:100%;
+      padding:12px 14px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      font:inherit;
+      background:white;
+      box-sizing:border-box;
+    }
+    button{
+      margin-top:16px;
+      padding:12px 18px;
+      border:none;
+      border-radius:999px;
+      background:var(--accent);
+      color:white;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .results{
+      display:grid;
+      gap:12px;
+      margin-top:16px;
+    }
+    .metric{
+      padding:14px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:#fff;
+    }
+    .metric strong{
+      display:block;
+      font-size:13px;
+      color:var(--muted);
+      margin-bottom:6px;
+    }
+    .val{
+      font-size:24px;
+      font-weight:800;
+    }
+    .sketch{
+      position:relative;
+      height:320px;
+      background:linear-gradient(180deg,#f8f4ec,#f1ebdf);
+      border:1px solid var(--line);
+      border-radius:18px;
+      overflow:hidden;
+    }
+    .plate{
+      position:absolute;
+      top:50px;
+      bottom:50px;
+      width:26px;
+      background:linear-gradient(180deg,#aeb7b2,#7e8a84);
+      border-radius:6px;
+    }
+    .plate.a{ left:120px; }
+    .plate.b{ left:320px; }
+    .arrow{
+      position:absolute;
+      left:40px;
+      top:140px;
+      width:60px;
+      height:8px;
+      background:var(--accent2);
+    }
+    .arrow:after{
+      content:"";
+      position:absolute;
+      right:-14px;
+      top:-6px;
+      border-left:14px solid var(--accent2);
+      border-top:10px solid transparent;
+      border-bottom:10px solid transparent;
+    }
+    .gapline{
+      position:absolute;
+      top:160px;
+      left:146px;
+      width:174px;
+      border-top:2px dashed #8a8f88;
+    }
+    .note{
+      font-size:13px;
+      color:var(--muted);
+      margin-top:10px;
+      line-height:1.5;
+    }
+    @media (max-width: 900px){
+      .grid{grid-template-columns:1fr;}
+      .inputs{grid-template-columns:1fr;}
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="wrap">
+    <h1>Spaced Panel Structural Comparator</h1>
+    <p class="note">Generic engineering tool for comparing two-panel configurations under a short pressure pulse. For preliminary screening only, not final design.</p>
+
+    <div class="grid">
+      <div class="box">
+        <h2>Inputs</h2>
+        <div class="inputs">
+          <div>
+            <label>Panel A thickness, t1 (mm)</label>
+            <input id="t1" type="number" value="8">
+          </div>
+          <div>
+            <label>Panel B thickness, t2 (mm)</label>
+            <input id="t2" type="number" value="8">
+          </div>
+          <div>
+            <label>Gap, g (mm)</label>
+            <input id="g" type="number" value="100">
+          </div>
+          <div>
+            <label>Short span, a (mm)</label>
+            <input id="a" type="number" value="1000">
+          </div>
+          <div>
+            <label>Pressure pulse, P (kPa)</label>
+            <input id="P" type="number" value="100">
+          </div>
+          <div>
+            <label>Pulse duration, τ (ms)</label>
+            <input id="tau" type="number" value="20">
+          </div>
+          <div>
+            <label>Material</label>
+            <select id="mat">
+              <option value="ss">Stainless steel</option>
+              <option value="hh">High-hardness steel</option>
+              <option value="ms">Mild steel</option>
+            </select>
+          </div>
+          <div>
+            <label>Poisson's ratio, ν</label>
+            <input id="nu" type="number" step="0.01" value="0.30">
+          </div>
+        </div>
+
+        <button onclick="calc()">Run comparison</button>
+
+        <div class="results">
+          <div class="metric">
+            <strong>Panel A rigidity, D1</strong>
+            <div class="val" id="D1">-</div>
+          </div>
+          <div class="metric">
+            <strong>Panel B rigidity, D2</strong>
+            <div class="val" id="D2">-</div>
+          </div>
+          <div class="metric">
+            <strong>Impulse, I</strong>
+            <div class="val" id="I">-</div>
+          </div>
+          <div class="metric">
+            <strong>Relative response index, Panel A</strong>
+            <div class="val" id="R1">-</div>
+          </div>
+          <div class="metric">
+            <strong>Relative response index, Panel B</strong>
+            <div class="val" id="R2">-</div>
+          </div>
+          <div class="metric">
+            <strong>Gap attenuation factor (heuristic)</strong>
+            <div class="val" id="Gf">-</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="box">
+        <h2>Sketch</h2>
+        <div class="sketch">
+          <div class="arrow"></div>
+          <div class="plate a" id="plateA"></div>
+          <div class="gapline" id="gapline"></div>
+          <div class="plate b" id="plateB"></div>
+        </div>
+        <div class="note" id="summary">
+          Enter values and run the comparison. The tool estimates plate rigidity and a relative response indicator for early concept screening.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function materialProps(key){
+      const db = {
+        ss: {E: 200e9, name:"Stainless steel"},
+        hh: {E: 210e9, name:"High-hardness steel"},
+        ms: {E: 205e9, name:"Mild steel"}
+      };
+      return db[key];
+    }
+
+    function calc(){
+      const t1 = parseFloat(document.getElementById('t1').value)/1000;
+      const t2 = parseFloat(document.getElementById('t2').value)/1000;
+      const g  = parseFloat(document.getElementById('g').value)/1000;
+      const a  = parseFloat(document.getElementById('a').value)/1000;
+      const P  = parseFloat(document.getElementById('P').value)*1000;
+      const tau= parseFloat(document.getElementById('tau').value)/1000;
+      const nu = parseFloat(document.getElementById('nu').value);
+      const mat= materialProps(document.getElementById('mat').value);
+
+      const D1 = mat.E*Math.pow(t1,3)/(12*(1-nu*nu));
+      const D2 = mat.E*Math.pow(t2,3)/(12*(1-nu*nu));
+      const I  = P*tau;
+
+      const R1 = (P*Math.pow(a,4))/D1;
+      const gapFactor = 1/(1+4*g); // simple heuristic for comparison only
+      const R2 = (P*gapFactor*Math.pow(a,4))/D2;
+
+      document.getElementById('D1').textContent = D1.toExponential(3) + ' N·m';
+      document.getElementById('D2').textContent = D2.toExponential(3) + ' N·m';
+      document.getElementById('I').textContent  = I.toFixed(1) + ' Pa·s';
+      document.getElementById('R1').textContent = R1.toExponential(3);
+      document.getElementById('R2').textContent = R2.toExponential(3);
+      document.getElementById('Gf').textContent = gapFactor.toFixed(3);
+
+      const pxGap = Math.max(60, Math.min(220, g*1000*1.7));
+      document.getElementById('plateA').style.left = '120px';
+      document.getElementById('plateB').style.left = (146 + pxGap) + 'px';
+      document.getElementById('gapline').style.width = pxGap + 'px';
+
+      document.getElementById('summary').textContent =
+        `${mat.name}: D1=${D1.toExponential(2)}, D2=${D2.toExponential(2)}. ` +
+        `Relative response of Panel B decreases as gap and stiffness increase. ` +
+        `Use this only for concept ranking, then verify in a proper FEA package.`;
+    }
+    calc();
+  </script>
+</body>
+</html>

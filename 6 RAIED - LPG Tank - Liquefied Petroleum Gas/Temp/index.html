@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>RAIED – Frame Coverage Dome</title>
+
+<style>
+    body {
+        background: #111;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        gap: 20px;
+        color: #eee;
+        font-family: Arial, sans-serif;
+    }
+
+    .tank-frame {
+        position: relative;
+        width: 450px;
+        height: 650px;
+        overflow: hidden;
+        background: #000;
+    }
+
+    .tank-img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+    }
+
+    /* Common shutter style – ~20mm → 10px thickness */
+    .shutter {
+        position: absolute;
+        background: #ff8c00; /* orange like the frame */
+        transform: translate(0, 0);
+        transition: transform 2.0s ease-in-out;
+        pointer-events: none;
+        z-index: 5;
+    }
+
+    /* TOP (center ~ 225,150) */
+    .shutter-top {
+        width: 180px;
+        height: 10px;
+        top: 145px;
+        left: 135px; /* 135 + 90 = 225 */
+        transform-origin: center center;
+    }
+
+    /* BOTTOM (center ~ 225,510) */
+    .shutter-bottom {
+        width: 180px;
+        height: 10px;
+        top: 505px;
+        left: 135px;
+        transform-origin: center center;
+    }
+
+    /* LEFT (center ~ 75,330) */
+    .shutter-left {
+        width: 10px;
+        height: 220px;
+        top: 220px;       /* 220 + 110 = 330 */
+        left: 70px;       /* 70 + 5 = 75 */
+        transform-origin: center center;
+    }
+
+    /* RIGHT (center ~ 375,330) */
+    .shutter-right {
+        width: 10px;
+        height: 220px;
+        top: 220px;
+        left: 370px;      /* 370 + 5 = 375 */
+        transform-origin: center center;
+    }
+
+    /* TOP-LEFT (center ~ 120,200) */
+    .shutter-tl {
+        width: 150px;
+        height: 10px;
+        top: 195px;       /* 195 + 5 = 200 */
+        left: 45px;       /* 45 + 75 = 120 */
+        transform-origin: left center;
+        transform: rotate(45deg);
+    }
+
+    /* TOP-RIGHT (center ~ 330,200) */
+    .shutter-tr {
+        width: 150px;
+        height: 10px;
+        top: 195px;
+        left: 255px;      /* 255 + 75 = 330 */
+        transform-origin: right center;
+        transform: rotate(-45deg);
+    }
+
+    /* BOTTOM-LEFT (center ~ 120,460) */
+    .shutter-bl {
+        width: 150px;
+        height: 10px;
+        top: 455px;       /* 455 + 5 = 460 */
+        left: 45px;       /* 45 + 75 = 120 */
+        transform-origin: left center;
+        transform: rotate(-45deg);
+    }
+
+    /* BOTTOM-RIGHT (center ~ 330,460) */
+    .shutter-br {
+        width: 150px;
+        height: 10px;
+        top: 455px;
+        left: 255px;      /* 255 + 75 = 330 */
+        transform-origin: right center;
+        transform: rotate(45deg);
+    }
+
+    /* DEPLOY – all move toward (225,330) */
+
+    .deploy .shutter-top {
+        /* (225,150) → (225,330) → (0, +180) */
+        transform: translate(0px, 180px);
+    }
+
+    .deploy .shutter-bottom {
+        /* (225,510) → (225,330) → (0, -180) */
+        transform: translate(0px, -180px);
+    }
+
+    .deploy .shutter-left {
+        /* (75,330) → (225,330) → (+150, 0) */
+        transform: translate(150px, 0px);
+    }
+
+    .deploy .shutter-right {
+        /* (375,330) → (225,330) → (-150, 0) */
+        transform: translate(-150px, 0px);
+    }
+
+    .deploy .shutter-tl {
+        /* (120,200) → (225,330) → (+105, +130) */
+        transform: rotate(45deg) translate(105px, 130px);
+    }
+
+    .deploy .shutter-tr {
+        /* (330,200) → (225,330) → (-105, +130) */
+        transform: rotate(-45deg) translate(-105px, 130px);
+    }
+
+    .deploy .shutter-bl {
+        /* (120,460) → (225,330) → (+105, -130) */
+        transform: rotate(-45deg) translate(105px, -130px);
+    }
+
+    .deploy .shutter-br {
+        /* (330,460) → (225,330) → (-105, -130) */
+        transform: rotate(45deg) translate(-105px, -130px);
+    }
+
+    button {
+        padding: 10px 20px;
+        font-size: 18px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        margin: 0 5px;
+    }
+
+    .deploy-btn  { background: #28a745; color: white; }
+    .retract-btn { background: #dc3545; color: white; }
+
+</style>
+</head>
+
+<body>
+
+<div class="tank-frame" id="frame">
+    <!-- Your tank render -->
+    <img src="Normal.jpg" class="tank-img">
+
+    <!-- 8 shutters around the frame -->
+    <div class="shutter shutter-top"></div>
+    <div class="shutter shutter-bottom"></div>
+    <div class="shutter shutter-left"></div>
+    <div class="shutter shutter-right"></div>
+    <div class="shutter shutter-tl"></div>
+    <div class="shutter shutter-tr"></div>
+    <div class="shutter shutter-bl"></div>
+    <div class="shutter shutter-br"></div>
+</div>
+
+<div>
+    <button class="deploy-btn" onclick="deploy()">Deploy Shutters</button>
+    <button class="retract-btn" onclick="retract()">Retract Shutters</button>
+</div>
+
+<script>
+function deploy() {
+    document.getElementById("frame").classList.add("deploy");
+}
+
+function retract() {
+    document.getElementById("frame").classList.remove("deploy");
+}
+</script>
+
+</body>
+</html>

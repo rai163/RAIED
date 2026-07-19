@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Energy Flow – Labels Outside (North) of Steel Sheets</title>
+  <style>
+    * { box-sizing: border-box; user-select: none; }
+    body {
+      margin: 0; padding: 24px;
+      font-family: 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(145deg, #f4f8fd 0%, #eaf0f8 100%);
+      color: #1a2c3e;
+    }
+    .dashboard { max-width: 1400px; margin: 0 auto; }
+    h1 { font-size: 1.8rem; margin-bottom: 1.5rem; border-left: 5px solid #1f5fb8; padding-left: 20px; }
+    .grid-2col { display: grid; grid-template-columns: 360px 1fr; gap: 24px; align-items: start; }
+    .control-card {
+      background: #ffffffdd; backdrop-filter: blur(8px); border-radius: 28px;
+      padding: 20px; box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+      border: 1px solid rgba(255,255,255,0.6);
+    }
+    .section { border-bottom: 1px solid #dfe7ef; padding-bottom: 18px; margin-bottom: 18px; }
+    .section h3 { margin: 0 0 14px; font-size: 1.1rem; color: #1f5fb8; }
+    .input-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
+    .input-group { flex: 1; min-width: 100px; }
+    label { display: block; font-weight: 600; font-size: 0.8rem; margin-bottom: 6px; color: #2c4b6e; }
+    input, select { width: 100%; padding: 8px 12px; border: 1px solid #cad5e2; border-radius: 20px; background: white; font-size: 0.9rem; }
+    button {
+      width: 100%; background: linear-gradient(135deg, #1f5fb8, #153e75); border: none; padding: 12px;
+      border-radius: 40px; font-weight: bold; font-size: 1rem; color: white; cursor: pointer;
+      margin-top: 12px; transition: 0.2s; box-shadow: 0 6px 14px rgba(31,95,184,0.3);
+    }
+    button:hover { transform: translateY(-2px); background: linear-gradient(135deg, #2a6fc9, #1a4685); }
+    .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 28px; }
+    .stat-box {
+      background: white; border-radius: 24px; padding: 16px; text-align: center;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.05); border: 1px solid #e9f0f5;
+    }
+    .stat-box small { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: #6b8aaa; display: block; margin-bottom: 8px; }
+    .stat-box .value { font-size: 1.6rem; font-weight: 800; color: #1f5fb8; }
+    .energy-bar {
+      background: #ffffffdd; border-radius: 28px; padding: 20px; margin-bottom: 24px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.05); border: 1px solid #eef3fc;
+    }
+    .bar-title { font-weight: 600; margin-bottom: 14px; color: #1a384f; }
+    .protection-row {
+      display: flex; align-items: flex-start; flex-wrap: nowrap; overflow-x: auto;
+      padding: 8px 4px; gap: 4px; min-height: 130px;
+    }
+    /* Wrapper for each steel plate: reserves space for label above */
+    .steel-wrapper {
+      position: relative;
+      margin-top: 24px;  /* space for the floating label */
+      flex-shrink: 0;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    /* Label that sits outside (north) of the image */
+    .plate-label-outside {
+      position: absolute;
+      top: -22px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-weight: 800;
+      font-size: 0.7rem;
+      background: rgba(0,0,0,0.65);
+      color: white;
+      padding: 2px 6px;
+      border-radius: 16px;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 5;
+      backdrop-filter: blur(2px);
+    }
+    /* The actual steel plate image */
+    .steel-plate {
+      background-image: url('SS Sheet Shutter.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      border-radius: 12px;
+      text-align: center;
+      padding: 8px 6px;
+      min-width: 70px;
+      box-shadow: 2px 4px 8px rgba(0,0,0,0.2);
+      border: 1px solid #a0abb8;
+      cursor: grab;
+      transition: 0.05s linear;
+      color: white;
+      text-shadow: 0 1px 2px black;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      height: 85px;
+      width: 100%;
+    }
+    .steel-plate:active { cursor: grabbing; }
+    .steel-plate.dragging { opacity: 0.5; cursor: grabbing; }
+    .steel-plate .plate-detail {
+      font-size: 0.65rem;
+      font-weight: bold;
+      background: rgba(0,0,0,0.5);
+      padding: 2px 4px;
+      border-radius: 8px;
+      margin: 0 auto 2px;
+      width: fit-content;
+    }
+    .steel-plate .absorb-energy {
+      font-size: 0.65rem;
+      background: rgba(0,0,0,0.7);
+      padding: 2px 4px;
+      border-radius: 12px;
+      display: inline-block;
+      margin: 2px auto;
+      width: fit-content;
+    }
+    /* Arrow gap – unchanged */
+    .arrow-space {
+      background: linear-gradient(135deg, #cbd5e1, #9aaebf);
+      border-radius: 20px;
+      padding: 4px 8px;
+      min-width: 60px;
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #1e2f42;
+      cursor: default;
+      position: relative;
+      flex-shrink: 0;
+      transition: width 0.05s linear;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 85px;
+      margin-top: 24px; /* align with steel plates */
+    }
+    .arrow-space .arrow-symbol { font-size: 1.5rem; font-weight: 600; }
+    .arrow-space .gap-value { font-size: 0.7rem; display: block; font-weight: normal; }
+    .resize-handle {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 12px;
+      height: 100%;
+      background: rgba(0,0,0,0.2);
+      cursor: ew-resize;
+      border-radius: 0 20px 20px 0;
+      z-index: 2;
+    }
+    .resize-handle:hover { background: rgba(0,0,0,0.4); }
+    .legend {
+      display: flex;
+      gap: 24px;
+      padding: 16px 0 8px;
+      border-top: 1px solid #dfe7ef;
+      font-size: 0.75rem;
+    }
+    .legend span {
+      display: inline-block;
+      width: 20px;
+      height: 14px;
+      border-radius: 6px;
+      margin-right: 6px;
+      vertical-align: middle;
+      background: #cbd5e1;
+      border: 1px solid #9aaebf;
+    }
+    @media (max-width: 900px) {
+      .grid-2col { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: repeat(2,1fr); }
+    }
+  </style>
+</head>
+<body>
+<div class="dashboard">
+  <h1>⬆️ LABELS OUTSIDE (NORTH) — STEEL SHEETS CLEAR</h1>
+  <div class="grid-2col">
+    <div class="control-card">
+      <div class="section">
+        <h3>⚡ Impact Input</h3>
+        <div class="input-row">
+          <div class="input-group"><label>Mass (kg)</label><input type="number" id="mass" value="20" step="1" min="1"></div>
+          <div class="input-group"><label>Velocity (m/s)</label><input type="number" id="velocity" value="250" step="1" min="1"></div>
+        </div>
+      </div>
+      <div class="section">
+        <h3>🛡️ SS Shutters (0–5)</h3>
+        <div class="input-group"><label>Number</label><select id="shutterCount"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></div>
+        <div class="input-row">
+          <div class="input-group"><label>Thickness (mm)</label><input type="number" id="shutterThickness" value="8" min="4" max="30" step="1"></div>
+          <div class="input-group"><label>Space between (mm)</label><input type="number" id="shutterGap" value="500" step="50" min="500" max="2500"></div>
+        </div>
+      </div>
+      <div class="section">
+        <h3>📐 Composite layers</h3>
+        <div class="input-group"><label>Internal air gap (m)</label><input type="number" id="airGap" value="1" step="0.1" min="0.5" max="2.5"></div>
+        <div class="input-row">
+          <div class="input-group"><label>Space L1‑L2 (m)</label><input type="number" id="gap12" value="2" step="0.1" min="2" max="4"></div>
+          <div class="input-group"><label>Space L2‑L3 (m)</label><input type="number" id="gap23" value="2" step="0.1" min="2" max="4"></div>
+        </div>
+      </div>
+      <div class="section">
+        <h3>🧠 Absorption coefficients</h3>
+        <div class="input-row">
+          <div class="input-group"><label>α shutter</label><input type="number" id="alphaShutter" value="0.08" step="0.01" min="0" max="1"></div>
+          <div class="input-group"><label>α layer 1</label><input type="number" id="alpha1" value="0.90" step="0.01"></div>
+          <div class="input-group"><label>α layer 2</label><input type="number" id="alpha2" value="0.30" step="0.01"></div>
+          <div class="input-group"><label>α layer 3</label><input type="number" id="alpha3" value="0.10" step="0.01"></div>
+        </div>
+      </div>
+      <button id="resetLayoutBtn">⟳ RESET LAYOUT</button>
+    </div>
+
+    <div>
+      <div class="stats">
+        <div class="stat-box"><small>Initial energy</small><div class="value" id="initialEnergy">– MJ</div></div>
+        <div class="stat-box"><small>After shutters</small><div class="value" id="afterShutters">– MJ</div></div>
+        <div class="stat-box"><small>After layer 3</small><div class="value" id="afterLayer3">– MJ</div></div>
+        <div class="stat-box"><small>Total absorbed</small><div class="value" id="totalAbsorbed">– MJ</div></div>
+      </div>
+
+      <div class="energy-bar">
+        <div class="bar-title">🎯 Labels are now ABOVE each steel sheet (north side)</div>
+        <div id="protectionContainer" class="protection-row"></div>
+        <div class="legend">
+          <div><span style="background:url('SS Sheet Shutter.png') center/cover;"></span> SS Plate (image clear)</div>
+          <div><span style="background:#94a3b8;"></span> Arrow gap (resize right edge)</div>
+          <div><span style="background:#1f5fb8;"></span> Hover → absorbed MJ</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function clamp(v, min, max) { return Math.min(max, Math.max(min, v)); }
+  function formatMJ(v) { return v.toFixed(6) + " MJ"; }
+
+  const massInput = document.getElementById('mass');
+  const velInput = document.getElementById('velocity');
+  const shutterCountSelect = document.getElementById('shutterCount');
+  const shutterThickInput = document.getElementById('shutterThickness');
+  const shutterGapInput = document.getElementById('shutterGap');
+  const airGapInput = document.getElementById('airGap');
+  const gap12Input = document.getElementById('gap12');
+  const gap23Input = document.getElementById('gap23');
+  const alphaSInput = document.getElementById('alphaShutter');
+  const alpha1Input = document.getElementById('alpha1');
+  const alpha2Input = document.getElementById('alpha2');
+  const alpha3Input = document.getElementById('alpha3');
+  const container = document.getElementById('protectionContainer');
+  const resetBtn = document.getElementById('resetLayoutBtn');
+
+  function simulateShutter(energyIn, thickMm, baseAlpha, gapM) {
+    const thickFactor = thickMm / 8;
+    const gapFactor = 1 + gapM / 1;
+    let alpha = clamp(baseAlpha * thickFactor * gapFactor, 0, 0.98);
+    let absorbed = energyIn * alpha;
+    let transmitted = energyIn - absorbed;
+    return { absorbed, transmitted };
+  }
+
+  function simulateCompositeLayer(energyIn, baseAlpha, airGapM) {
+    let alpha = clamp(baseAlpha * (airGapM / 1), 0, 1);
+    let remain = energyIn;
+    let absorbed = [0,0,0];
+    for (let i = 0; i < 3; i++) {
+      let a = remain * alpha;
+      absorbed[i] = a;
+      remain -= a;
+    }
+    return {
+      subAbsorbed: absorbed,
+      totalAbsorbed: absorbed.reduce((s,v)=>s+v,0),
+      transmitted: remain
+    };
+  }
+
+  function sendParamsToParent() {
+    let params = {
+      type: 'updateParams',
+      mass: parseFloat(massInput.value),
+      velocity: parseFloat(velInput.value),
+      shutterCount: parseInt(shutterCountSelect.value),
+      shutterThickness: parseFloat(shutterThickInput.value),
+      shutterGap: parseFloat(shutterGapInput.value),
+      airGap: parseFloat(airGapInput.value),
+      gap12: parseFloat(gap12Input.value),
+      gap23: parseFloat(gap23Input.value),
+      alphaShutter: parseFloat(alphaSInput.value),
+      alpha1: parseFloat(alpha1Input.value),
+      alpha2: parseFloat(alpha2Input.value),
+      alpha3: parseFloat(alpha3Input.value)
+    };
+    window.parent.postMessage(params, '*');
+  }
+
+  let currentElements = [];
+  let dragSrcElement = null;
+
+  function buildSequence() {
+    let mass = parseFloat(massInput.value);
+    let vel = parseFloat(velInput.value);
+    let shutterCnt = parseInt(shutterCountSelect.value);
+    let thick = parseFloat(shutterThickInput.value);
+    let shutGapMm = parseFloat(shutterGapInput.value);
+    let shutGapM = shutGapMm / 1000;
+    let airGap = parseFloat(airGapInput.value);
+    let gap12 = parseFloat(gap12Input.value);
+    let gap23 = parseFloat(gap23Input.value);
+    let alphaS = parseFloat(alphaSInput.value);
+    let alpha1 = parseFloat(alpha1Input.value);
+    let alpha2 = parseFloat(alpha2Input.value);
+    let alpha3 = parseFloat(alpha3Input.value);
+
+    let initEnergy = 0.5 * mass * vel * vel / 1e6;
+    let currentEnergy = initEnergy;
+    let totalAbsorbed = 0;
+    let elements = [];
+
+    function addSteel(labelText, detailText, absorbedMJ, customId) {
+      elements.push({
+        type: 'steel',
+        id: customId,
+        label: labelText,
+        detail: detailText,
+        absorbed: absorbedMJ,
+        widthPx: Math.max(70, 40 + thick * 2)
+      });
+    }
+
+    function addGap(title, value, unit, minVal, maxVal, updateCallback, widthScale) {
+      elements.push({
+        type: 'gap',
+        title: title,
+        value: value,
+        unit: unit,
+        min: minVal,
+        max: maxVal,
+        update: updateCallback,
+        widthPx: 40 + value * widthScale
+      });
+    }
+
+    let afterShutters = initEnergy;
+    for (let i = 1; i <= shutterCnt; i++) {
+      let res = simulateShutter(currentEnergy, thick, alphaS, shutGapM);
+      totalAbsorbed += res.absorbed;
+      addSteel(`SS ${thick}mm`, `Shutter ${i}`, res.absorbed, `shutter_${i}`);
+      currentEnergy = res.transmitted;
+      afterShutters = currentEnergy;
+      if (i < shutterCnt) addGap(`Between shutters`, shutGapMm, 'mm', 500, 2500, (nv) => { shutterGapInput.value = nv; shutterGapInput.dispatchEvent(new Event('change')); }, 0.2);
+    }
+    if (shutterCnt > 0) addGap(`Gap to Layer 1`, 500, 'mm', 500, 500, null, 0.2);
+
+    let l1 = simulateCompositeLayer(currentEnergy, alpha1, airGap);
+    totalAbsorbed += l1.totalAbsorbed;
+    addSteel(`8mm SS`, `Layer 1 (1)`, l1.subAbsorbed[0], `l1_steel1`);
+    addGap(`Internal air gap`, airGap, 'm', 0.5, 2.5, (nv) => { airGapInput.value = nv; airGapInput.dispatchEvent(new Event('change')); }, 120);
+    addSteel(`8mm SS`, `Layer 1 (2)`, l1.subAbsorbed[2], `l1_steel2`);
+    currentEnergy = l1.transmitted;
+    addGap(`Space L1-L2`, gap12, 'm', 2, 4, (nv) => { gap12Input.value = nv; gap12Input.dispatchEvent(new Event('change')); }, 80);
+
+    let l2 = simulateCompositeLayer(currentEnergy, alpha2, airGap);
+    totalAbsorbed += l2.totalAbsorbed;
+    addSteel(`8mm SS`, `Layer 2 (1)`, l2.subAbsorbed[0], `l2_steel1`);
+    addGap(`Internal air gap`, airGap, 'm', 0.5, 2.5, (nv) => { airGapInput.value = nv; airGapInput.dispatchEvent(new Event('change')); }, 120);
+    addSteel(`8mm SS`, `Layer 2 (2)`, l2.subAbsorbed[2], `l2_steel2`);
+    currentEnergy = l2.transmitted;
+    addGap(`Space L2-L3`, gap23, 'm', 2, 4, (nv) => { gap23Input.value = nv; gap23Input.dispatchEvent(new Event('change')); }, 80);
+
+    let l3 = simulateCompositeLayer(currentEnergy, alpha3, airGap);
+    totalAbsorbed += l3.totalAbsorbed;
+    addSteel(`8mm SS`, `Layer 3 (1)`, l3.subAbsorbed[0], `l3_steel1`);
+    addGap(`Internal air gap`, airGap, 'm', 0.5, 2.5, (nv) => { airGapInput.value = nv; airGapInput.dispatchEvent(new Event('change')); }, 120);
+    addSteel(`8mm SS`, `Layer 3 (2)`, l3.subAbsorbed[2], `l3_steel2`);
+
+    let afterLayer3 = l3.transmitted;
+
+    document.getElementById('initialEnergy').innerHTML = formatMJ(initEnergy);
+    document.getElementById('afterShutters').innerHTML = formatMJ(afterShutters);
+    document.getElementById('afterLayer3').innerHTML = formatMJ(afterLayer3);
+    document.getElementById('totalAbsorbed').innerHTML = formatMJ(totalAbsorbed);
+    return { elements };
+  }
+
+  function makeSteelPlateElement(el) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'steel-wrapper';
+    wrapper.setAttribute('data-type', 'steel');
+    wrapper.setAttribute('data-id', el.id);
+    wrapper.style.width = el.widthPx + 'px';
+    // external label (north)
+    const labelDiv = document.createElement('div');
+    labelDiv.className = 'plate-label-outside';
+    labelDiv.textContent = `${el.label} – ${el.detail}`;
+    wrapper.appendChild(labelDiv);
+
+    const plate = document.createElement('div');
+    plate.className = 'steel-plate';
+    plate.draggable = true;
+    plate.innerHTML = `
+      <div class="plate-detail">⚡ ${formatMJ(el.absorbed)}</div>
+      <div class="absorb-energy">Absorbed</div>
+    `;
+    plate.title = `Absorbed energy: ${formatMJ(el.absorbed)}`;
+    plate.addEventListener('dragstart', handleDragStart);
+    plate.addEventListener('dragend', handleDragEnd);
+    plate.addEventListener('dragover', handleDragOver);
+    plate.addEventListener('drop', handleDrop);
+    wrapper.appendChild(plate);
+    return wrapper;
+  }
+
+  function makeGapElement(el) {
+    const gapDiv = document.createElement('div');
+    gapDiv.className = 'arrow-space';
+    gapDiv.setAttribute('data-type', 'gap');
+    gapDiv.style.width = el.widthPx + 'px';
+    let valueStr = el.value + (el.unit === 'mm' ? ' mm' : ' m');
+    gapDiv.innerHTML = `
+      <div class="arrow-symbol">→ → →</div>
+      <div class="gap-value">${valueStr}</div>
+      <div class="resize-handle"></div>
+    `;
+    gapDiv.title = el.title + ` (drag right edge)`;
+    const handle = gapDiv.querySelector('.resize-handle');
+    let resizeActive = false, startX = 0, startWidth = 0, startVal = el.value;
+    handle.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      resizeActive = true;
+      startX = e.clientX;
+      startWidth = gapDiv.offsetWidth;
+      startVal = el.value;
+      document.body.style.cursor = 'ew-resize';
+      e.preventDefault();
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (!resizeActive) return;
+      let dx = e.clientX - startX;
+      let newWidth = Math.max(40, startWidth + dx);
+      let scale = (el.unit === 'mm') ? 0.2 : (el.title.includes('air gap') ? 120 : 80);
+      let newVal = startVal + (newWidth - startWidth) / scale;
+      newVal = clamp(newVal, el.min, el.max);
+      if (el.update) el.update(newVal);
+      gapDiv.style.width = (40 + newVal * scale) + 'px';
+      gapDiv.querySelector('.gap-value').innerHTML = newVal.toFixed(2) + (el.unit === 'mm' ? ' mm' : ' m');
+      e.preventDefault();
+    });
+    window.addEventListener('mouseup', () => { if (resizeActive) { resizeActive = false; document.body.style.cursor = ''; } });
+    return gapDiv;
+  }
+
+  function handleDragStart(e) {
+    const target = e.target.closest('.steel-wrapper');
+    if (!target) return;
+    dragSrcElement = target;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', target.getAttribute('data-id'));
+    target.classList.add('dragging');
+  }
+  function handleDragEnd(e) {
+    const target = e.target.closest('.steel-wrapper');
+    if (target) target.classList.remove('dragging');
+    dragSrcElement = null;
+  }
+  function handleDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+  function handleDrop(e) {
+    e.preventDefault();
+    const targetWrapper = e.target.closest('.steel-wrapper');
+    if (!targetWrapper || !dragSrcElement || dragSrcElement === targetWrapper) return;
+    const srcId = dragSrcElement.getAttribute('data-id');
+    const tgtId = targetWrapper.getAttribute('data-id');
+    const srcIdx = currentElements.findIndex(el => el.id === srcId);
+    const tgtIdx = currentElements.findIndex(el => el.id === tgtId);
+    if (srcIdx === -1 || tgtIdx === -1) return;
+    [currentElements[srcIdx], currentElements[tgtIdx]] = [currentElements[tgtIdx], currentElements[srcIdx]];
+    fullRender();
+  }
+
+  function fullRender() {
+    container.innerHTML = '';
+    for (let el of currentElements) {
+      if (el.type === 'steel') container.appendChild(makeSteelPlateElement(el));
+      else container.appendChild(makeGapElement(el));
+    }
+  }
+
+  function refresh() {
+    const seq = buildSequence();
+    currentElements = seq.elements;
+    fullRender();
+    sendParamsToParent();
+  }
+
+  const allInputs = [massInput, velInput, shutterCountSelect, shutterThickInput, shutterGapInput, airGapInput, gap12Input, gap23Input, alphaSInput, alpha1Input, alpha2Input, alpha3Input];
+  allInputs.forEach(inp => inp.addEventListener('change', refresh));
+  resetBtn.addEventListener('click', () => {
+    massInput.value = 20; velInput.value = 250; shutterCountSelect.value = '0';
+    shutterThickInput.value = 8; shutterGapInput.value = 500; airGapInput.value = 1;
+    gap12Input.value = 2; gap23Input.value = 2; alphaSInput.value = 0.08;
+    alpha1Input.value = 0.90; alpha2Input.value = 0.30; alpha3Input.value = 0.10;
+    refresh();
+  });
+  refresh();
+</script>
+</body>
+</html>

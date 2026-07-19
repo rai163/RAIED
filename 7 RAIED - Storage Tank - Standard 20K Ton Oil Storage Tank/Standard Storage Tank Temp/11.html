@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Impact Energy Flow Through Protection Layers</title>
+<style>
+  :root{
+    --bg:#eef3f7;
+    --panel:#ffffff;
+    --ink:#17324a;
+    --muted:#667788;
+    --line:#d7e0e8;
+    --blue:#1f5fb8;
+    --red:#d34b43;
+    --green:#1f8b5d;
+    --shadow:0 10px 30px rgba(10,30,50,.08);
+    --radius:16px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:Arial, sans-serif;
+    background:linear-gradient(180deg,#f4f7fa 0%, #e9f0f5 100%);
+    color:#1f2933;
+    padding:24px;
+  }
+  h1{
+    margin:0 0 18px;
+    color:var(--ink);
+    font-size:clamp(1.6rem,2.4vw,2.4rem);
+  }
+  h2{
+    margin:0 0 10px;
+    color:var(--ink);
+    font-size:1.1rem;
+  }
+  h3{
+    margin:0 0 12px;
+    color:#294a72;
+    font-size:1rem;
+  }
+  .layout{
+    display:grid;
+    grid-template-columns:360px 1fr;
+    gap:20px;
+    align-items:start;
+  }
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:18px;
+  }
+  .controls{
+    position:sticky;
+    top:16px;
+  }
+  .section{
+    padding-bottom:14px;
+    margin-bottom:14px;
+    border-bottom:1px solid var(--line);
+  }
+  .section:last-child{
+    border-bottom:none;
+    margin-bottom:0;
+    padding-bottom:0;
+  }
+  .input-group{
+    margin-bottom:12px;
+  }
+  label{
+    display:block;
+    font-weight:700;
+    margin-bottom:6px;
+    color:#30485f;
+    font-size:.92rem;
+  }
+  input[type=number], select{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid #c8d3dd;
+    border-radius:10px;
+    background:#fff;
+    font:inherit;
+  }
+  .inline-2{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+  .inline-3{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:10px;
+  }
+  button{
+    width:100%;
+    margin-top:8px;
+    padding:12px 16px;
+    font-size:1rem;
+    font-weight:700;
+    background:linear-gradient(135deg,var(--blue),#164a8a);
+    color:white;
+    border:none;
+    border-radius:12px;
+    cursor:pointer;
+    transition:transform .15s ease, box-shadow .2s ease;
+    box-shadow:0 8px 18px rgba(31,95,184,.22);
+  }
+  button:hover{
+    transform:translateY(-1px);
+  }
+  .summary{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+    margin-bottom:16px;
+  }
+  .stat{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:14px;
+    box-shadow:var(--shadow);
+  }
+  .stat small{
+    display:block;
+    color:var(--muted);
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    margin-bottom:8px;
+    font-size:.72rem;
+  }
+  .stat strong{
+    font-size:1.2rem;
+    color:var(--ink);
+  }
+  .flow{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:18px;
+    flex-wrap:wrap;
+  }
+  .layer{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:18px;
+    box-shadow:var(--shadow);
+    padding:18px;
+    width:min(310px,100%);
+    position:relative;
+    overflow:hidden;
+  }
+  .layer.shutter{
+    border-color:#c8d8e8;
+    background:linear-gradient(180deg,#ffffff 0%,#f6fbff 100%);
+  }
+  .layer.composite{
+    border-color:#d6dde6;
+  }
+  .layer .meta{
+    font-size:.84rem;
+    color:var(--muted);
+    margin:-4px 0 10px;
+  }
+  .sub-layers{
+    margin-top:12px;
+    text-align:left;
+  }
+  .sub-layer{
+    border:1px solid #d9e2ea;
+    border-radius:12px;
+    padding:10px 12px;
+    margin-bottom:8px;
+    background:#fbfdff;
+  }
+  .sub-layer h4{
+    margin:0 0 6px 0;
+    font-size:.95rem;
+    color:#1f5fb8;
+  }
+  .sub-layer div{
+    font-size:.88rem;
+    margin-bottom:4px;
+  }
+  .energy-absorb{
+    color:var(--red);
+    font-weight:700;
+  }
+  .energy-transmit{
+    color:var(--blue);
+    font-weight:700;
+  }
+  .totals{
+    margin-top:10px;
+    padding-top:10px;
+    border-top:1px dashed #d5dde5;
+    line-height:1.7;
+  }
+  .energy-bar{
+    position:absolute;
+    left:0;
+    bottom:0;
+    height:7px;
+    width:100%;
+    background:linear-gradient(90deg,var(--red) 0%, var(--red) 0%, transparent 0%);
+    transition:background-size .5s ease;
+  }
+  .arrow{
+    align-self:center;
+    font-size:2.5rem;
+    color:#7b8a99;
+    user-select:none;
+    animation:pulse 2s infinite;
+  }
+  @keyframes pulse{
+    0%,100%{opacity:.55}
+    50%{opacity:1}
+  }
+  .note{
+    margin-top:12px;
+    color:var(--muted);
+    font-size:.9rem;
+    line-height:1.5;
+  }
+  .list{
+    margin:8px 0 0;
+    padding-left:18px;
+    color:var(--muted);
+    font-size:.9rem;
+  }
+  @media (max-width: 1100px){
+    .layout{grid-template-columns:1fr}
+    .controls{position:static}
+  }
+  @media (max-width: 760px){
+    .summary{grid-template-columns:1fr 1fr}
+    .inline-3,.inline-2{grid-template-columns:1fr}
+    .flow{flex-direction:column}
+    .arrow{transform:rotate(90deg)}
+  }
+</style>
+</head>
+<body>
+  <h1>Impact Energy Flow Through Protection Layers</h1>
+
+  <div class="layout">
+    <aside class="panel controls">
+      <div class="section">
+        <h2>Impact Input</h2>
+        <div class="inline-2">
+          <div class="input-group">
+            <label for="mass">Mass (kg)</label>
+            <input type="number" id="mass" value="20" min="1" max="100" step="1" />
+          </div>
+          <div class="input-group">
+            <label for="velocity">Velocity (m/s)</label>
+            <input type="number" id="velocity" value="250" min="1" max="1000" step="1" />
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Optional SS Shutters Before Layers</h2>
+        <div class="input-group">
+          <label for="shutterCount">Number of single SS shutters (0 to 5)</label>
+          <select id="shutterCount">
+            <option value="0" selected>0</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label for="shutterThickness">Shutter thickness (mm)</label>
+          <input type="number" id="shutterThickness" value="8" min="4" max="30" step="1" />
+        </div>
+        <div class="input-group">
+          <label for="shutterGap">Space between single shutters (mm)</label>
+          <input type="number" id="shutterGap" value="500" min="500" max="2500" step="50" />
+        </div>
+        <div class="note">
+          These optional shutters are placed in front of Layer 1, Layer 2, and Layer 3 protection system.
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Composite Layer Geometry</h2>
+        <div class="input-group">
+          <label for="airGap">Internal air gap in each layer (m)</label>
+          <input type="number" id="airGap" value="1" min="0.5" max="2.5" step="0.1" />
+        </div>
+        <div class="inline-2">
+          <div class="input-group">
+            <label for="gap12">Space between Layer 1 and 2 (m)</label>
+            <input type="number" id="gap12" value="2" min="2" max="4" step="0.1" />
+          </div>
+          <div class="input-group">
+            <label for="gap23">Space between Layer 2 and 3 (m)</label>
+            <input type="number" id="gap23" value="2" min="2" max="4" step="0.1" />
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Absorption Coefficients</h2>
+        <div class="input-group">
+          <label for="alphaShutter">Single SS shutter base absorption</label>
+          <input type="number" id="alphaShutter" value="0.08" min="0" max="1" step="0.01" />
+        </div>
+        <div class="inline-3">
+          <div class="input-group">
+            <label for="alpha1">Layer 1 base absorption</label>
+            <input type="number" id="alpha1" value="0.90" min="0" max="1" step="0.01" />
+          </div>
+          <div class="input-group">
+            <label for="alpha2">Layer 2 base absorption</label>
+            <input type="number" id="alpha2" value="0.30" min="0" max="1" step="0.01" />
+          </div>
+          <div class="input-group">
+            <label for="alpha3">Layer 3 base absorption</label>
+            <input type="number" id="alpha3" value="0.10" min="0" max="1" step="0.01" />
+          </div>
+        </div>
+        <div class="note">
+          Current model is simplified. Thickness and gap values scale absorption behavior for visualization.
+        </div>
+      </div>
+
+      <button id="runBtn">Run Simulation</button>
+    </aside>
+
+    <main>
+      <section class="summary">
+        <div class="stat">
+          <small>Initial Energy</small>
+          <strong id="initialEnergy">-</strong>
+        </div>
+        <div class="stat">
+          <small>After Shutters</small>
+          <strong id="afterShutters">-</strong>
+        </div>
+        <div class="stat">
+          <small>After Layer 3</small>
+          <strong id="afterLayer3">-</strong>
+        </div>
+        <div class="stat">
+          <small>Total Absorbed</small>
+          <strong id="totalAbsorbed">-</strong>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Energy Flow</h2>
+        <div class="note">
+          Protection sequence: optional single SS shutters → Layer 1 (8mm SS + air gap + 8mm SS) → space → Layer 2 → space → Layer 3.
+        </div>
+        <div class="flow" id="flowContainer"></div>
+      </section>
+
+      <section class="panel" style="margin-top:16px;">
+        <h2>Model Notes</h2>
+        <ul class="list">
+          <li>Each composite layer is modeled as 3 internal stages: first 8 mm SS sheet, air gap, second 8 mm SS sheet.</li>
+          <li>Optional shutters are modeled as single SS barriers placed ahead of Layer 1.</li>
+          <li>Shutter thickness from 4 mm to 30 mm scales shutter absorption.</li>
+          <li>Space between shutters (500 mm to 2500 mm) scales absorption for shutters.</li>
+          <li>Values are displayed in MJ with 6 decimal places to show small transmissions clearly.</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+
+<script>
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function fmtMJ(value) {
+  return `${value.toFixed(6)} MJ`;
+}
+
+function createArrow() {
+  const arrow = document.createElement('div');
+  arrow.className = 'arrow';
+  arrow.textContent = '→';
+  return arrow;
+}
+
+function createLayerCard(title, meta, subBlocks, totalAbsorbed, totalTransmitted, initialEnergy, extraClass = '') {
+  const card = document.createElement('div');
+  card.className = `layer ${extraClass}`.trim();
+
+  const h3 = document.createElement('h3');
+  h3.textContent = title;
+  card.appendChild(h3);
+
+  const metaDiv = document.createElement('div');
+  metaDiv.className = 'meta';
+  metaDiv.textContent = meta;
+  card.appendChild(metaDiv);
+
+  const subWrap = document.createElement('div');
+  subWrap.className = 'sub-layers';
+
+  subBlocks.forEach(block => {
+    const sub = document.createElement('div');
+    sub.className = 'sub-layer';
+    sub.innerHTML = `
+      <h4>${block.name}</h4>
+      <div>Absorbed (A): <span class="energy-absorb">${block.absorbed.toFixed(6)}</span> MJ</div>
+      <div>Transmitted (T): <span class="energy-transmit">${block.transmitted.toFixed(6)}</span> MJ</div>
+    `;
+    subWrap.appendChild(sub);
+  });
+
+  card.appendChild(subWrap);
+
+  const totals = document.createElement('div');
+  totals.className = 'totals';
+  const pct = initialEnergy > 0 ? (totalAbsorbed / initialEnergy) * 100 : 0;
+  totals.innerHTML = `
+    <div>Absorbed Total: <span class="energy-absorb">${totalAbsorbed.toFixed(6)}</span> MJ</div>
+    <div>Transmitted Total: <span class="energy-transmit">${totalTransmitted.toFixed(6)}</span> MJ</div>
+    <div style="margin-top:6px; font-size:0.85rem; color:#667788;">Absorption %: ${pct.toFixed(2)}%</div>
+  `;
+  card.appendChild(totals);
+
+  const bar = document.createElement('div');
+  bar.className = 'energy-bar';
+  bar.style.backgroundSize = `${pct}% 100%`;
+  card.appendChild(bar);
+
+  return card;
+}
+
+function simulateSingleShutter(inputEnergy, thicknessMm, baseAlpha, shutterGapM) {
+  const thicknessFactor = thicknessMm / 8; // 8 mm as reference
+  // Gap factor scales absorption linearly, normalized by 1m base
+  const gapFactor = 1 + shutterGapM / 1;
+  const alpha = clamp(baseAlpha * thicknessFactor * gapFactor, 0, 0.98);
+  const absorbed = inputEnergy * alpha;
+  const transmitted = inputEnergy - absorbed;
+  return { absorbed, transmitted, alpha };
+}
+
+function simulateCompositeLayer(inputEnergy, baseAlpha, airGapMeters) {
+  const alphaScaled = clamp(baseAlpha * (airGapMeters / 1), 0, 1);
+
+  const names = ['8mm SS Sheet (1st)', `Air Gap (${airGapMeters.toFixed(1)} m)`, '8mm SS Sheet (2nd)'];
+  let energyIn = inputEnergy;
+  const subBlocks = [];
+
+  for (let i = 0; i < 3; i++) {
+    const absorbed = energyIn * alphaScaled;
+    const transmitted = energyIn - absorbed;
+    subBlocks.push({
+      name: names[i],
+      absorbed,
+      transmitted
+    });
+    energyIn = transmitted;
+  }
+
+  const totalAbsorbed = subBlocks.reduce((sum, s) => sum + s.absorbed, 0);
+  const totalTransmitted = subBlocks[subBlocks.length - 1].transmitted;
+
+  return { subBlocks, totalAbsorbed, totalTransmitted, alphaScaled };
+}
+
+function runSimulation() {
+  const mass = clamp(parseFloat(document.getElementById('mass').value) || 0, 0, 1000);
+  const velocity = clamp(parseFloat(document.getElementById('velocity').value) || 0, 0, 5000);
+
+  const shutterCount = clamp(parseInt(document.getElementById('shutterCount').value, 10) || 0, 0, 5);
+  const shutterThickness = clamp(parseFloat(document.getElementById('shutterThickness').value) || 8, 4, 30);
+  const shutterGapMm = clamp(parseFloat(document.getElementById('shutterGap').value) || 500, 500, 2500);
+  const shutterGapM = shutterGapMm / 1000;
+
+  const airGap = clamp(parseFloat(document.getElementById('airGap').value) || 1, 0.5, 2.5);
+  const gap12 = clamp(parseFloat(document.getElementById('gap12').value) || 2, 2, 4);
+  const gap23 = clamp(parseFloat(document.getElementById('gap23').value) || 2, 2, 4);
+
+  const alphaShutter = clamp(parseFloat(document.getElementById('alphaShutter').value) || 0.08, 0, 1);
+  const alpha1 = clamp(parseFloat(document.getElementById('alpha1').value) || 0.9, 0, 1);
+  const alpha2 = clamp(parseFloat(document.getElementById('alpha2').value) || 0.3, 0, 1);
+  const alpha3 = clamp(parseFloat(document.getElementById('alpha3').value) || 0.1, 0, 1);
+
+  const initialEnergy = 0.5 * mass * velocity * velocity / 1e6; // MJ
+  let currentEnergy = initialEnergy;
+
+  const flowContainer = document.getElementById('flowContainer');
+  flowContainer.innerHTML = '';
+
+  let totalAbsorbedAll = 0;
+
+  // Optional shutters before Layer 1
+  for (let i = 1; i <= shutterCount; i++) {
+    const shutter = simulateSingleShutter(currentEnergy, shutterThickness, alphaShutter, shutterGapM);
+    totalAbsorbedAll += shutter.absorbed;
+
+    const card = createLayerCard(
+      `Single SS Shutter ${i}`,
+      `${shutterThickness.toFixed(0)} mm stainless steel, gap ${shutterGapMm} mm`,
+      [{
+        name: `SS Shutter (${shutterThickness.toFixed(0)} mm)`,
+        absorbed: shutter.absorbed,
+        transmitted: shutter.transmitted
+      }],
+      shutter.absorbed,
+      shutter.transmitted,
+      initialEnergy,
+      'shutter'
+    );
+
+    flowContainer.appendChild(card);
+
+    currentEnergy = shutter.transmitted;
+    if (i < shutterCount) {
+      flowContainer.appendChild(createArrow());
+    }
+  }
+
+  const afterShuttersEnergy = currentEnergy;
+
+  // Layer 1
+  const layer1 = simulateCompositeLayer(currentEnergy, alpha1, airGap);
+  totalAbsorbedAll += layer1.totalAbsorbed;
+  flowContainer.appendChild(createLayerCard(
+    'Layer 1 (Composite)',
+    `8mm SS + ${airGap.toFixed(1)}m air gap + 8mm SS`,
+    layer1.subBlocks,
+    layer1.totalAbsorbed,
+    layer1.totalTransmitted,
+    initialEnergy,
+    'composite'
+  ));
+  flowContainer.appendChild(createArrow());
+  currentEnergy = layer1.totalTransmitted;
+
+  // Layer 2
+  const layer2Gap = airGap + gap12;
+  const layer2 = simulateCompositeLayer(currentEnergy, alpha2, layer2Gap);
+  totalAbsorbedAll += layer2.totalAbsorbed;
+  flowContainer.appendChild(createLayerCard(
+    'Layer 2 (Composite)',
+    `8mm SS + ${airGap.toFixed(1)}m internal gap + space from Layer 1 (${gap12.toFixed(1)}m)`,
+    layer2.subBlocks,
+    layer2.totalAbsorbed,
+    layer2.totalTransmitted,
+    initialEnergy,
+    'composite'
+  ));
+  flowContainer.appendChild(createArrow());
+  currentEnergy = layer2.totalTransmitted;
+
+  // Layer 3
+  const layer3Gap = airGap + gap23;
+  const layer3 = simulateCompositeLayer(currentEnergy, alpha3, layer3Gap);
+  totalAbsorbedAll += layer3.totalAbsorbed;
+  flowContainer.appendChild(createLayerCard(
+    'Layer 3 (Composite)',
+    `8mm SS + ${airGap.toFixed(1)}m internal gap + space from Layer 2 (${gap23.toFixed(1)}m)`,
+    layer3.subBlocks,
+    layer3.totalAbsorbed,
+    layer3.totalTransmitted,
+    initialEnergy,
+    'composite'
+  ));
+
+  document.getElementById('initialEnergy').textContent = fmtMJ(initialEnergy);
+  document.getElementById('afterShutters').textContent = fmtMJ(afterShuttersEnergy);
+  document.getElementById('afterLayer3').textContent = fmtMJ(layer3.totalTransmitted);
+  document.getElementById('totalAbsorbed').textContent = fmtMJ(totalAbsorbedAll);
+}
+
+document.getElementById('runBtn').addEventListener('click', runSimulation);
+window.addEventListener('load', runSimulation);
+</script>
+</body>
+</html>

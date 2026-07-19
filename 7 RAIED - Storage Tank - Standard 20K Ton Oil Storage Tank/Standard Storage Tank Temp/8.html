@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Animated Crack Flow Cube Visualization</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background: #f0f0f0;
+    color: #222;
+    text-align: center;
+  }
+  .container {
+    max-width: 600px;
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    margin: 0 auto;
+  }
+  label {
+    display: block;
+    margin-top: 12px;
+    font-weight: bold;
+  }
+  input[type=number] {
+    width: 100%;
+    padding: 8px;
+    margin-top: 6px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+  }
+  button {
+    margin-top: 20px;
+    padding: 10px 16px;
+    font-size: 1rem;
+    font-weight: bold;
+    background-color: #1f5fb8;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  button:hover {
+    background-color: #164a8a;
+  }
+  #cubeCanvas {
+    display: block;
+    margin: 20px auto 0;
+    background: #f9fafb;
+    border: 1px solid #ccc;
+    border-radius: 12px;
+  }
+  #damageLabel {
+    margin-top: 12px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #333;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h2>Animated Crack Flow Cube Visualization</h2>
+
+    <label for="energyInput">Energy Absorbed by 1st Steel Sheet (MJ):</label>
+    <input type="number" id="energyInput" min="0" max="2" step="0.01" value="0.0" />
+
+    <button id="runButton">Run Simulation</button>
+
+    <canvas id="cubeCanvas" width="160" height="160" aria-label="Energy absorber cube visualization"></canvas>
+    <div id="damageLabel">Damage State: No Damage</div>
+  </div>
+
+<script>
+  const runButton = document.getElementById('runButton');
+  const energyInput = document.getElementById('energyInput');
+  const damageLabel = document.getElementById('damageLabel');
+  const cubeCanvas = document.getElementById('cubeCanvas');
+  const ctx = cubeCanvas.getContext('2d');
+
+  // Damage states thresholds (MJ)
+  const damageThresholds = [
+    { maxEnergy: 0.2, label: 'No Damage', color: '#4ade80' },   // green
+    { maxEnergy: 0.5, label: 'Minor Dent', color: '#facc15' },  // yellow
+    { maxEnergy: 0.8, label: 'Major Dent', color: '#f97316' },  // orange
+    { maxEnergy: Infinity, label: 'Cracked', color: '#ef4444' } // red
+  ];
+
+  // Animation variables
+  let animationId = null;
+  let animationStartTime = null;
+  let energyMJ = 0;
+
+  // Draw cube with shading
+  function drawCubeBase(state) {
+    const cx = cubeCanvas.width / 2;
+    const cy = cubeCanvas.height / 2 + 10;
+    const size = 80;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, cubeCanvas.width, cubeCanvas.height);
+
+    // Front face
+    ctx.fillStyle = state.color;
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+    ctx.moveTo(cx - size/2, cy - size/2);
+    ctx.lineTo(cx + size/2, cy - size/2);
+    ctx.lineTo(cx + size/2, cy + size/2);
+    ctx.lineTo(cx - size/2, cy + size/2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Top face (lighter)
+    ctx.fillStyle = lightenColor(state.color, 0.3);
+    ctx.beginPath();
+    ctx.moveTo(cx - size/2, cy - size/2);
+    ctx.lineTo(cx, cy - size);
+    ctx.lineTo(cx + size, cy - size);
+    ctx.lineTo(cx + size/2, cy - size/2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Side face (darker)
+    ctx.fillStyle = darkenColor(state.color, 0.2);
+    ctx.beginPath();
+    ctx.moveTo(cx + size/2, cy - size/2);
+    ctx.lineTo(cx + size, cy - size);
+    ctx.lineTo(cx + size, cy);
+    ctx.lineTo(cx + size/2, cy + size/2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    return {cx, cy, size};
+  }
+
+  // Animate flowing cracks on front face
+  function animateCracks(cx, cy, size, time) {
+    ctx.strokeStyle = '#660000';
+    ctx.lineWidth = 3;
+
+    const amplitude = size / 12;
+    const wavelength = size / 3;
+    const speed = 0.0025; // pixels per ms
+
+    // Number of crack lines
+    const lines = 3;
+
+    for(let i=0; i<lines; i++) {
+      ctx.beginPath();
+      // Vertical offset for each line
+      const yOffset = cy - size/2 + (i+1)*size/(lines+1);
+
+      // Draw sine wave horizontally across front face
+      for(let x = cx - size/2; x <= cx + size/2; x += 1) {
+        const phase = (time * speed) + (x / wavelength) * 2 * Math.PI;
+        const y = yOffset + Math.sin(phase) * amplitude;
+        if(x === cx - size/2) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+  }
+
+  // Utility to lighten color
+  function lightenColor(color, amount){
+    const c = hexToRgb(color);
+    const r = Math.min(255, c.r + 255 * amount);
+    const g = Math.min(255, c.g + 255 * amount);
+    const b = Math.min(255, c.b + 255 * amount);
+    return `rgb(${r},${g},${b})`;
+  }
+
+  // Utility to darken color
+  function darkenColor(color, amount){
+    const c = hexToRgb(color);
+    const r = Math.max(0, c.r - 255 * amount);
+    const g = Math.max(0, c.g - 255 * amount);
+    const b = Math.max(0, c.b - 255 * amount);
+    return `rgb(${r},${g},${b})`;
+  }
+
+  // Convert hex color to rgb object
+  function hexToRgb(hex) {
+    hex = hex.replace('#','');
+    if(hex.length === 3){
+      hex = hex.split('').map(c=>c+c).join('');
+    }
+    const bigint = parseInt(hex, 16);
+    return {
+      r: (bigint >> 16) & 255,
+      g: (bigint >> 8) & 255,
+      b: bigint & 255
+    };
+  }
+
+  // Main animation loop
+  function animate(timestamp) {
+    if (!animationStartTime) animationStartTime = timestamp;
+    const elapsed = timestamp - animationStartTime;
+
+    // Determine damage state
+    let state = damageThresholds.find(t => energyMJ <= t.maxEnergy);
+
+    // Draw cube base
+    const {cx, cy, size} = drawCubeBase(state);
+
+    // Animate cracks only if damage is "Cracked"
+    if(state.label === 'Cracked') {
+      animateCracks(cx, cy, size, elapsed);
+    }
+
+    // Draw label text
+    ctx.fillStyle = '#1f2627';
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(state.label, cx, cy + size/2 + 30);
+    ctx.font = '14px Arial';
+    ctx.fillText(`Energy: ${energyMJ.toFixed(2)} MJ`, cx, cy + size/2 + 50);
+
+    animationId = requestAnimationFrame(animate);
+  }
+
+  // Start animation with given energy
+  function startAnimation(energy) {
+    energyMJ = energy;
+    animationStartTime = null;
+    if(animationId) cancelAnimationFrame(animationId);
+    animationId = requestAnimationFrame(animate);
+  }
+
+  // Run simulation handler
+  function runSimulation() {
+    let energy = parseFloat(energyInput.value);
+    if(isNaN(energy) || energy < 0) energy = 0;
+    damageLabel.textContent = `Energy Absorbed: ${energy.toFixed(2)} MJ`;
+    startAnimation(energy);
+  }
+
+  runButton.addEventListener('click', runSimulation);
+
+  // Initial draw with zero energy
+  startAnimation(0);
+</script>
+</body>
+</html>

@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>RAIED - Part 3: Expandable Shutter Layer Editor & Damage Table</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        /* UI Panel */
+        .controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(8px);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 12px;
+            border-left: 4px solid #ffaa00;
+            pointer-events: auto;
+            z-index: 10;
+            font-size: 14px;
+            min-width: 260px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .controls h2 {
+            margin: 0 0 5px;
+            font-size: 1.2rem;
+        }
+        .controls p {
+            margin: 5px 0;
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+        .control-group {
+            margin-bottom: 12px;
+        }
+        label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+        input, select {
+            width: 100%;
+            padding: 6px;
+            border-radius: 6px;
+            border: none;
+            background: #333;
+            color: white;
+        }
+        button {
+            background: #ffaa00;
+            color: #1e1e1e;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-right: 8px;
+            margin-top: 5px;
+        }
+        button:hover {
+            background: #ffcc44;
+        }
+        .status {
+            background: #000000aa;
+            padding: 8px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+        /* Damage Table Panel */
+        .damage-table-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            border-right: 4px solid #ff5500;
+            pointer-events: auto;
+            z-index: 10;
+            font-family: monospace;
+            min-width: 280px;
+            font-size: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .damage-table-panel h3 {
+            margin: 0 0 8px 0;
+            font-size: 1rem;
+            text-align: center;
+            color: #ffaa66;
+        }
+        .damage-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+        .damage-table th, .damage-table td {
+            border: 1px solid #555;
+            padding: 5px;
+            text-align: center;
+        }
+        .damage-table th {
+            background: #333;
+            color: #ffaa66;
+        }
+        .safe { background-color: #2c5e2c; color: #aaffaa; font-weight: bold; }
+        .dent { background-color: #8a6d2b; color: #ffdd88; font-weight: bold; }
+        .crack { background-color: #b85c1a; color: #ffcc99; font-weight: bold; }
+        .hole { background-color: #9e2a2a; color: #ffaaaa; font-weight: bold; }
+        .current-highlight {
+            outline: 3px solid #ffaa00;
+            outline-offset: -1px;
+        }
+        .legend {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 8px;
+            font-size: 9px;
+        }
+        .legend span {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            margin-right: 3px;
+        }
+        hr {
+            margin: 8px 0;
+            border-color: #444;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <h2>🛡️ RAIED - Layer Editor (Part 3)</h2>
+        <p>Single SS Sheet or Multi-Layer with air gaps</p>
+        <div class="control-group">
+            <label>🔧 Configuration Mode:</label>
+            <select id="configMode">
+                <option value="single">Single Shutter (thickness only)</option>
+                <option value="multi" selected>Multi-Layer (2+ sheets with spacing)</option>
+            </select>
+        </div>
+        <div id="singleControls">
+            <label>📏 SS Sheet Thickness (mm):</label>
+            <input type="range" id="thickness" min="4" max="30" step="1" value="8">
+            <span id="thicknessVal">8 mm</span>
+        </div>
+        <div id="multiControls">
+            <label>📐 Number of Layers:</label>
+            <input type="range" id="layerCount" min="1" max="5" step="1" value="2">
+            <span id="layerCountVal">2</span>
+            <label>📏 Each Layer Thickness (mm):</label>
+            <input type="range" id="layerThick" min="4" max="30" step="1" value="6">
+            <span id="layerThickVal">6 mm</span>
+            <label>🌬️ Air Gap Between Layers (m):</label>
+            <input type="range" id="airGap" min="0.5" max="5.0" step="0.1" value="1.5">
+            <span id="airGapVal">1.5 m</span>
+        </div>
+        <div class="control-group">
+            <label>💥 Incoming Energy (MJ):</label>
+            <input type="range" id="energyMj" min="0" max="15" step="0.1" value="3.2">
+            <span id="energyVal">3.2 MJ</span>
+        </div>
+        <button id="simulateBtn">⚡ Calculate Damage & Penetration</button>
+        <div class="status" id="statusMsg">
+            Ready. Click simulate.
+        </div>
+    </div>
+
+    <div class="damage-table-panel">
+        <h3>📊 Damage Lookup Table (SS Sheet)</h3>
+        <table class="damage-table" id="damageLookupTable">
+            <thead>
+                <tr><th>Thickness<br>(mm)</th><th>MJ 0.5</th><th>MJ 1.0</th><th>MJ 2.0</th><th>MJ 4.0</th><th>MJ 8.0</th><th>MJ 12.0</th></tr>
+            </thead>
+            <tbody id="tableBody">
+                <!-- JS will populate -->
+            </tbody>
+        </table>
+        <div class="legend">
+            <div><span style="background:#2c5e2c;"></span> Safe</div>
+            <div><span style="background:#8a6d2b;"></span> Dent</div>
+            <div><span style="background:#b85c1a;"></span> Crack</div>
+            <div><span style="background:#9e2a2a;"></span> Hole/Penetration</div>
+        </div>
+        <hr>
+        <div id="layerResult" style="font-size:11px; text-align:center; margin-top:6px;">
+            ⚙️ Layer simulation result will appear here
+        </div>
+    </div>
+
+    <!-- Three.js imports -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'https://unpkg.com/three@0.128.0/examples/jsm/controls/OrbitControls.js';
+
+        // --- Setup Scene, Camera, Renderer ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050b1a);
+        scene.fog = new THREE.FogExp2(0x050b1a, 0.008);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(8, 6, 12);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.autoRotate = false;
+        controls.enableZoom = true;
+        controls.target.set(0, 1, 0);
+
+        // --- Lights ---
+        const ambientLight = new THREE.AmbientLight(0x404060);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight.position.set(3, 10, 4);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
+        const backLight = new THREE.PointLight(0x4466cc, 0.3);
+        backLight.position.set(-2, 2, -3);
+        scene.add(backLight);
+        
+        // Helper grid
+        const gridHelper = new THREE.GridHelper(20, 20, 0x88aaff, 0x335588);
+        gridHelper.position.y = -0.5;
+        scene.add(gridHelper);
+        
+        // --- Group for Shutters ---
+        let shutterGroup = null;
+        
+        // --- Damage Model: Thresholds for SS sheet (MJ) ---
+        // Realistic conservative approximation: Penetration MJ = 0.28 * (thick_mm / 4)^2  (calibrated)
+        // Dent: 30% of penetration, Crack: 70% of penetration
+        function getDamageState(thicknessMM, energyMJ) {
+            // Penetration threshold (hole)
+            const penMJ = 0.28 * Math.pow(thicknessMM / 4, 2);
+            const crackMJ = penMJ * 0.7;
+            const dentMJ = penMJ * 0.3;
+            
+            if (energyMJ >= penMJ) return "hole";
+            if (energyMJ >= crackMJ) return "crack";
+            if (energyMJ >= dentMJ) return "dent";
+            return "safe";
+        }
+        
+        // For lookup table display
+        function damageText(state) {
+            if (state === "hole") return "💥 Hole";
+            if (state === "crack") return "⚡ Crack";
+            if (state === "dent") return "🔨 Dent";
+            return "✓ Safe";
+        }
+        
+        // Build damage table in UI
+        function buildDamageTable() {
+            const thicknesses = [4, 6, 8, 10, 12, 16, 20, 25, 30];
+            const mjValues = [0.5, 1.0, 2.0, 4.0, 8.0, 12.0];
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            for (let thick of thicknesses) {
+                const row = tbody.insertRow();
+                const thCell = row.insertCell(0);
+                thCell.textContent = thick;
+                thCell.style.fontWeight = 'bold';
+                
+                for (let mj of mjValues) {
+                    const state = getDamageState(thick, mj);
+                    const cell = row.insertCell();
+                    cell.textContent = damageText(state).split(' ')[1] || "Safe";
+                    cell.className = state;
+                }
+            }
+        }
+        
+        // Highlight current thickness & MJ in table
+        function highlightCurrentInTable(thicknessMM, energyMJ) {
+            const thicknesses = [4, 6, 8, 10, 12, 16, 20, 25, 30];
+            const mjValues = [0.5, 1.0, 2.0, 4.0, 8.0, 12.0];
+            
+            // Remove previous highlights
+            document.querySelectorAll('#damageLookupTable td, #damageLookupTable th').forEach(cell => {
+                cell.classList.remove('current-highlight');
+            });
+            
+            // Find closest thickness index
+            let closestThickIdx = 0;
+            let minDiff = Math.abs(thicknesses[0] - thicknessMM);
+            for (let i = 1; i < thicknesses.length; i++) {
+                const diff = Math.abs(thicknesses[i] - thicknessMM);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closestThickIdx = i;
+                }
+            }
+            // Find closest MJ index
+            let closestMjIdx = 0;
+            minDiff = Math.abs(mjValues[0] - energyMJ);
+            for (let i = 1; i < mjValues.length; i++) {
+                const diff = Math.abs(mjValues[i] - energyMJ);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closestMjIdx = i;
+                }
+            }
+            // Highlight cell: row = closestThickIdx+1, col = closestMjIdx+1
+            const row = document.getElementById('tableBody').children[closestThickIdx];
+            if (row) {
+                const cell = row.children[closestMjIdx];
+                if (cell) cell.classList.add('current-highlight');
+            }
+        }
+        
+        // --- Layer penetration simulation (energy dissipation) ---
+        function simulateLayers(layers, thicknessEachMM, gapMeters, incomingMJ) {
+            let remainingMJ = incomingMJ;
+            let results = [];
+            for (let i = 0; i < layers; i++) {
+                const state = getDamageState(thicknessEachMM, remainingMJ);
+                let energyLost = 0;
+                let penetrated = false;
+                
+                // Energy loss model: if hole, remaining energy passes but reduced (jet degraded)
+                if (state === "hole") {
+                    // Sheet is penetrated: residual energy = remainingMJ - penetration threshold, but with 20% loss due to jet disruption
+                    const threshold = 0.28 * Math.pow(thicknessEachMM / 4, 2);
+                    energyLost = threshold + (remainingMJ - threshold) * 0.3; // extra dissipation
+                    penetrated = true;
+                } else if (state === "crack") {
+                    energyLost = remainingMJ * 0.6; // major absorption, no penetration
+                } else if (state === "dent") {
+                    energyLost = remainingMJ * 0.3;
+                } else {
+                    energyLost = remainingMJ; // fully stopped
+                }
+                
+                remainingMJ = Math.max(0, remainingMJ - energyLost);
+                results.push({
+                    layer: i+1,
+                    state: state,
+                    energyBefore: (i===0 ? incomingMJ : results[i-1].energyAfter),
+                    energyLost: energyLost,
+                    energyAfter: remainingMJ,
+                    penetrated: penetrated
+                });
+                
+                if (!penetrated && remainingMJ === 0) break;
+                // Air gap doesn't reduce energy but allows jet to expand - we just note spacing
+            }
+            return results;
+        }
+        
+        // --- Visualization: Create shutter panels (single or multi) ---
+        function createShutters(config, thicknessMM, layers, layerThickMM, gapM) {
+            if (shutterGroup) scene.remove(shutterGroup);
+            shutterGroup = new THREE.Group();
+            
+            if (config === 'single') {
+                const geometry = new THREE.BoxGeometry(5, thicknessMM / 100, 5);
+                const material = new THREE.MeshStandardMaterial({ color: 0x88aaff, metalness: 0.7, roughness: 0.3 });
+                const plate = new THREE.Mesh(geometry, material);
+                plate.position.y = 0;
+                plate.castShadow = true;
+                plate.receiveShadow = true;
+                shutterGroup.add(plate);
+            } 
+            else { // multi layer
+                const startY = - (layers-1) * gapM / 2;
+                for (let i = 0; i < layers; i++) {
+                    const geometry = new THREE.BoxGeometry(5, layerThickMM / 100, 5);
+                    const material = new THREE.MeshStandardMaterial({ color: 0xdd8866, metalness: 0.6, roughness: 0.4 });
+                    const plate = new THREE.Mesh(geometry, material);
+                    plate.position.y = startY + i * gapM;
+                    plate.castShadow = true;
+                    plate.receiveShadow = true;
+                    shutterGroup.add(plate);
+                }
+            }
+            scene.add(shutterGroup);
+        }
+        
+        // --- Update UI, Simulate, Show Results ---
+        function updateSimulation() {
+            const mode = document.getElementById('configMode').value;
+            const energyMJ = parseFloat(document.getElementById('energyMj').value);
+            document.getElementById('energyVal').innerText = energyMJ.toFixed(1) + " MJ";
+            
+            let finalMsg = "";
+            let layerResultHtml = "";
+            
+            if (mode === 'single') {
+                const thickness = parseFloat(document.getElementById('thickness').value);
+                document.getElementById('thicknessVal').innerText = thickness + " mm";
+                createShutters('single', thickness, 1, thickness, 0);
+                const state = getDamageState(thickness, energyMJ);
+                let stateText = "";
+                let colorCode = "";
+                switch(state) {
+                    case "safe": stateText = "✓ SAFE - No damage"; colorCode = "#aaffaa"; break;
+                    case "dent": stateText = "🔨 DENT - Surface deformation only"; colorCode = "#ffdd88"; break;
+                    case "crack": stateText = "⚡ CRACK - Structural failure risk"; colorCode = "#ffaa66"; break;
+                    case "hole": stateText = "💥 HOLE - Penetration! Energy passes through"; colorCode = "#ff8888"; break;
+                }
+                finalMsg = `🔹 Single ${thickness}mm SS Sheet<br>💢 ${energyMJ} MJ → ${stateText}`;
+                layerResultHtml = `<div style="color:${colorCode}">${stateText}<br>Remaining energy: ${state === "hole" ? (energyMJ - (0.28*Math.pow(thickness/4,2))).toFixed(1) : "0"} MJ</div>`;
+                highlightCurrentInTable(thickness, energyMJ);
+            } 
+            else {
+                const layers = parseInt(document.getElementById('layerCount').value);
+                const layerThick = parseFloat(document.getElementById('layerThick').value);
+                const airGap = parseFloat(document.getElementById('airGap').value);
+                document.getElementById('layerCountVal').innerText = layers;
+                document.getElementById('layerThickVal').innerText = layerThick + " mm";
+                document.getElementById('airGapVal').innerText = airGap + " m";
+                createShutters('multi', layerThick, layers, layerThick, airGap);
+                
+                const results = simulateLayers(layers, layerThick, airGap, energyMJ);
+                let finalPenetration = results[results.length-1].energyAfter;
+                let anyHole = results.some(r => r.state === "hole");
+                let lastState = results[results.length-1].state;
+                
+                let summaryColor = "#aaffaa";
+                let summaryText = "";
+                if (finalPenetration <= 0.01) summaryText = "✅ FULLY STOPPED - No penetration";
+                else if (anyHole && finalPenetration > 0.1) summaryText = "⚠️ PENETRATION - Residual energy threat";
+                else if (lastState === "crack") summaryText = "⚠️ CRACKED but contained";
+                else summaryText = "⚠️ DAMAGE but contained";
+                
+                if (finalPenetration > 0.1) summaryColor = "#ff8888";
+                else if (lastState !== "safe") summaryColor = "#ffaa66";
+                
+                finalMsg = `🛡️ ${layers} layers (${layerThick}mm each, ${airGap}m gap)<br>💢 ${energyMJ} MJ → ${summaryText}`;
+                layerResultHtml = `<div><strong>Layer-by-layer:</strong><br>`;
+                for (let r of results) {
+                    let stateSym = r.state === "hole" ? "💥" : (r.state === "crack" ? "⚡" : (r.state === "dent" ? "🔨" : "✓"));
+                    layerResultHtml += `Layer ${r.layer}: ${stateSym} ${r.state.toUpperCase()} | Energy left: ${r.energyAfter.toFixed(2)} MJ<br>`;
+                    if (r.state === "hole") layerResultHtml += `   ⚠️ Penetrated layer ${r.layer}<br>`;
+                }
+                layerResultHtml += `<hr><span style="color:${summaryColor}"><strong>${summaryText}</strong> (Residual: ${finalPenetration.toFixed(2)} MJ)</span></div>`;
+                
+                // Highlight table based on first layer thickness
+                highlightCurrentInTable(layerThick, energyMJ);
+            }
+            
+            document.getElementById('statusMsg').innerHTML = finalMsg;
+            document.getElementById('layerResult').innerHTML = layerResultHtml;
+        }
+        
+        // --- Event Listeners ---
+        document.getElementById('simulateBtn').addEventListener('click', () => {
+            updateSimulation();
+        });
+        
+        document.getElementById('configMode').addEventListener('change', (e) => {
+            const isSingle = e.target.value === 'single';
+            document.getElementById('singleControls').style.display = isSingle ? 'block' : 'none';
+            document.getElementById('multiControls').style.display = isSingle ? 'none' : 'block';
+            updateSimulation();
+        });
+        
+        const sliders = ['thickness', 'layerCount', 'layerThick', 'airGap', 'energyMj'];
+        sliders.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('input', () => updateSimulation());
+        });
+        
+        // Initial setup
+        document.getElementById('singleControls').style.display = 'none';
+        document.getElementById('multiControls').style.display = 'block';
+        buildDamageTable();
+        updateSimulation();
+        
+        // --- Simple animation loop ---
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update(); // update orbit
+            renderer.render(scene, camera);
+        }
+        animate();
+        
+        window.addEventListener('resize', onWindowResize, false);
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        // Add subtle particle effect for atmosphere
+        const starGeometry = new THREE.BufferGeometry();
+        const starCount = 800;
+        const starPos = [];
+        for (let i = 0; i < starCount; i++) {
+            starPos.push((Math.random() - 0.5) * 200);
+            starPos.push((Math.random() - 0.5) * 100);
+            starPos.push((Math.random() - 0.5) * 80 - 40);
+        }
+        starGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(starPos), 3));
+        const starMaterial = new THREE.PointsMaterial({ color: 0x88aaff, size: 0.08 });
+        const stars = new THREE.Points(starGeometry, starMaterial);
+        scene.add(stars);
+    </script>
+</body>
+</html>

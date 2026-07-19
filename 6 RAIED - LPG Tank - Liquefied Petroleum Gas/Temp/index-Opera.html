@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Shutter Dome Simulation - Babylon.js</title>
+  <style>
+    body {
+      margin: 0;
+      background: #f0f0f0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+    #renderCanvas {
+      width: 320px;
+      height: 400px;
+      border-radius: 12px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.1);
+      background: #fff;
+      touch-action: none;
+    }
+    .buttons {
+      margin-top: 10px;
+    }
+    button {
+      background: #1e4a8f;
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      margin: 0 10px;
+      font-size: 16px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #15406b;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Shutter Dome Simulation - Babylon.js</h2>
+<canvas id="renderCanvas" aria-label="Shutter dome simulation"></canvas>
+
+<div class="buttons">
+  <button id="btnNormal">Normal Operation Mode (a)</button>
+  <button id="btnAlert">Threat Alert Deployment (b)</button>
+  <button id="btnClosed">Dome Fully Covered (c)</button>
+</div>
+
+<script src="https://cdn.babylonjs.com/babylon.js"></script>
+<script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+
+<script>
+  const canvas = document.getElementById('renderCanvas');
+  const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
+
+  const createScene = () => {
+    const scene = new BABYLON.Scene(engine);
+    scene.clearColor = new BABYLON.Color4(0.94, 0.94, 0.94, 1);
+
+    // Camera
+    const camera = new BABYLON.ArcRotateCamera("camera", -Math.PI / 2, Math.PI / 3, 520, new BABYLON.Vector3(0, 140, 0), scene);
+    camera.attachControl(canvas, true);
+    camera.lowerRadiusLimit = 240;
+    camera.upperRadiusLimit = 1100;
+    camera.wheelDeltaPercentage = 0.01;
+
+    // Lights
+    const light1 = new BABYLON.DirectionalLight("dir01", new BABYLON.Vector3(-1, -2, -1), scene);
+    light1.position = new BABYLON.Vector3(260, 520, 240);
+    light1.intensity = 0.8;
+
+    const light2 = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0, 1, 0), scene);
+    light2.intensity = 0.6;
+
+    // Materials
+    const matTank = new BABYLON.StandardMaterial("matTank", scene);
+    matTank.diffuseColor = new BABYLON.Color3(0.61, 0.64, 0.69);
+    matTank.metallic = 0.15;
+    matTank.roughness = 0.35;
+
+    const matTankDark = new BABYLON.StandardMaterial("matTankDark", scene);
+    matTankDark.diffuseColor = new BABYLON.Color3(0.42, 0.45, 0.5);
+    matTankDark.metallic = 0.1;
+    matTankDark.roughness = 0.45;
+
+    const matFrame = new BABYLON.StandardMaterial("matFrame", scene);
+    matFrame.diffuseColor = new BABYLON.Color3(0.7, 0.35, 0);
+    matFrame.metallic = 0.35;
+    matFrame.roughness = 0.35;
+
+    const matShutter = new BABYLON.StandardMaterial("matShutter", scene);
+    matShutter.diffuseColor = new BABYLON.Color3(0.12, 0.29, 0.56);
+    matShutter.metallic = 0.25;
+    matShutter.roughness = 0.35;
+
+    const matDome = new BABYLON.StandardMaterial("matDome", scene);
+    matDome.diffuseColor = new BABYLON.Color3(0.12, 0.29, 0.56);
+    matDome.metallic = 0.25;
+    matDome.roughness = 0.3;
+    matDome.alpha = 0;
+
+    // Dimensions
+    const dims = {
+      baseY: 0,
+      tankR: 70,
+      tankH: 280,
+      topH: 28,
+      shutterCount: 8,
+      shutterW: 60,
+      shutterH: 160,
+      shutterT: 10,
+      shutterRadius: 140,
+      frameH: 340,
+      frameRadius: 170,
+    };
+
+    // Tank
+    const tank = BABYLON.MeshBuilder.CreateCylinder("tank", { diameter: dims.tankR * 2, height: dims.tankH, tessellation: 48 }, scene);
+    tank.position.y = dims.baseY + dims.tankH / 2;
+    tank.material = matTank;
+
+    // Tank top
+    const tankTop = BABYLON.MeshBuilder.CreateCylinder("tankTop", { diameterTop: dims.tankR * 1.84, diameterBottom: dims.tankR * 1.96, height: dims.topH, tessellation: 48 }, scene);
+    tankTop.position.y = tank.position.y + dims.tankH / 2 + dims.topH / 2 - 2;
+    tankTop.material = matTankDark;
+
+    // Frame group
+    const frame = new BABYLON.TransformNode("frame", scene);
+
+    const postGeo = BABYLON.MeshBuilder.CreateBox("post", { width: 10, height: dims.frameH, depth: 18 }, scene);
+    postGeo.isVisible = false; // template
+
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const post = postGeo.clone("post" + i);
+      post.position.set(Math.cos(angle) * dims.frameRadius, dims.baseY + dims.frameH / 2, Math.sin(angle) * dims.frameRadius);
+      post.rotation.y = -angle;
+      post.material = matFrame;
+      post.parent = frame;
+      post.isVisible = true;
+    }
+    postGeo.dispose();
+
+    const ring = BABYLON.MeshBuilder.CreateTorus("ring", { diameter: dims.frameRadius * 2, thickness: 10, tessellation: 64 }, scene);
+    ring.position.y = dims.baseY + dims.frameH - 14;
+    ring.rotation.x = Math.PI / 2;
+    ring.material = matFrame;
+    ring.parent = frame;
+
+    // Shutters
+    const shutters = [];
+    const shutterGroup = new BABYLON.TransformNode("shutterGroup", scene);
+
+    for (let i = 0; i < dims.shutterCount; i++) {
+      const angle = (i / dims.shutterCount) * Math.PI * 2;
+      const pivot = new BABYLON.TransformNode("pivot" + i, scene);
+      pivot.position.set(Math.cos(angle) * dims.shutterRadius, dims.baseY, Math.sin(angle) * dims.shutterRadius);
+      pivot.rotation.y = -angle;
+
+      const shutter = BABYLON.MeshBuilder.CreateBox("shutter" + i, { width: dims.shutterW, height: dims.shutterH, depth: dims.shutterT }, scene);
+      shutter.position.y = dims.shutterH / 2;
+      shutter.material = matShutter;
+      shutter.parent = pivot;
+
+      pivot.parent = shutterGroup;
+      shutters.push(pivot);
+    }
+
+    // Dome top
+    const dome = BABYLON.MeshBuilder.CreateSphere("dome", { diameter: dims.shutterRadius * 1.8, segments: 48, slice: Math.PI / 2 }, scene);
+    dome.position.y = dims.baseY + dims.shutterH + 70;
+    dome.material = matDome;
+
+    // Animation states
+    const modes = {
+      normal: { shutterX: 0, domeAlpha: 0 },
+      alert: { shutterX: -Math.PI / 4, domeAlpha: 0 },
+      closed: { shutterX: -Math.PI / 2, domeAlpha: 1 }
+    };
+
+    let currentMode = 'normal';
+    let targetMode = 'normal';
+    let animationProgress = 1;
+    const animationSpeed = 0.05;
+
+    function lerp(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      if (animationProgress < 1) {
+        animationProgress = Math.min(animationProgress + animationSpeed, 1);
+      }
+
+      const from = modes[currentMode];
+      const to = modes[targetMode];
+      const t = animationProgress;
+
+      shutters.forEach(pivot => {
+        pivot.rotation.x = lerp(from.shutterX, to.shutterX, t);
+      });
+
+      dome.material.alpha = lerp(from.domeAlpha, to.domeAlpha, t);
+      dome.isVisible = dome.material.alpha > 0.01;
+
+      if (animationProgress === 1 && currentMode !== targetMode) {
+        currentMode = targetMode;
+      }
+
+      controls.update();
+      engine.render(scene, camera);
+    }
+
+    animate();
+
+    function setMode(mode) {
+      if (mode === targetMode) return;
+      targetMode = mode;
+      animationProgress = 0;
+    }
+
+    document.getElementById('btnNormal').addEventListener('click', () => setMode('normal'));
+    document.getElementById('btnAlert').addEventListener('click', () => setMode('alert'));
+    document.getElementById('btnClosed').addEventListener('click', () => setMode('closed'));
+
+    // Keyboard shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'a') setMode('normal');
+      else if (e.key === 'b') setMode('alert');
+      else if (e.key === 'c') setMode('closed');
+    });
+
+    window.addEventListener('resize', () => {
+      engine.resize();
+    });
+  </script>
+
+</body>
+</html>

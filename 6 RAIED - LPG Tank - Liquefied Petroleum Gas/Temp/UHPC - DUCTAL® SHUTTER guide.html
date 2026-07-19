@@ -1,0 +1,110 @@
+uhpc: `<div class="guide-section"><h4>🪨 UHPC / Ductal® Shutter — Complete Manufacturing Guide</h4>
+            <h5>1. MATERIAL COMPOSITION & CHEMISTRY</h5>
+            <table class="refinery-table">
+                <tr><th>Component</th><th>Quantity (kg/m³)</th><th>Function</th><th>Particle Size</th></tr>
+                <tr>:</th>Portland Cement (Type I/II)</th><td>900</th><td>Primary binder, provides strength</th><td>15-30μm</th></tr>
+                <tr>:</th>Silica Fume</th><td>250</th><td>Fills voids, pozzolanic reaction</th><td>0.1-0.5μm</th></tr>
+                <tr>:</th>Quartz Sand (0-0.6mm)</th><td>1,000</th><td>Fine aggregate, maximizes packing density</th><td>0.1-0.6mm</th></tr>
+                <tr>:</th>Superplasticizer (Polycarboxylate)</th><td>35</th><td>Water reducer, fluidity</th><td>—</th></tr>
+                <tr>:</th>Steel Fibers</th><td>160 (2% vol)</th><td>Post-crack ductility, toughness</th><td>13mm × 0.2mm</th></tr>
+                <tr>:</th>Water</th><td>160</th><td>Hydration</th><td>—</th></tr>
+                </tr>:<th>w/b ratio</th><td>0.18</th><td>Low water-to-binder for high strength</th><td>—</th></tr>
+            </table>
+            
+            <h5>2. PHYSICS OF UHPC</h5>
+            <div class="chemical-equation">
+                Compressive strength: f_c = 180-220 MPa (vs 30-50 MPa for normal concrete)
+                Flexural strength: f_r = 30-40 MPa (vs 3-5 MPa for normal concrete)
+                Modulus of elasticity: E_c = ρ^1.5 × 0.043 × √(f_c) ≈ 50-55 GPa
+                
+                Packing density theory:
+                Maximum packing achieved with multimodal particle size distribution
+                φ_max = φ_cement + φ_silica_fume + φ_sand = 0.78
+                Residual porosity <2% after optimized mixing
+                
+                Fiber efficiency:
+                σ_post-crack = V_f × τ × L/D (pull-out model)
+                V_f = 2% = 0.02, τ = 5 MPa (bond strength), L/D = 13mm/0.2mm = 65
+                → σ_post-crack ≈ 6.5 MPa, providing strain-hardening behavior
+            </div>
+            
+            <h5>3. MANUFACTURING PROCESS</h5>
+            <h5>Step 1: Batching & Mixing (45 minutes per batch)</h5>
+            <ul>
+                <li>Weigh all materials to ±0.5% accuracy (loss-in-weight feeders)</li>
+                <li>Mix dry materials (cement, silica fume, sand) in pan mixer at 30 RPM for 2 minutes</li>
+                <li>Add 80% of water + superplasticizer, mix at 50 RPM for 3 minutes</li>
+                <li>Add steel fibers (slowly, over 2 minutes) to prevent balling</li>
+                <li>Add remaining water to adjust slump, mix additional 3 minutes at 70 RPM</li>
+                <li>Target: Self-compacting slurry, slump flow 700-800mm (ASTM C1611)</li>
+            </ul>
+            
+            <h5>Step 2: Casting (15 minutes per panel)</h5>
+            <ul>
+                <li>Mold preparation: Steel mold (6m × 3m × 8mm), surface ground to Ra <0.5μm, apply release agent</li>
+                <li>Vibration: External vibrators (60 Hz, 0.5mm amplitude) applied for 2 minutes</li>
+                <li>Surface finishing: Vacuum dewatering to remove excess water from surface</li>
+                <li>Covering: Polyethylene sheet immediately after casting to prevent evaporation</li>
+            </ul>
+            
+            <h5>Step 3: Curing (48 hours heat cure or 28 days ambient)</h5>
+            <p><strong>Option A: Heat Cure (accelerated)</strong></p>
+            <ul>
+                <li>24 hours at 23°C, 95% RH (initial set)</li>
+                <li>Steam cure: Ramp to 90°C at 15°C/hour, hold 48 hours, cool at 15°C/hour</li>
+                <li>Autoclave (optional): 180°C, 8 bar for 4 hours → compressive strength 220 MPa+</li>
+            </ul>
+            <p><strong>Option B: Ambient Cure (standard)</strong></p>
+            <ul>
+                <li>28 days at 23°C ±2°C, >95% RH (under wet burlap or curing blankets)</li>
+                <li>Spray curing compound after 7 days to retain moisture</li>
+            </ul>
+            
+            <h5>Step 4: Finishing (2 hours)</h5>
+            <ul>
+                <li>Grinding: Diamond cup wheel (120 grit), remove 0.5mm surface, achieves ±1mm thickness tolerance</li>
+                <li>Drilling: CNC diamond drill (25mm diameter, 2,500 RPM, 0.5mm/sec feed) for M24 bolts</li>
+                <li>Edge grinding: 45° chamfer, 2mm depth</li>
+            </ul>
+            
+            <h5>4. QUALITY CONTROL</h5>
+            <table class="refinery-table">
+                <tr><th>Test</th><th>Standard</th><th>Acceptance</th><th>Frequency</th></tr>
+                <tr>:</th>Slump flow</th><td>ASTM C1611</th><td>700-800mm</th><td>Each batch</th></tr>
+                <tr>:</th>Compressive strength (cube)</th><td>ASTM C109</th><td>180-220 MPa at 28 days</th><td>3 per batch</th></tr>
+                <tr>:</th>Flexural strength</th><td>ASTM C1609</th><td>30-40 MPa</th><td>3 per 10 batches</th></tr>
+                <tr>:</th>Density</th><td>ASTM C642</th><td>2.55-2.65 g/cm³</th><td>1 per batch</th></tr>
+                <tr>:</th>Water absorption</th><td>ASTM C1585</th><td><0.5% at 7 days</th><td>1 per batch</th></tr>
+                <tr>:</th>Fiber distribution</th><td>X-ray radiography</th><td>No clumping, uniform 2% vol</th><td>1 per 10 panels</th></tr>
+                <tr>:</th>Freeze-thaw resistance</th><td>ASTM C666</th><td>DF >90% after 300 cycles</th><td>1 per 100 panels</th></td>
+            </table>
+            
+            <h5>5. COST BREAKDOWN (per m², 8mm panel)</h5>
+            <table class="refinery-table">
+                <tr><th>Cost Element</th><th>Value (USD)</th></tr>
+                <tr>:</th>Cement + Silica Fume + Sand</th><td>$18</th></tr>
+                <tr>:</th>Steel Fibers (2% vol)</th><td>$45</th></tr>
+                <tr>:</th>Superplasticizer</th><td>$6</th></tr>
+                <tr>:</th>Labor + Mixing</th><td>$15</th></tr>
+                <td>:</th>Curing (heat/steam)</th><td>$25</th></tr>
+                <tr>:</th>Finishing (grinding, drilling)</th><td>$12</th></tr>
+                </table>:</th><strong>Total Manufacturing Cost</strong></th><td><strong>$121/m²</strong></th></tr>
+                <tr>:</th>10-Year Maintenance ($5/m²/year × 10)</th><td>$50/m²</th></tr>
+                <tr>:</th><strong>Total Lifecycle Cost (10 years)</strong></th><td><strong>$171/m²</strong></th></tr>
+            </table>
+            
+            <h5>6. REFINERY INTEGRATION — THE BEAUTIFUL SYMMETRY</h5>
+            <div class="beautiful-symmetry-box">
+                <strong>🏭 THE BEAUTIFUL SYMMETRY OF UHPC</strong><br><br>
+                1. The REFINERY's steam methane reformer produces H₂, used for steel fiber production<br>
+                2. The REFINERY's cogen plant provides high-pressure steam for autoclave curing<br>
+                3. Silica fume is a byproduct of silicon/ferrosilicon manufacturing (often co-located with refineries)<br>
+                4. The REFINERY's cooling towers provide the water for mixing and curing<br>
+                5. Superplasticizers (polycarboxylate) are synthesized from refinery ethylene and acrylic acid<br>
+                6. The REFINERY's FCC unit produces propylene, which is used to make acrylic acid<br><br>
+                <strong>The refinery's byproducts and energy enable the low-cost manufacturing of UHPC backup armor.</strong><br><br>
+                <em>From propylene to superplasticizer: full integration of petrochemicals into construction materials.</em>
+            </div>
+            
+            <div class="note-box">🪨 <strong>Summary:</strong> 2.2× multiplier, 48 kg/m², lowest cost option, best for backface protection layers.</div>
+</div>`,

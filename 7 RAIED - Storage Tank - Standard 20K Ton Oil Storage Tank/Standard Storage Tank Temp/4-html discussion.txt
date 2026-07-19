@@ -1,0 +1,253 @@
+I would like help please!
+
+With the recent development/advances of military drones, refinery facilities are becoming vulnerable to attacks. For example, refineries in the Arab gulf,  countries such as KSA, UAE, Qatar, Kuwait and Iraq have been hit badly and was called and refineries were shut. The cost of the damages are estimated in range of $50 Billion. In addition the revenue loss climbed up to the region of $2 Billion. In other region, for example, north Africa, gorilla are using drones to black mail authorities to release money, otherwise, gorilla drones will hit the refinery facilities.
+
+Currently, refinery facilities are unprotected and becoming easy targets to drone attacks.
+
+Our project is to have simple 4 pillar dome concept to protect Oil Storage tanks, LPG tanks, CDU and VDU towers and other vital oil refinery facilities.
+
+The concept of protect by using motion control system to close shutters that are made from 8 different material to form sheet  with different thickness which we called them as shutters. Shutters will move on rails and close in thread mode to form dome or open in normal mode.
+
+We have developed code that illustrate the structure of this concept and mathematically calculate the drone timing arrival. In addition, other mathematical formulas calculate the shutter thickness number of shield layers required to give real protection to oil refinery facilities against military drones. This project is RAIED. Hence RAIED is demonstrate techniques to protect oil refineries against military drones from group 1 to 4. The military drone classification is based on UAS Chart published in: https://www.bing.com/images/search?view=detailV2&ccid=3j2sNEeh&id=D1216D09C075B426313E0D74D0D68AC6D2E696CB&thid=OIP.3j2sNEehbdGNKG34q4Zc3AHaDf&mediaurl=https%3a%2f%2fmwi.westpoint.edu%2fwp-content%2fuploads%2f2024%2f05%2fFL1.jpg%3fresize%3d300&cdnurl=https%3a%2f%2fth.bing.com%2fth%2fid%2fR.de3dac3447a16dd18d286df8ab865cdc%3frik%3dy5bm0saK1tB0DQ%26pid%3dImgRaw%26r%3d0&exph=294&expw=624&q=missile+drone+payload+classifications&mode=overlay&FORM=IQFRBA&ck=6247DFE3C2596AD58CA7FF4B3169DD32&selectedIndex=0&idpp=serp&ajaxhist=0&ajaxserp=0
+
+
+We have 3 sets of code. First set of code that demonstrates the attacks in 3D and it is called 3D Tank Defense. The second set of code, titled as Shutter Timing & Damage, calculates Drone Arrival and Impact Energy. The third set of code is titled as Expandable Shutter Layer Editor that calculates Initial Energy and after Shutters energy.
+
+If I upload the code here, would you be able to review them Please?
+
+The code/similar offering fantastic insight details but some of the parameters are not consistent.
+
+However, my target is to demonstrate the protection in different style. After you have an idea about the code, I will ask you for help with details question. Shall I upload the 3 set of code now, plus master.html? 
+
+The following parameters determine how many SS Shutters and Layers are required to safe guard the refinery facilities:
+1) Initial Missile Energy Activation IMEA  (Initial Impact Energy) in MJ
+2) Energy Absorbed by 1st Steel Sheet in MJ
+3) Energy Reduced by Air Gap in MJ
+4) Residual Energy in MJ
+5) End Missile Energy Activation EMEA  (End Impact Energy) = 0.0 MJ
+
+IMEA can be worked out from the missile mass and the speed of the drone. For the refinery item, such as the storage tank to be safe, EMEA has to be zero. Hence, The number of SS sheets and layers and distances between the sheets and distances inner to the layers and the number of layers to be provided by the user.
+
+I would like you to use these parameters to collect the info from the user and we draw the defence line, similar to the 3 scenarios I gave you. What do you think? 
+
+
+I think we should deal with:
+1. What specifically is not working or needs adjustment in part3.html?
+
+a) Energy calculations not matching your expected numbers?
+
+b) Visual sequence (images) not displaying correctly?
+
+c) Scenario selection not updating parameters or the defense wall properly?
+
+d) Layout or spacing issues?
+
+e) Something else?
+
+
+a) to e) are due to me as I lacked to give the required details or poor definitions to the parts and good guidance... APOLOGY!
+
+The idea in mind is that we have a library of basic components. So, the library is set of images. We may need 20 images. These images should be enough for the simulator to form/provide defence wall for any possible scenario. 
+
+Let me give definitions to some terms we are using here:
+1) Mass
+Drones that carry explosives has been classified between group 1 to 5. This is described in:
+https://mwi.westpoint.edu/understanding-the-counterdrone-fight-insights-from-combat-in-iraq-and-syria/
+Under UAS Chart. It is basically classified as such relative to the payload. 
+
+In practical terms, RAIED can build Defence Wall to protect the refinery unit from max payload 300 kg (approximately) = explosive 150 kg + Equipment 150 kg.
+
+The material and cost will be too high to protect the refinery units from explosives above 150 kg.
+
+RAIED can be best at protecting refinery for attacks with less than 60 kg explosives.
+
+2) Velocity
+According to UAS Chart, drones have speed of approximately 129 m/s.
+
+3) Defensive Wall (DW)
+
+DW is the shutter which can form the dome to protect a refinery unit.
+
+DW can be provided in 2 types:
+a) SS Sheet Defensive Wall
+SS Sheet thickness range from 4mm to 30mm. The most popular is 8mm. The shutters do come with specific area size. They are built and stored in quantity. After an attack, the damaged shutter can be easily replaced by using the stock within short time.
+
+The dome may be consists from double shutters or more, up to 5 sheets. The space between these shutters can be changed between 0.5 mt to 2.5 mt.
+
+We should add to the library with 7 images: undamaged sheet, minor crack, mid crack, major crack, minor damage, medium damage and major damage images. 
+
+If we work out the maximum MJ, we can develop a table to show grades of MJ, each grade assigned to one the images and deploy the right image from the above 7 images.
+
+So, if the missile hits the first sheet and pass to the 2nd one, again we deploy the image that associated with the MJ. So on, up until we deploy the undamaged sheet if MJ=0.
+
+b) Layer Defensive Wall
+Each lay is consists of 2 sheets. The distance between the sheets can vary from 0.5 mt to 4 mt.
+
+We should add to the library with another 7 images: Undamaged Layer, Minor Crack Layer, Mid Crack Layer, Major Crack Layer, Minor Damage Layer, Medium Damage Layer and Major Damage Layer images. 
+
+c) Mix SS Sheets and Layer Defensive Wall
+We can use the above 14 images to form the custom mad wall but offer the space width to be between 0.5mt to 4mt.
+
+4) Sheet Thickness
+The thickness is from 4mm to 50mm.
+
+The Thickness selection should be offered to 3. a), b) and c).
+
+Can we develop code to cover the above 1) to 4)?   
+
+But I prefer to deal with b) now.
+
+
+
+
+I would like some help please.
+
+This project is called RAIED:
+It is a simulator and calculator that demonstrate new technique to protect vital facilities including oil refineries.
+
+The simulator is based on 3 parts:
+1) 3D Tank Defence
+2) Shutter Timing & Damage
+3) Expandable Shutter Layer Editor
+
+These days drones are striking these facilities with ease. Market provide military antidoron defense system but it is failing to stop the drone attack and drone success to cause damage to these facilities.
+
+part1.html: The first of the drone demonstrate simple understanding to the weaknesses to these facilities and offering shutter dome that re-acts within the time of detecting the drone is approaching the facility and close the dome 100% by using SS Sheet Shutters with a decided thickness from 4 mm to 30 mm.
+
+part2.html: The timing of arrival can be calculated in the second part of the simulator. It is based on mathematical formulas and using various sensors including radars that can detect between 10km to 50km.
+
+part3.html: This part focused on constructing the shutter or the defense wall. The energy from the drone missile is dumped down by using sheets and layers of sheets with spaces in-between defenses up until the energy is zero. This gives total protection and facilities with this dome is safe.
+
+The required help is on the part3.html. The code is demonstrating the effect (damage) of the missile on the SS sheets whether they are singles Shutters or Layer (which is consists of 2 sheets with variable space between 0.5mt to 5mt. The calculation is again based on mathematical formulas that speed, force and Energy. So, MJ is the main parameter.
+
+
+I don't have a relationship calculation between MJ and SS sheet with certain thickness. But part3.html is demonstrating smooth non-discontinued effect of the damage to the sheet with details I understand but not the non-experienced users.
+
+For example, iout a table that if MJ = 1 would cause a dent, crack or make a hole on the ss sheet, then the part3.html would achieve its desire. Can yo u help on this issue please?
+
+If you can, I am willing to upload the 3 html files plus main.html. Just let me know.
+
+
+Why?
+
+Military ballistics: 7.62mm NATO AP round (~3.5 kJ) can penetrate 6mm mild steel at 100m.
+
+Your drone missile has 5,000 kJ (5 MJ) — that's 1,400 times more energy.
+
+Even with energy dissipation, 8mm SS offers ~0.8–1.0 MJ absorption capacity.
+
+5 MJ will punch through like paper.
+
+
+Please explain this scenario:
+IMEA (MJ)
+0.1440 MJ
+EMEA (MJ)
+0.0360 MJ
+Absorbed
+0.1080 MJ
+Sheets
+1
+Layers
+0
+⚠️ MINOR DAMAGE POSSIBLE - Residual: 0.0360 MJ - Surface scorching only, tank remains safe
+
+THE SHUTTER HAS NO DAMAGE APPEARED ON IT but the brown message is there!
+
+By adding a layer:
+
+0.1440 MJ
+EMEA (MJ)
+0.0012 MJ
+Absorbed
+0.1428 MJ
+Sheets
+1
+Layers
+1
+✅ FULL PROTECTION - Storage Tank SAFE (Residual energy negligible)
+
+
+EMEA (MJ)=0.0012 MJ... the question is: How the layer is protecting the tank if there was no penetration on the first shutter
+
+
+Standard:
+With 40mm thickness and
+IMEA (MJ)
+1.2500 MJ
+EMEA (MJ)
+1.2038 MJ
+Absorbed
+0.0462 MJ
+Effective Thick
+40.0 mm
+MJ Capacity
+4.00 MJ
+
+Slopped
+With 40mm thickness and
+IMEA (MJ)
+1.2500 MJ
+EMEA (MJ)
+1.2213 MJ
+Absorbed
+0.0287 MJ
+Effective Thick
+56.0 mm
+MJ Capacity
+
+Corrugated
+With 40mm thickness and
+
+Composite
+With 40mm thickness and
+IMEA (MJ)
+1.2500 MJ
+EMEA (MJ)
+1.2276 MJ
+Absorbed
+0.0224 MJ
+Effective Thick
+72.0 mm
+MJ Capacity
+7.20 MJ
+💰 Cost / Benefit Analysis
+
+Reactive Armor
+With 40mm thickness and
+MEA (MJ)
+1.2500 MJ
+EMEA (MJ)
+1.2420 MJ
+Absorbed
+0.0080 MJ
+Effective Thick
+40.0 mm
+MJ Capacity
+4.00 MJ
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>RAIED - Defense Wall Builder (Fixed Reference MJ)</title>
+    <style>
+        * { box-sizing: border-box; user-select: none; }
+        body {
+            margin: 0; padding: 24px;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(145deg, #f4f8fd 0%, #eaf0f8 100%);
+            color: #1a2c3e;
+        }
+        .dashboard { max-width: 1400px; margin: 0 auto; }
+        h1 { font-size: 1.8rem; margin-bottom: 0.5rem; border-left: 5px solid #1f5fb8; padding-left: 20px; }
+        .subtitle { color: #2c4b6e; margin-bottom: 1.5rem; padding-left: 20px; font-size: 0.9rem; }
+        .grid-2col { display: grid; grid-template-columns: 420px 1fr; gap: 24px; align-items: start; }
+        .control-card {
+            background: #ffffffdd; backdrop-filter: blur(8px); border-radius: 28px;
+            padding: 20px; box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+        .section { border-bottom: 1px solid #dfe7ef; padding-bottom: 18px; margin-bottom: 18px; }
+        .section h3 { margin: 0 0 14px; font-size: 1.1rem; color: #1f5fb8; }
+        .input-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
+        .input-group { flex: 1; min-width: 100px; }
+        label { display: block; font-weight: 600; font-size: 0.8rem; margin-bottom: 6px; color: #2c4b6e; }
+        input, select { 
+            width: 100%; padding: 8px 12px; border-radius: 20px; border: 1px solid #cad5e2; 
+            background: white; font-size: 0.9rem; 
+        }
+        button {
+            background: linear-gradient(135deg, #1f5fb8, #153e75); border: none; padding: 8px 16px;
+            border-radius: 40px; font-weight: bold; font-size: 0.9rem; color: white; cursor: pointer;
+            transition: 0.2s; box-shadow: 0 4px 10px rgba(31,95,184,0.3);
+        }
+        button:hover { transform: translateY(-2px); background: linear-gradient(135deg, #2a6fc9, #1a4685); }
+        .element-list {
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 10px;
+            margin: 15px 0;
+            border: 1px solid #cbd5e1;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .element-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: white;
+            color: #1e293b;
+            padding: 8px 12px;
+            margin: 6px 0;
+            border-radius: 40px;
+            border: 1px solid #cbd5e1;
+        }
+        .element-item button {
+            background: #ef4444;
+            padding: 4px 12px;
+            font-size: 0.7rem;
+            margin-left: 8px;
+            color: white;
+        }
+        .add-element {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(5,1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-box {
+            background: white; border-radius: 20px; padding: 12px; text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        .stat-box small { font-size: 0.65rem; text-transform: uppercase; color: #6b8aaa; display: block; margin-bottom: 6px; }
+        .stat-box .value { font-size: 1.2rem; font-weight: 800; color: #1f5fb8; }
+        .status-msg {
+            background: #eef2ff; border-radius: 20px; padding: 12px; text-align: center;
+            margin-bottom: 20px; font-weight: bold;
+        }
+        .status-msg.safe { background: #d1fae5; color: #065f46; }
+        .status-msg.unsafe { background: #fee2e2; color: #991b1b; }
+        .visual-sequence {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 10px;
+            background: #ffffffaa;
+            border-radius: 28px;
+            border: 1px solid #eef3fc;
+            overflow-x: auto;
+            flex-wrap: wrap;
+        }
+        .sequence-img {
+            display: block;
+            width: 70px;
+            height: auto;
+            object-fit: contain;
+            border-radius: 8px;
+            background: #f1f5f9;
+            padding: 2px;
+        }
+        .resizable-space {
+            background: #cbd5e1;
+            border: 2px solid #64748b;
+            border-radius: 12px;
+            min-width: 60px;
+            width: 100px;
+            height: 70px;
+            resize: both;
+            overflow: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #1e293b;
+            text-align: center;
+            padding: 4px;
+            margin: 0 2px;
+            cursor: ew-resize;
+        }
+        .resizable-space span {
+            background: rgba(255,255,255,0.8);
+            padding: 2px 6px;
+            border-radius: 20px;
+            pointer-events: none;
+        }
+        .layer-container {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            background: #e2e8f0;
+            border-radius: 16px;
+            padding: 6px;
+            border: 1px solid #94a3b8;
+        }
+        .layer-container .sequence-img {
+            width: 60px;
+        }
+        .legend {
+            display: flex;
+            gap: 24px;
+            padding: 16px 0 8px;
+            border-top: 1px solid #dfe7ef;
+            font-size: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .legend span {
+            display: inline-block;
+            width: 20px;
+            height: 14px;
+            border-radius: 6px;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        .damage-table-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            padding: 20px;
+            z-index: 1000;
+            width: 450px;
+            border: 2px solid #1f5fb8;
+        }
+        .damage-table-overlay table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .damage-table-overlay th, .damage-table-overlay td {
+            border: 1px solid #cbd5e1;
+            padding: 8px;
+            text-align: center;
+        }
+        .damage-table-overlay th {
+            background: #1f5fb8;
+            color: white;
+        }
+        .damage-table-overlay .close-btn {
+            background: #ef4444;
+            float: right;
+            padding: 4px 12px;
+            margin-bottom: 10px;
+        }
+        .overlay-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+        .info-note {
+            font-size: 0.7rem;
+            color: #4b5563;
+            background: #f3f4f6;
+            padding: 6px;
+            border-radius: 12px;
+            margin-top: 10px;
+            text-align: center;
+        }
+        .btn-small {
+            background: #475569;
+            padding: 4px 10px;
+            font-size: 0.7rem;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #1f5fb8;
+            color: #1f5fb8;
+            box-shadow: none;
+        }
+        .btn-outline:hover {
+            background: #1f5fb8;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+<div class="dashboard">
+    <h1>🛡️ RAIED - Fixed Reference MJ for Damage Mapping</h1>
+    <div class="subtitle">Damage level is based on a fixed reference MJ (e.g., 150 kg at 250 m/s), independent of actual threat.</div>
+    
+    <div class="grid-2col">
+        <div class="control-card">
+            <div class="section">
+                <h3>⚡ Threat (Drone) – for IMEA & EMEA</h3>
+                <div class="input-row">
+                    <div class="input-group"><label>Mass (kg)</label><input type="number" id="mass" value="20" step="1" min="1" max="300"></div>
+                    <div class="input-group"><label>Velocity (m/s)</label><input type="number" id="velocity" value="129" step="1" min="1" max="300"></div>
+                </div>
+                <div class="info-note">IMEA = ½ × mass × velocity² / 1e6 (MJ)</div>
+            </div>
+
+            <div class="section">
+                <h3>📊 Reference Max MJ (for damage lookup)</h3>
+                <div class="input-row">
+                    <div class="input-group"><label>Ref. mass (kg)</label><input type="number" id="refMass" value="150" step="1" min="1" max="500"></div>
+                    <div class="input-group"><label>Ref. velocity (m/s)</label><input type="number" id="refVelocity" value="250" step="1" min="1" max="500"></div>
+                </div>
+                <div class="info-note" id="refMaxMJDisplay">RefMaxMJ = 4.6875 MJ (150kg @250m/s)</div>
+            </div>
+
+            <div class="section">
+                <h3>🛡️ Defense Elements (build wall)</h3>
+                <div id="elementListContainer" class="element-list"></div>
+                <div class="add-element">
+                    <button id="addSheetBtn">+ Add SS Sheet</button>
+                    <button id="addLayerBtn">+ Add Layer (2 sheets + internal gap)</button>
+                </div>
+                <div class="info-note">Click ✏️ to edit thickness & gaps. Resize any gap by dragging bottom‑right corner.</div>
+                <button id="resetCustomBtn" class="btn-small" style="margin-top:10px;">⟳ Reset to Example (2 sheets)</button>
+                <button id="showTableBtn" class="btn-outline" style="margin-top:10px; width:100%;">📊 Show Damage Lookup Table (based on RefMaxMJ)</button>
+            </div>
+
+            <div class="section">
+                <h3>📐 Material & Absorption</h3>
+                <div class="input-group"><label>Steel thickness (mm) – for all sheets</label><input type="number" id="globalThickness" value="8" min="4" max="50" step="1"></div>
+                <div class="input-row">
+                    <div class="input-group"><label>α sheet (absorption coefficient)</label><input type="number" id="alphaSheet" value="0.6" step="0.01" min="0" max="1"></div>
+                    <div class="input-group"><label>α layer (internal factor)</label><input type="number" id="alphaLayer" value="0.9" step="0.01" min="0" max="1"></div>
+                </div>
+            </div>
+            <button id="refreshBtn">⟳ UPDATE WALL & ENERGY</button>
+        </div>
+
+        <div>
+            <div class="stats">
+                <div class="stat-box"><small>IMEA (MJ)</small><div class="value" id="imea">–</div></div>
+                <div class="stat-box"><small>EMEA (MJ)</small><div class="value" id="emea">–</div></div>
+                <div class="stat-box"><small>Total Absorbed</small><div class="value" id="totalAbsorbed">–</div></div>
+                <div class="stat-box"><small>Sheets used</small><div class="value" id="sheetCount">–</div></div>
+                <div class="stat-box"><small>Layers used</small><div class="value" id="layerCount">–</div></div>
+            </div>
+            <div id="statusMsg" class="status-msg">⚙️ Build your defense wall. Aim for EMEA = 0.0 MJ</div>
+
+            <div class="energy-bar">
+                <div class="bar-title">🎯 Defense Wall Visualisation (damage level based on RefMaxMJ)</div>
+                <div id="visualSequenceContainer" class="visual-sequence"></div>
+                <div class="legend">
+                    <div><span style="background:#facc15;"></span> Missile</div>
+                    <div><span style="background:#e2e8f0;"></span> SS Sheet (damage level)</div>
+                    <div><span style="background:#cbd5e1;"></span> Resizable Gap (space)</div>
+                    <div><span style="background:#8b5cf6;"></span> Layer (two sheets + resizable internal gap)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ========== IMAGE LIBRARY ==========
+    const MISSILE_IMG = "https://dl.dropboxusercontent.com/scl/fi/2i2exxz0i0tbp03s912dj/Missile-Mass-20-Kg.png?rlkey=37jxbmc814pshahpq0th2w8ih&st=hjk3j0co&raw=1";
+    const SHEET_DAMAGE_IMGS = [
+        "https://dl.dropboxusercontent.com/scl/fi/3sxm6lxrwr8tpex46nu1z/Undamaged-Sheet.png?rlkey=w3qnjslp6ydcmfqwiug408yuc&st=xlur1g9d&raw=1",
+        "https://dl.dropboxusercontent.com/scl/fi/135m4r57frcjtxhwgzi7i/Minor-Crack.png?rlkey=uv3popqo2f3updlexj2t5lorh&st=8ud53e4u&raw=1",
+        "https://dl.dropboxusercontent.com/scl/fi/08g7wdfr9ljlmikni1s3c/Medium-Crack.png?rlkey=ul577y2l6vetplbvgub2ghc0f&st=gk5j9pih&raw=1",
+        "https://dl.dropboxusercontent.com/scl/fi/xoa1haicb5zvzs1ziq2ag/Major-Crack.png?rlkey=l317yprucekcn3dk59ehvaf1a&st=vkrlok6o&raw=1",
+        "https://dl.dropboxusercontent.com/scl/fi/no8rqlopl1frmkmxz88zg/Minor-Damage.png?rlkey=v2eeovwuq734c030jax81jsuo&st=x582zp2m&raw=1",
+        "https://dl.dropboxusercontent.com/scl/fi/fc8fh176a0o9tziy1qeov/Medium-Damage.png?rlkey=j75qvuwx8qybv1neog5pkab8w&st=k11ce9ej&raw=1",
+        "https://dl.dropboxusercontent.com/scl/fi/7ld8x83628msniyibzdy6/Major-Damage.png?rlkey=glk9cromiz9a6elrl3ibgo559&st=qib08ril&raw=1"
+    ];
+    
+    let defenseElements = [];
+
+    // DOM elements
+    const massInput = document.getElementById('mass');
+    const velInput = document.getElementById('velocity');
+    const refMassInput = document.getElementById('refMass');
+    const refVelInput = document.getElementById('refVelocity');
+    const refMaxMJDisplay = document.getElementById('refMaxMJDisplay');
+    const globalThicknessInput = document.getElementById('globalThickness');
+    const alphaSheetInput = document.getElementById('alphaSheet');
+    const alphaLayerInput = document.getElementById('alphaLayer');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const addSheetBtn = document.getElementById('addSheetBtn');
+    const addLayerBtn = document.getElementById('addLayerBtn');
+    const resetCustomBtn = document.getElementById('resetCustomBtn');
+    const showTableBtn = document.getElementById('showTableBtn');
+    const elementListContainer = document.getElementById('elementListContainer');
+    const visualContainer = document.getElementById('visualSequenceContainer');
+
+    function clamp(v, min, max) { return Math.min(max, Math.max(min, v)); }
+    function formatMJ(v) { return v.toFixed(6) + " MJ"; }
+
+    // Compute reference max MJ (for damage mapping)
+    function computeRefMaxMJ() {
+        let mass = parseFloat(refMassInput.value);
+        let vel = parseFloat(refVelInput.value);
+        let refMJ = 0.5 * mass * vel * vel / 1e6;
+        refMaxMJDisplay.innerHTML = `RefMaxMJ = ${refMJ.toFixed(6)} MJ (${mass}kg @ ${vel}m/s)`;
+        return refMJ;
+    }
+
+    // Energy model functions
+    function simulateSheet(energyIn, thickMm, baseAlpha, gapM) {
+        const thickFactor = thickMm / 8;
+        const gapFactor = 1 + gapM / 1;
+        let alpha = clamp(baseAlpha * thickFactor * gapFactor, 0, 0.98);
+        let absorbed = energyIn * alpha;
+        let transmitted = energyIn - absorbed;
+        return { absorbed, transmitted };
+    }
+
+    function simulateLayer(energyIn, sheetThickMm, sheetAlpha, internalGapM, layerAlpha) {
+        let sheet1 = simulateSheet(energyIn, sheetThickMm, sheetAlpha * layerAlpha, internalGapM);
+        let afterSheet1 = sheet1.transmitted;
+        let gapReduction = Math.min(0.9, internalGapM / 2);
+        let gapAbsorbed = afterSheet1 * gapReduction * 0.3;
+        let afterGap = afterSheet1 - gapAbsorbed;
+        let sheet2 = simulateSheet(afterGap, sheetThickMm, sheetAlpha * layerAlpha, internalGapM);
+        let totalAbsorbed = sheet1.absorbed + gapAbsorbed + sheet2.absorbed;
+        let transmitted = sheet2.transmitted;
+        return { absorbed: totalAbsorbed, transmitted };
+    }
+
+    // Compute energy flow (IMEA, EMEA, absorbed per element)
+    function computeEnergyFlow() {
+        let mass = parseFloat(massInput.value);
+        let vel = parseFloat(velInput.value);
+        let imea = 0.5 * mass * vel * vel / 1e6;
+        let currentEnergy = imea;
+        let totalAbsorbed = 0;
+        let elementEnergies = [];
+
+        for (let i = 0; i < defenseElements.length; i++) {
+            let el = defenseElements[i];
+            let thick = el.thickness_mm;
+            let gapToNext = el.gapToNext_m;
+            let alphaSheet = parseFloat(alphaSheetInput.value);
+            let alphaLayer = parseFloat(alphaLayerInput.value);
+            if (el.type === 'sheet') {
+                let res = simulateSheet(currentEnergy, thick, alphaSheet, gapToNext);
+                totalAbsorbed += res.absorbed;
+                elementEnergies.push({ type: 'sheet', absorbed: res.absorbed, transmitted: res.transmitted });
+                currentEnergy = res.transmitted;
+            } else {
+                let internalGap = el.internalGap_m;
+                let res = simulateLayer(currentEnergy, thick, alphaSheet, internalGap, alphaLayer);
+                totalAbsorbed += res.absorbed;
+                elementEnergies.push({ type: 'layer', absorbed: res.absorbed, transmitted: res.transmitted });
+                currentEnergy = res.transmitted;
+            }
+        }
+        let emea = currentEnergy;
+        return { imea, emea, totalAbsorbed, elementEnergies };
+    }
+
+    // Damage level based on fixed reference MJ (not on IMEA)
+    function getDamageLevel(absorbedMJ) {
+        let refMax = computeRefMaxMJ();
+        if (refMax <= 0 || absorbedMJ <= 0) return 0;
+        let ratio = absorbedMJ / refMax;
+        let level = Math.floor(ratio * 7);
+        return Math.min(6, Math.max(0, level));
+    }
+
+    function createResizableGap(initialValueM, onResizeCallback) {
+        const gapDiv = document.createElement('div');
+        gapDiv.className = 'resizable-space';
+        const span = document.createElement('span');
+        span.textContent = `${initialValueM} m`;
+        gapDiv.appendChild(span);
+        let resizeObserver = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                const newWidth = entry.contentRect.width;
+                let minWidth = 60, maxWidth = 300, minGap = 0.5, maxGap = 5.0;
+                let newGap = minGap + (newWidth - minWidth) / (maxWidth - minWidth) * (maxGap - minGap);
+                newGap = Math.min(maxGap, Math.max(minGap, newGap));
+                span.textContent = `${newGap.toFixed(2)} m`;
+                if (onResizeCallback) onResizeCallback(newGap);
+            }
+        });
+        resizeObserver.observe(gapDiv);
+        return gapDiv;
+    }
+
+    function buildVisuals(imea, elementEnergies) {
+        visualContainer.innerHTML = '';
+        const missileImg = document.createElement('img');
+        missileImg.src = MISSILE_IMG;
+        missileImg.className = 'sequence-img';
+        missileImg.title = `Missile | IMEA = ${formatMJ(imea)}`;
+        visualContainer.appendChild(missileImg);
+
+        for (let i = 0; i < defenseElements.length; i++) {
+            const el = defenseElements[i];
+            const energy = elementEnergies[i];
+            const damageLevel = getDamageLevel(energy.absorbed);
+            if (el.type === 'sheet') {
+                const sheetImg = document.createElement('img');
+                sheetImg.src = SHEET_DAMAGE_IMGS[damageLevel];
+                sheetImg.className = 'sequence-img';
+                sheetImg.title = `SS Sheet (${el.thickness_mm}mm) | Absorbed: ${formatMJ(energy.absorbed)} | Damage level: ${damageLevel}`;
+                visualContainer.appendChild(sheetImg);
+            } else {
+                const layerDiv = document.createElement('div');
+                layerDiv.className = 'layer-container';
+                const leftImg = document.createElement('img');
+                leftImg.src = SHEET_DAMAGE_IMGS[damageLevel];
+                leftImg.className = 'sequence-img';
+                leftImg.style.width = '60px';
+                leftImg.title = `Layer left sheet | Damage level: ${damageLevel}`;
+                layerDiv.appendChild(leftImg);
+                const internalGapDiv = createResizableGap(el.internalGap_m, (newGap) => {
+                    el.internalGap_m = newGap;
+                    const newEnergies = computeEnergyFlow();
+                    updateStatsAndStatus(newEnergies);
+                    updateDamageLevelsOnly(newEnergies);
+                });
+                layerDiv.appendChild(internalGapDiv);
+                const rightImg = document.createElement('img');
+                rightImg.src = SHEET_DAMAGE_IMGS[damageLevel];
+                rightImg.className = 'sequence-img';
+                rightImg.style.width = '60px';
+                rightImg.title = `Layer right sheet | Damage level: ${damageLevel}`;
+                layerDiv.appendChild(rightImg);
+                visualContainer.appendChild(layerDiv);
+            }
+            if (i < defenseElements.length - 1 && el.gapToNext_m > 0) {
+                const gapDiv = createResizableGap(el.gapToNext_m, (newGap) => {
+                    el.gapToNext_m = newGap;
+                    const newEnergies = computeEnergyFlow();
+                    updateStatsAndStatus(newEnergies);
+                    updateDamageLevelsOnly(newEnergies);
+                });
+                visualContainer.appendChild(gapDiv);
+            }
+        }
+    }
+
+    function updateStatsAndStatus({ imea, emea, totalAbsorbed }) {
+        document.getElementById('imea').innerHTML = formatMJ(imea);
+        document.getElementById('emea').innerHTML = formatMJ(emea);
+        document.getElementById('totalAbsorbed').innerHTML = formatMJ(totalAbsorbed);
+        let sheetCount = defenseElements.filter(e => e.type === 'sheet').length;
+        let layerCount = defenseElements.filter(e => e.type === 'layer').length;
+        document.getElementById('sheetCount').innerHTML = sheetCount;
+        document.getElementById('layerCount').innerHTML = layerCount;
+        let statusDiv = document.getElementById('statusMsg');
+        if (emea <= 0.000001) {
+            statusDiv.innerHTML = '✅ FULL PROTECTION: EMEA = 0.0 MJ | Defense wall successful.';
+            statusDiv.className = 'status-msg safe';
+        } else {
+            statusDiv.innerHTML = `⚠️ NOT PROTECTED: EMEA = ${emea.toFixed(6)} MJ > 0. Add more elements, increase thickness, or reduce gaps.`;
+            statusDiv.className = 'status-msg unsafe';
+        }
+    }
+
+    function updateDamageLevelsOnly({ elementEnergies }) {
+        let itemIndex = 1;
+        const items = visualContainer.children;
+        for (let i = 0; i < defenseElements.length; i++) {
+            const el = defenseElements[i];
+            const energy = elementEnergies[i];
+            const damageLevel = getDamageLevel(energy.absorbed);
+            const child = items[itemIndex];
+            if (!child) break;
+            if (el.type === 'sheet') {
+                if (child.tagName === 'IMG') {
+                    child.src = SHEET_DAMAGE_IMGS[damageLevel];
+                    child.title = `SS Sheet (${el.thickness_mm}mm) | Absorbed: ${formatMJ(energy.absorbed)} | Damage level: ${damageLevel}`;
+                }
+                itemIndex++;
+            } else if (el.type === 'layer') {
+                if (child.classList && child.classList.contains('layer-container')) {
+                    const imgs = child.querySelectorAll('img');
+                    if (imgs.length >= 2) {
+                        imgs[0].src = SHEET_DAMAGE_IMGS[damageLevel];
+                        imgs[1].src = SHEET_DAMAGE_IMGS[damageLevel];
+                        imgs[0].title = `Layer left sheet | Damage level: ${damageLevel}`;
+                        imgs[1].title = `Layer right sheet | Damage level: ${damageLevel}`;
+                    }
+                }
+                itemIndex++;
+            }
+            if (i < defenseElements.length - 1 && el.gapToNext_m > 0) itemIndex++;
+        }
+    }
+
+    function refresh() {
+        computeRefMaxMJ(); // update display
+        const { imea, emea, totalAbsorbed, elementEnergies } = computeEnergyFlow();
+        updateStatsAndStatus({ imea, emea, totalAbsorbed });
+        buildVisuals(imea, elementEnergies);
+        renderElementList();
+        sendParamsToParent();
+    }
+
+    function renderElementList() {
+        elementListContainer.innerHTML = '';
+        if (defenseElements.length === 0) {
+            elementListContainer.innerHTML = '<div style="text-align:center; color:#6b8aaa;">No elements. Click + to add.</div>';
+        }
+        defenseElements.forEach((el, idx) => {
+            const div = document.createElement('div');
+            div.className = 'element-item';
+            let content = el.type === 'sheet' 
+                ? `📄 Sheet ${idx+1} | Thick: ${el.thickness_mm}mm | Gap to next: ${el.gapToNext_m}m`
+                : `🧱 Layer ${idx+1} | Thick: ${el.thickness_mm}mm | Int.gap: ${el.internalGap_m}m | Gap next: ${el.gapToNext_m}m`;
+            div.innerHTML = `<span style="flex:1">${content}</span>
+                             <button class="edit-element" data-idx="${idx}">✏️</button>
+                             <button class="remove-element" data-idx="${idx}">🗑️</button>`;
+            elementListContainer.appendChild(div);
+        });
+        document.querySelectorAll('.edit-element').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                let idx = parseInt(btn.getAttribute('data-idx'));
+                editElement(idx);
+            });
+        });
+        document.querySelectorAll('.remove-element').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                let idx = parseInt(btn.getAttribute('data-idx'));
+                defenseElements.splice(idx, 1);
+                refresh();
+            });
+        });
+    }
+
+    function editElement(idx) {
+        let el = defenseElements[idx];
+        let newThick = prompt(`Enter thickness (mm) [current: ${el.thickness_mm}]`, el.thickness_mm);
+        if (newThick !== null) el.thickness_mm = parseFloat(newThick);
+        let newGap = prompt(`Enter gap to next element (m) [current: ${el.gapToNext_m}]`, el.gapToNext_m);
+        if (newGap !== null) el.gapToNext_m = parseFloat(newGap);
+        if (el.type === 'layer') {
+            let newIntGap = prompt(`Enter internal layer gap (m) [current: ${el.internalGap_m}]`, el.internalGap_m);
+            if (newIntGap !== null) el.internalGap_m = parseFloat(newIntGap);
+        }
+        refresh();
+    }
+
+    function addSheet() {
+        let thick = parseFloat(globalThicknessInput.value);
+        defenseElements.push({ type: 'sheet', thickness_mm: thick, gapToNext_m: 1.0 });
+        refresh();
+    }
+
+    function addLayer() {
+        let thick = parseFloat(globalThicknessInput.value);
+        defenseElements.push({ type: 'layer', thickness_mm: thick, gapToNext_m: 1.0, internalGap_m: 1.0 });
+        refresh();
+    }
+
+    function resetToExample() {
+        defenseElements = [
+            { type: 'sheet', thickness_mm: 8, gapToNext_m: 0.5 },
+            { type: 'sheet', thickness_mm: 8, gapToNext_m: 0 }
+        ];
+        refresh();
+    }
+
+    function sendParamsToParent() {
+        let params = {
+            type: 'updateParams',
+            mass: parseFloat(massInput.value),
+            velocity: parseFloat(velInput.value),
+            alphaShutter: parseFloat(alphaSheetInput.value),
+            alphaLayer: parseFloat(alphaLayerInput.value),
+        };
+        window.parent.postMessage(params, '*');
+    }
+
+    function showDamageTable() {
+        const refMax = computeRefMaxMJ();
+        if (refMax <= 0) {
+            alert("Reference Max MJ is zero or invalid.");
+            return;
+        }
+        const step = refMax / 7;
+        const levels = [
+            "Undamaged Sheet", "Minor Crack", "Medium Crack", "Major Crack",
+            "Minor Damage", "Medium Damage", "Major Damage"
+        ];
+        let html = `<div class="overlay-backdrop" id="tableBackdrop"></div>
+                    <div class="damage-table-overlay" id="damageTable">
+                        <button class="close-btn" id="closeTableBtn">✖ Close</button>
+                        <h3 style="margin-top:0">Damage Lookup Table (Fixed Reference Max MJ = ${refMax.toFixed(4)} MJ)</h3>
+                        <p style="font-size:0.8rem;">Damage level = floor((absorbed MJ / RefMaxMJ) × 7)</p>
+                        <table>
+                            <tr><th>Level</th><th>MJ Range (absorbed)</th><th>Image</th></tr>`;
+        for (let i = 0; i < 7; i++) {
+            let lower = (i * step).toFixed(4);
+            let upper = ((i+1) * step).toFixed(4);
+            if (i === 6) upper = `${refMax.toFixed(4)} (max)`;
+            html += `<tr>
+                        <td>${i}</td>
+                        <td>${lower} – ${upper} MJ</td>
+                        <td><img src="${SHEET_DAMAGE_IMGS[i]}" style="width:40px; height:auto; vertical-align:middle;"> ${levels[i]}</td>
+                      </tr>`;
+        }
+        html += `</table></div>`;
+        document.body.insertAdjacentHTML('beforeend', html);
+        document.getElementById('closeTableBtn').onclick = () => {
+            document.getElementById('damageTable')?.remove();
+            document.getElementById('tableBackdrop')?.remove();
+        };
+        document.getElementById('tableBackdrop').onclick = () => {
+            document.getElementById('damageTable')?.remove();
+            document.getElementById('tableBackdrop')?.remove();
+        };
+    }
+
+    // Event listeners
+    refreshBtn.addEventListener('click', refresh);
+    addSheetBtn.addEventListener('click', addSheet);
+    addLayerBtn.addEventListener('click', addLayer);
+    resetCustomBtn.addEventListener('click', resetToExample);
+    showTableBtn.addEventListener('click', showDamageTable);
+    massInput.addEventListener('input', refresh);
+    velInput.addEventListener('input', refresh);
+    refMassInput.addEventListener('input', refresh);
+    refVelInput.addEventListener('input', refresh);
+    globalThicknessInput.addEventListener('input', () => {
+        for (let el of defenseElements) el.thickness_mm = parseFloat(globalThicknessInput.value);
+        refresh();
+    });
+    alphaSheetInput.addEventListener('input', refresh);
+    alphaLayerInput.addEventListener('input', refresh);
+    
+    resetToExample();
+</script>
+</body>
+</html>

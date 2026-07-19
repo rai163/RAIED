@@ -1,0 +1,108 @@
+standard: `<div class="guide-section"><h4>📄 Standard SS304 Stainless Steel — Complete Manufacturing Guide</h4>
+            <h5>1. MATERIAL SPECIFICATIONS & CHEMISTRY</h5>
+            <table class="refinery-table">
+                <tr><th>Property</th><th>Value</th><th>Test Method</th><th>Acceptance Criteria</th></tr>
+                <tr><td>Material Designation</td><td>SS304 / UNS S30400 / 1.4301</td><td>ASTM A240</td><td>—</td></tr>
+                <tr><td>Chemical Composition</td><td>18.0-20.0% Cr, 8.0-10.5% Ni, &lt;0.08% C, &lt;2.0% Mn, &lt;1.0% Si, &lt;0.045% P, &lt;0.030% S</td><td>XRF / OES</td><td>Within ±0.2% of target</td></tr>
+                <tr><td>Chromium Equivalent</td><td>Cr_eq = Cr + Mo + 1.5×Si + 0.5×Nb</td><td>Calculation</td><td>>18% for corrosion resistance</td></tr>
+                <tr><td>Nickel Equivalent</td><td>Ni_eq = Ni + 30×C + 0.5×Mn</td><td>Calculation</td><td>>8% for austenite stability</td></tr>
+                <tr><td>Schaefler Diagram Prediction</td><td>Austenite + 5-20% ferrite</td><td>Microstructure analysis</td><td>No sigma phase</td></tr>
+            </table>
+            
+            <h5>2. PHYSICS & MATHEMATICS OF PROTECTION</h5>
+            <div class="chemical-equation">
+                Ballistic Limit (V50) vs RHA Steel:
+                V50(SS304) = 0.85 × V50(RHA) for equal thickness (85% efficiency)
+                
+                Effective thickness after work hardening:
+                t_eff = t × (1 + ε) where ε = true strain = ln(t_final/t_initial)
+                Cold rolling to 8mm from 10mm: ε = ln(10/8) = 0.223 → t_eff = 8 × 1.223 = 9.78mm
+                
+                Areal density: AD = t × ρ = 8mm × 7.93 g/cm³ = 63.44 kg/m²
+                Energy absorption per unit area: EA = (V50² × m_projectile) / (2 × area) ≈ 15-18 kJ/m² for 20mm FSP
+            </div>
+            
+            <h5>3. STEP-BY-STEP MANUFACTURING PROCESS</h5>
+            <h5>Step 1: Melting & Casting (8 hours)</h5>
+            <p><strong>Equipment:</strong> Electric Arc Furnace (EAF, 100 ton capacity) + Argon Oxygen Decarburization (AOD) vessel</p>
+            <ul>
+                <li>Charge: 70% scrap stainless steel + 30% ferrochrome/nickel alloys</li>
+                <li>EAF melt: 1600°C, 4 hours, slag basicity ratio (CaO/SiO₂) = 1.8-2.2 for P removal</li>
+                <li>AOD refining: Decarburization to &lt;0.08% C using O₂/Ar mixture (1:3 ratio), 2 hours, 1650°C</li>
+                <li>Deoxidation: Add Si (0.5 kg/ton) and Al (0.3 kg/ton)</li>
+                <li>Continuous casting: Slab size 200mm thick × 2m wide, casting speed 1.2 m/min</li>
+            </ul>
+            
+            <h5>Step 2: Hot Rolling (2 hours)</h5>
+            <ul>
+                <li>Reheat slab to 1250°C (soak 30 minutes, furnace atmosphere reducing to minimize scale)</li>
+                <li>Roughing mill (4 passes): 200 → 100mm, temperature drop to 1150°C</li>
+                <li>Finishing mill (7 stands): 100 → 8mm, exit temperature 900°C</li>
+                <li>Laminar cooling: Water spray cooling at 30°C/sec to 600°C</li>
+                <li>Coiling: Coil weight 20 tons, cooling to room temperature in 48 hours</li>
+            </ul>
+            
+            <h5>Step 3: Cold Rolling & Annealing (4 hours)</h5>
+            <ul>
+                <li>Pickling: HNO₃/HF bath (15% HNO₃ + 3% HF, 55°C, 10 minutes) to remove scale</li>
+                <li>Cold rolling (5 passes): 8mm → 6mm → 4.5mm → 3.5mm → 2.5mm → final 2mm</li>
+                <li>Solution annealing: 1050°C for 5 minutes (bright annealing in H₂ atmosphere)</li>
+                <li>Water quenching: 30°C, cooling rate >100°C/sec to prevent sensitization</li>
+            </ul>
+            
+            <h5>Step 4: Cutting & Finishing</h5>
+            <ul>
+                <li>Plasma cutting: 260A, 3000 mm/min, kerf width 3mm</li>
+                <li>Laser cutting (precision): 4kW fiber laser, 6000 mm/min, ±0.1mm tolerance</li>
+                <li>Deburring: Belt grinder (120 grit), edge radius 0.5-1.0mm</li>
+                <li>Chamfering: 2mm × 45° for weld prep</li>
+                <li>Passivation: 20% HNO₃ at 50°C for 30 minutes, water rinse, air dry</li>
+            </ul>
+            
+            <h5>4. EQUIPMENT SPECIFICATIONS</h5>
+            <table class="refinery-table">
+                <tr><th>Equipment</th><th>Specifications</th><th>Cost (USD)</th></tr>
+                <tr><td>EAF (100 ton)</td><td>AC furnace, 60 MVA transformer, water-cooled roof</td><td>$3,000,000</td></tr>
+                <tr><td>AOD Vessel</td><td>100 ton, side-mounted tuyeres, gas mixing station</td><td>$1,500,000</td></tr>
+                <tr><td>Continuous Caster</td><td>2m width, 200mm thickness, hydraulic oscillation</td><td>$5,000,000</td></tr>
+                <tr><td>Hot Rolling Mill</td><td>4-high rougher + 7-stand finishing, 2000 HP motors</td><td>$8,000,000</td></tr>
+            </table>
+            
+            <h5>5. QUALITY CONTROL PROTOCOLS</h5>
+            <table class="refinery-table">
+                <tr><th>Test</th><th>Standard</th><th>Acceptance Criteria</th><th>Frequency</th></tr>
+                <tr><td>Tensile Test</td><td>ASTM E8</td><td>YS ≥215 MPa, UTS 515-750 MPa, Elong ≥40%</td><td>1 per coil</td></tr>
+                <tr><td>Hardness (Rockwell B)</td><td>ASTM E18</td><td>85-95 HRB (annealed)</td><td>1 per coil</td></tr>
+                <tr><td>Charpy Impact (V-notch)</td><td>ASTM E23</td><td>≥100 J at 20°C</td><td>1 per batch</td></tr>
+                <tr><td>Intergranular Corrosion</td><td>ASTM A262 Practice E</td><td>No cracking after 16h boiling Cu-CuSO₄-H₂SO₄</td><td>1 per 100 tons</td></tr>
+            </table>
+            
+            <h5>6. COST BREAKDOWN (per m², 8mm plate)</h5>
+            <table class="refinery-table">
+                <tr><th>Cost Element</th><th>Value (USD)</th></tr>
+                <tr><td>Raw Material (alloy surcharge included)</td><td>$450</td></tr>
+                <tr><td>Melting & Casting</td><td>$35</td></tr>
+                <tr><td>Hot Rolling</td><td>$20</td></tr>
+                <tr><td>Cold Rolling & Annealing</td><td>$25</td></tr>
+                <tr><td>Cutting & Finishing</td><td>$15</td></tr>
+                <tr><td>Quality Control</td><td>$5</td></tr>
+                <tr><td><strong>Total Manufacturing Cost</strong></td><td><strong>$550/m²</strong></td></tr>
+                <tr><td>10-Year Maintenance ($8/m²/year × 10)</td><td>$80/m²</td></tr>
+                <tr><td><strong>Total Lifecycle Cost (10 years)</strong></td><td><strong>$630/m²</strong></td></tr>
+            </table>
+            
+            <h5>7. REFINERY INTEGRATION — THE BEAUTIFUL SYMMETRY</h5>
+            <div class="beautiful-symmetry-box">
+                <strong>🏭 THE BEAUTIFUL SYMMETRY OF STAINLESS STEEL</strong><br><br>
+                1. The REFINERY produces crude oil that is processed into fuels and petrochemicals<br>
+                2. The REFINERY's catalytic reformer produces benzene, a precursor for stainless steel production?<br>
+                3. NOT DIRECTLY — Stainless steel requires nickel and chromium from mining operations<br>
+                4. HOWEVER, the REFINERY'S steam methane reformer produces hydrogen for annealing<br>
+                5. Hydrogen atmosphere (H₂) is essential for bright annealing of stainless steel<br>
+                6. The REFINERY also provides thermal energy for the rolling mills and furnaces<br><br>
+                <strong>While stainless steel is not produced from refinery feedstocks, the refinery enables its precision manufacturing through hydrogen and energy supply.</strong><br><br>
+                <em>A collaborative industrial ecosystem.</em>
+            </div>
+            
+            <div class="note-box">📄 <strong>Summary:</strong> 1.0× multiplier, 63 kg/m², V50 ≈ 550 m/s for 20mm FSP. Best for low-threat applications.</div>
+</div>`,

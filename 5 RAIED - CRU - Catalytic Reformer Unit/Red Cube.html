@@ -1,0 +1,16 @@
+// 1. Add a bright red cube at the center
+const cube = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), new THREE.MeshStandardMaterial({color:0xff0000, emissive:0xff0000}));
+cube.position.set(0,2,0);
+scene.add(cube);
+
+// 2. Add axes helper (red=X, green=Y, blue=Z)
+const axes = new THREE.AxesHelper(5);
+scene.add(axes);
+
+// 3. Increase ambient and directional light
+scene.children.forEach(child => {
+  if(child instanceof THREE.AmbientLight) child.intensity = 1.2;
+  if(child instanceof THREE.DirectionalLight) child.intensity = 2.5;
+});
+
+console.log("Diagnostic helpers added. Rotate the view with mouse.");
