@@ -60,7 +60,19 @@
         .layer-container .sequence-canvas { width: 60px; height: 60px; }
         .internal-gap-control { display: inline-flex; flex-direction: column; align-items: center; background: #0f172a; border-radius: 12px; padding: 3px 6px; cursor: pointer; }
         .internal-gap-control .distance-value { font-size: 0.45rem; padding: 1px 3px; }
-        .missile-icon { width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-right: 3px; }
+        .missile-icon {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-right: 3px;
+}
+.missile-icon img {
+    max-width: 100%;
+    height: auto;
+}
         
         .bottom-section { flex: 1; display: flex; gap: 8px; min-height: 0; overflow: hidden; }
         .control-card { width: 340px; background: #ffffffdd; backdrop-filter: blur(8px); border-radius: 10px; padding: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); border: 1px solid rgba(255,255,255,0.6); overflow-y: auto; height: 100%; font-size: 0.6rem; }
@@ -306,8 +318,9 @@
 <div id="specsModal" class="modal"><div class="modal-content"><h3>📐 MATERIAL SPECIFICATIONS</h3><div id="modalSpecsContent"></div><button class="close-modal" id="closeSpecsModalBtn">Close</button></div></div>
 
 <script>
-    const SHUTTER_IMG = "https://www.dropbox.com/scl/fi/zcc1vab374gay58tf16vr/Shutter-without-background.png?rlkey=fs9l8rrs73q299pqdu3tfwlq9&st=sadrt2bb&raw=1";
-    const MISSILE_IMG = "https://dl.dropboxusercontent.com/scl/fi/2i2exxz0i0tbp03s912dj/Missile-Mass-20-Kg.png?rlkey=37jxbmc814pshahpq0th2w8ih&st=hjk3j0co&raw=1";
+    const SHUTTER_IMG = "Shutter without background.png";
+    const MISSILE_IMG = "Missile-Mass-20-Kg.png";
+
     
     let defenseElements = [];
     let shutterImage = null;
@@ -650,6 +663,13 @@
         missileDiv.appendChild(missileImg);
         container.appendChild(missileDiv);
         
+        // Add name label for verification
+        const nameLabel = document.createElement('div');
+        nameLabel.textContent = 'TALIB DEFENSE WALL';
+        nameLabel.style.cssText = 'color:#facc15; font-size:0.55rem; font-weight:bold; margin-left:8px; white-space:nowrap;';
+        container.appendChild(nameLabel);
+
+
         while (elementOffsets.length < defenseElements.length) elementOffsets.push(0);
         while (elementOffsets.length > defenseElements.length) elementOffsets.pop();
         
